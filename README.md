@@ -58,7 +58,7 @@ The Merkle graph hashing algorithm has the following definition:
 ```
 
 `merkle_hash_graph` has the following inputs:
-- g: A NetworkX digraph. Each node should have a 'label' entry in its node attribute dictionary. The value oof this entry should be a string which determines the label of that node.
+- g: A NetworkX digraph. Each node should have a 'label' entry in its node attribute dictionary. The value of this entry should be a string which determines the label of that node.
 - nodes_to_hash: A list of nodes to hash in the graph. If nodes_to_hash is None, all nodes in the input graph will be hashed.
 - apply_quotient: A boolean value. If true, the SCCs in the hashing function will be run through the quotient_fixpoint function prior to hashing.
 - precomputed_hashes: A dictionary mapping nodes to their hashes (should be encoded as a string hexdigest). This parameter is useful if you are hashing graphs built up over time. If a node has a hash set in the dictionary, that node's precomputed hash will be used instead of recursively hashing the graph.
