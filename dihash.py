@@ -58,6 +58,8 @@ def analyze_graph(g):
 def compose_dicts(d2, d1):
     return {k: d2.get(v) for (k, v) in d1.items()}
 
+# Converts a multigraph to a digraph by inserting a node for every edge,
+# where the label of that node is the number of edges between the two nodes
 def multigraph_to_digraph(g):
     output = nx.DiGraph()
     for n in g.nodes:
@@ -101,6 +103,9 @@ def quotient_graph(g):
                 output.add_edge(quotient_representative_idx, quotient_target_idx)
     return (node_to_quotient_idx, output)
 
+# Computes the quotient graph (G/Orb)/Orb... until a fixpoint is reached
+# Input can be either a MultiDiGraph or a DiGraph
+# Return result is a MultiDiGraph
 def quotient_fixpoint(g):
     prev = g
     (sigma, output) = quotient_graph(g)
@@ -132,15 +137,13 @@ def canonical_orbits_mapping(sorted_orbits):
     for (i, orb) in enumerate(sorted_orbits):
         for n in orb:
             ret[n] = i
-
     return ret
 
-def hash_str(s):
-    #return s
+def hash_sha256(s):
     return hashlib.sha256(s.encode('utf-8')).hexdigest()
 
-def hash_strs(strs):
-    return hash_str(",".join(sorted(strs)))
+def hash_strs(strs, string_hash_fun=hash_sha256):
+    return string_hash_fun(",".join(sorted(strs)))
 
 def escape(s):
     # Replace backslashes with double backslash and quotes with escaped quotes
@@ -149,65 +152,16 @@ def escape(s):
 def adj_list_to_str(adj_list):
     return "[" + ",".join(["(" + str(s) + "," + str(t) + ")" for (s, t) in adj_list]) + "]"
 
-def hash_scc(g, cond, scc, collapse_orbits=True):
-    if cond.nodes[scc]['hash'] is not None:
-        return
-
-    for succ in cond.successors(scc):
-        hash_scc(g, cond, succ, collapse_orbits=collapse_orbits)
-
-    scc_members = set(cond.nodes[scc]['members'])
-    for n in scc_members:
-        non_scc_succs = set(g.successors(n)) - scc_members
-        non_scc_succs_hashes = [g.nodes[n]['hash'] for n in non_scc_succs]
-        g.nodes[n]['nonrec_hash'] = hash_str('"' + escape(g.nodes[n]['label']) + '",' + hash_strs(non_scc_succs_hashes))
-
-    scc_graph = g.subgraph(scc_members).copy()
-    for n in scc_graph.nodes:
-        scc_graph.nodes[n]['label'] = scc_graph.nodes[n]['nonrec_hash']
-
-    canonization = canonize(scc_graph)
-    canonization_mapping = invert_list(canonization)
-
-    orbs = orbits(scc_graph)
-    sorted_orbits = sort_orbits(canonization_mapping, orbs)
-    scc_canon_orbits_mapping = canonical_orbits_mapping(canonization_mapping, sorted_orbits)
-
-    if collapse_orbits:
-        collapsed_scc = nx.DiGraph()
-        for i in range(len(orbs)):
-            collapsed_scc.add_node(i)
-        for (s, t) in scc_graph.edges:
-            collapsed_scc.add_edge(scc_canon_orbits_mapping[s], scc_canon_orbits_mapping[t])
-        coll_scc_canon_adj_list = sorted(list(collapsed_scc.edges))
-        coll_scc_nonrec_hashes = [scc_graph.nodes[orb[0]]['nonrec_hash'] for orb in sorted_orbits]
-        coll_scc_adj_list_str = adj_list_to_str(coll_scc_canon_adj_list)
-        scc_hash = hash_str("[" + ",".join(coll_scc_nonrec_hashes) + "]," + coll_scc_adj_list_str)
-    else:
-        scc_canon_adj_list = sorted([(canonization_mapping[s], canonization_mapping[t]) for (s, t) in scc_graph.edges])
-        scc_canon_nonrec_hashes = [scc_graph.nodes[n]['nonrec_hash'] for n in canonization]
-        scc_canon_adj_list_str = adj_list_to_str(scc_canon_adj_list)
-        scc_hash = hash_str("[" + ",".join(scc_canon_nonrec_hashes) + "]," + scc_canon_adj_list_str)
-
-    cond.nodes[scc]['hash'] = scc_hash
-    for n in scc_members:
-        n_hash = hash_str(str(scc_canon_orbits_mapping[n]) + "," + scc_hash)
-        g.nodes[n]['hash'] = n_hash
-
-def merkle_hash_graph(g, use_quotient_graph):
-    cond = nx.algorithms.components.condensation(g)
-    for scc in cond.nodes:
-        cond.nodes[scc]['hash'] = None
-    roots = [n for (n, d) in cond.in_degree() if d == 0]
-    for r in roots:
-        hash_scc(g, cond, r, collapse_orbits=collapse_orbits)
-
-# Given a NetworkX graph as input, computes the hash of the graph and the hash of the nodes
-# If hash_nodes is True, then the hashes of nodes is also computed
-# If apply_quotient is True, then the hash of G/Orb is computed, where G is the input graph
-# Returns (g_hash, node_hash) where g_hash is the hash of the graph and node_hash is a dictionary which maps
-# nodes to their hash values. If hash_nodes == False, None is returned for node_hash
-def hash_graph(g, hash_nodes=True, apply_quotient=False):
+# (g_hash, node_hashes) = dihash.hash_graph(g, hash_nodes=True, apply_quotient=False, string_hash_fun=hash_sha256)
+# hash_graph has the following inputs:
+# - g: A NetworkX digraph. Each node should have a 'label' entry in its node attribute dictionary. The value of this entry should be a string which determines the label of that node.
+# - hash_nodes: A boolean value. If true, hash_graph also returns a dictionary giving the hashes of all nodes in the graph
+# - apply_quotient: A boolean value. If true, the input graph g is run through the quotient_fixpoint function, which computes (G/Orb)/Orb... prior to hashing the graph.
+# - string_hash_fun: A function which maps strings to a string. The default value, hash_sha256 hashes by using hashlib.sha256 and converting to the result to a hex digest.
+# hash_graph has the following outputs:
+# - g_hash: A hex digest of the hash of the entire graph
+# - node_hashes: If hash_nodes is False, this value is None. If hash_nodes is True, this value is a dictionary mapping nodes to their hash hex digests.
+def hash_graph(g, hash_nodes=True, apply_quotient=False, string_hash_fun=hash_sha256):
     original_graph = g
     original_nodes = frozenset(original_graph.nodes())
     if apply_quotient:
@@ -220,7 +174,7 @@ def hash_graph(g, hash_nodes=True, apply_quotient=False):
     canon_mapping = invert_list(canonization)
     canon_adj_list = sorted([(canon_mapping[s], canon_mapping[t]) for (s, t) in g.edges])
     labels_str = "[" + ",".join(['"' + escape(g.nodes[n]['label']) + '"' for n in canonization]) + "]"
-    g_hash = hash_str(labels_str + "," + adj_list_to_str(canon_adj_list))
+    g_hash = string_hash_fun(labels_str + "," + adj_list_to_str(canon_adj_list))
     ordered_orbits = sort_orbits(canon_mapping, orbs)
     # Note that this indexing scheme departs slightly from the paper. Instead of mapping from nodes to the minimum
     # node index in the same orbit, we map from nodes to the index of the orbit, where the index of the orbit
@@ -231,6 +185,43 @@ def hash_graph(g, hash_nodes=True, apply_quotient=False):
         node_hashes = {}
         for n in original_nodes:
             quotient_node = sigma[n]
-            node_hashes[n] = hash_str(str(canon_orbits_mapping[quotient_node]) + "," + g_hash)
+            node_hashes[n] = string_hash_fun(str(canon_orbits_mapping[quotient_node]) + "," + g_hash)
     return (g_hash, node_hashes)
 
+def hash_scc(g, cond, scc, scc_hashes, node_hashes, apply_quotient, string_hash_fun):
+    if scc in scc_hashes:
+        return
+
+    scc_members = frozenset(cond.nodes[scc]['members'])
+
+    scc_graph = g.subgraph(scc_members).copy()
+
+    for s in scc_members:
+        non_scc_succs = frozenset(g.successors(s)) - scc_members
+        # Recursively hash all nodes that are the target of an edge from within the scc to outside the scc
+        for t in non_scc_succs:
+            if t not in node_hashes:
+                t_scc = cond.graph['mapping'][t]
+                hash_scc(g, cond, t_scc, scc_hashes, node_hashes, apply_quotient, string_hash_fun)
+        non_scc_succs_hashes = [node_hashes[t] for t in non_scc_succs]
+        scc_graph.nodes[s]['label'] = string_hash_fun('"' + escape(g.nodes[s]['label']) + '",' + hash_strs(non_scc_succs_hashes, string_hash_fun))
+
+    (scc_hash, scc_node_hashes) = hash_graph(scc_graph, hash_nodes=True, apply_quotient=apply_quotient, string_hash_fun=string_hash_fun)
+
+    scc_hashes[scc] = scc_hash
+    node_hashes.update(scc_node_hashes)
+
+def merkle_hash_graph(g, nodes_to_hash=None, apply_quotient=False, precomputed_hashes=None, string_hash_fun=hash_sha256):
+    if precomputed_hashes is None:
+        node_hashes = {}
+    else:
+        node_hashes = precomputed_hashes.copy()
+    scc_hashes = {}
+    cond = nx.algorithms.components.condensation(g)
+    if nodes_to_hash is None:
+        roots = {n for (n, d) in cond.in_degree() if d == 0}
+    else:
+        roots = {cond.graph['mapping'][n] for n in nodes_to_hash}
+    for r in roots:
+        hash_scc(g, cond, r, scc_hashes, node_hashes, apply_quotient, string_hash_fun)
+    return (scc_hashes, cond, node_hashes)
