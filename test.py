@@ -1,5 +1,6 @@
 import networkx as nx
 import dihash
+import gen_graphs
 
 def test_quotient():
     g1 = nx.DiGraph()
@@ -227,6 +228,13 @@ def test_merkle_hash_graph():
 
     print("test_merkle_hash_graph passed")
 
+def test_iso_duplicate_removal():
+    for num_nodes in range(1, 4):
+        assert(len(gen_graphs.generate_graphs(num_nodes)) == len(gen_graphs.generate_graphs_nx_iso(num_nodes)))
+
+    print("test_iso_duplicate_removal passed")
+
 test_quotient()
 test_hash_graph()
 test_merkle_hash_graph()
+test_iso_duplicate_removal()

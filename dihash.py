@@ -50,10 +50,14 @@ def orbits(idx_to_node, nauty_g):
     return list(orbits_lookup.values())
 
 # Analyze a NetworkX graph, returning a list of nodes in canonical order and a list of orbits
-def analyze_graph(g):
+def analyze_graph(g, compute_orbits):
     (node_to_idx, nauty_g) = nauty_graph(g)
     idx_to_node = invert_dict(node_to_idx)
-    return (canonize(idx_to_node, nauty_g), orbits(idx_to_node, nauty_g))
+    if compute_orbits:
+        orbs = orbits(idx_to_node, nauty_g)
+    else:
+        orbs = None
+    return (canonize(idx_to_node, nauty_g), orbs)
 
 def compose_dicts(d2, d1):
     return {k: d2.get(v) for (k, v) in d1.items()}
@@ -170,18 +174,18 @@ def hash_graph(g, hash_nodes=True, apply_quotient=False, string_hash_fun=hash_sh
         g = quotient_digraph
     else:
         sigma = {n: n for n in g.nodes()}
-    (canonization, orbs) = analyze_graph(g)
+    (canonization, orbs) = analyze_graph(g, hash_nodes)
     canon_mapping = invert_list(canonization)
     canon_adj_list = sorted([(canon_mapping[s], canon_mapping[t]) for (s, t) in g.edges])
     labels_str = "[" + ",".join(['"' + escape(g.nodes[n]['label']) + '"' for n in canonization]) + "]"
     g_hash = string_hash_fun(labels_str + "," + adj_list_to_str(canon_adj_list))
-    ordered_orbits = sort_orbits(canon_mapping, orbs)
-    # Note that this indexing scheme departs slightly from the paper. Instead of mapping from nodes to the minimum
-    # node index in the same orbit, we map from nodes to the index of the orbit, where the index of the orbit
-    # is computed based on its order of appearance in ordered_orbits.
-    canon_orbits_mapping = canonical_orbits_mapping(ordered_orbits)
     node_hashes = None
     if hash_nodes:
+        ordered_orbits = sort_orbits(canon_mapping, orbs)
+        # Note that this indexing scheme departs slightly from the paper. Instead of mapping from nodes to the minimum
+        # node index in the same orbit, we map from nodes to the index of the orbit, where the index of the orbit
+        # is computed based on its order of appearance in ordered_orbits.
+        canon_orbits_mapping = canonical_orbits_mapping(ordered_orbits)
         node_hashes = {}
         for n in original_nodes:
             quotient_node = sigma[n]
