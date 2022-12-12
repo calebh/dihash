@@ -2,7 +2,6 @@ import time
 import random
 import networkx as nx
 import dihash
-import signal
 import multiprocessing
 import statistics
 import math
@@ -36,18 +35,18 @@ def generate_graph(trial_i, compute_graph_size):
 
 manager = multiprocessing.Manager()
 
-def benchmark(start_trial, num_trials, compute_graph_size, output_file, timeout=10):
+def benchmark(start_trial, max_trial, compute_graph_size, output_file, timeout=10, hash_nodes=False):
     num_trials_per_run = 100
 
     with open(output_file, "w") as f:
-        for trial_i in range(start_trial, num_trials):
+        for trial_i in range(start_trial, max_trial):
             print("Running trial " + str(trial_i))
 
             def run_hash(iter_dict, ret_duration):
                 while iter_dict['completed'] < num_trials_per_run:
                     g = generate_graph(trial_i, compute_graph_size)
                     start = time.time()
-                    dihash.hash_graph(g, hash_nodes=False, apply_quotient=False)
+                    dihash.hash_graph(g, hash_nodes=hash_nodes, apply_quotient=False)
                     end = time.time()
                     iter_dict['completed'] += 1
                     ret_duration.append(end - start)
@@ -56,7 +55,6 @@ def benchmark(start_trial, num_trials, compute_graph_size, output_file, timeout=
 
             iter_dict = manager.dict()
             iter_dict['completed'] = 0
-            iter_dict['i'] = 0
             ret_durations = manager.list()
 
             while not finished:
@@ -83,4 +81,33 @@ def edges_compute_graph_size(trial_i):
     num_nodes = random.randint(min_num_nodes, max_num_nodes)
     return (num_nodes, num_edges)
 
-benchmark(0, 1000, nodes_compute_graph_size, "num_nodes_benchmark.csv")
+def time_distribution_graph_size(num_nodes):
+    num_edges = random.randint(num_nodes - 1, num_nodes ** 2)
+    return (num_nodes, num_edges)
+
+def benchmark_time_distribution(num_nodes, num_trials, compute_graph_size, output_file, timeout=10):
+    def run_hash(ret_duration):
+        g = generate_graph(num_nodes, compute_graph_size)
+        start = time.time()
+        dihash.hash_graph(g, hash_nodes=False, apply_quotient=False)
+        end = time.time()
+        ret_duration.append(end - start)
+
+    ret_durations = manager.list()
+
+    for trial_i in range(num_trials):
+        print("Running trial " + str(trial_i))
+        finished = run_with_limited_time(run_hash, [ret_durations], {}, timeout)
+        if not finished:
+            ret_durations.append(10.0)
+
+    with open(output_file, "w") as f:
+        for duration in ret_durations:
+            f.write(str(duration))
+            f.write('\n')
+
+# Uncomment one or more of the following lines to run benchmarks
+
+#benchmark(0, 1000, nodes_compute_graph_size, "graph_hash_1-1000_nodes.csv")
+#benchmark_time_distribution(500, 1000, time_distribution_graph_size, "graph_hash_time_distribution-500_nodes.csv")
+#benchmark(0, 1000, nodes_compute_graph_size, "graph_hash_all_nodes_1-1000_nodes.csv", hash_nodes=True)
