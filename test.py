@@ -234,7 +234,75 @@ def test_iso_duplicate_removal():
 
     print("test_iso_duplicate_removal passed")
 
+def test_edge_encoding():
+    # This example is what is shown in the nauty manual, section 14, Figure 3
+    g = nx.DiGraph()
+    g.add_node(1)
+    g.add_node(2)
+    g.add_node(3)
+    g.add_node(4)
+    g.nodes[1]['label'] = 'node_label'
+    g.nodes[2]['label'] = 'node_label'
+    g.nodes[3]['label'] = 'node_label'
+    g.nodes[4]['label'] = 'node_label'
+    g.add_edge(1,1)
+    g.add_edge(1,2)
+    g.add_edge(2,3)
+    g.add_edge(3,1)
+    g.add_edge(3,4)
+    g.add_edge(4,3)
+    g.add_edge(4,1)
+    g.edges[(1,1)]['label'] = 'c-solid'
+    g.edges[(1,2)]['label'] = 'a-dashed'
+    g.edges[(2,3)]['label'] = 'c-solid'
+    g.edges[(3,1)]['label'] = 'b-dashed-dotted'
+    g.edges[(4,3)]['label'] = 'a-dashed'
+    g.edges[(4,1)]['label'] = 'b-dashed-dotted'
+    g.edges[(3,4)]['label'] = 'b-dashed-dotted'
+
+    expected = nx.DiGraph()
+    # Layer 0 is the lower layer in the example
+    expected.add_node((0,1))
+    expected.add_node((0,2))
+    expected.add_node((0,3))
+    expected.add_node((0,4))
+    # Layer 1 is the upper layer in the example
+    expected.add_node((1,1))
+    expected.add_node((1,2))
+    expected.add_node((1,3))
+    expected.add_node((1,4))
+
+    # Connect the nodes up in layer 0
+    expected.add_edge((0,1),(0,1))
+    expected.add_edge((0,1),(0,2))
+    expected.add_edge((0,2),(0,3))
+    expected.add_edge((0,4),(0,3))
+
+    # Connect the nodes up in layer 1
+    expected.add_edge((1,1),(1,1))
+    expected.add_edge((1,2),(1,3))
+    expected.add_edge((1,3),(1,4))
+    expected.add_edge((1,3),(1,1))
+    expected.add_edge((1,4),(1,1))
+
+    # Make the vertical threads
+    expected.add_edge((0,1),(1,1))
+    expected.add_edge((1,1),(0,1))
+    expected.add_edge((0,2),(1,2))
+    expected.add_edge((1,2),(0,2))
+    expected.add_edge((0,3),(1,3))
+    expected.add_edge((1,3),(0,3))
+    expected.add_edge((0,4),(1,4))
+    expected.add_edge((1,4),(0,4))
+
+    g_prime = dihash.edge_labeled_digraph_to_digraph(g)
+
+    assert(frozenset(g_prime.nodes()) == frozenset(expected.nodes()))
+    assert(frozenset(g_prime.edges()) == frozenset(expected.edges()))
+    assert(nx.is_isomorphic(g_prime, expected))
+
 test_quotient()
 test_hash_graph()
 test_merkle_hash_graph()
 test_iso_duplicate_removal()
+test_edge_encoding()

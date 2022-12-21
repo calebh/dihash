@@ -35,7 +35,7 @@ def generate_graph(trial_i, compute_graph_size):
 
 manager = multiprocessing.Manager()
 
-def benchmark(start_trial, max_trial, compute_graph_size, output_file, timeout=10, hash_nodes=False):
+def benchmark(start_trial, max_trial, compute_graph_size, output_file, timeout=10, hash_nodes=False, apply_quotient=False):
     num_trials_per_run = 100
 
     with open(output_file, "w") as f:
@@ -46,7 +46,7 @@ def benchmark(start_trial, max_trial, compute_graph_size, output_file, timeout=1
                 while iter_dict['completed'] < num_trials_per_run:
                     g = generate_graph(trial_i, compute_graph_size)
                     start = time.time()
-                    dihash.hash_graph(g, hash_nodes=hash_nodes, apply_quotient=False)
+                    dihash.hash_graph(g, hash_nodes=hash_nodes, apply_quotient=apply_quotient)
                     end = time.time()
                     iter_dict['completed'] += 1
                     ret_duration.append(end - start)
@@ -111,3 +111,4 @@ def benchmark_time_distribution(num_nodes, num_trials, compute_graph_size, outpu
 #benchmark(0, 1000, nodes_compute_graph_size, "graph_hash_1-1000_nodes.csv")
 #benchmark_time_distribution(500, 1000, time_distribution_graph_size, "graph_hash_time_distribution-500_nodes.csv")
 #benchmark(0, 1000, nodes_compute_graph_size, "graph_hash_all_nodes_1-1000_nodes.csv", hash_nodes=True)
+benchmark(0, 1000, nodes_compute_graph_size, "graph_hash_quotient_1-1000_nodes.csv", hash_nodes=False, apply_quotient=True)
