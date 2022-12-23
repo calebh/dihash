@@ -69,6 +69,40 @@ def benchmark(start_trial, max_trial, compute_graph_size, output_file, timeout=1
             f.write(str(statistics.median(durations)))
             f.write('\n')
 
+def benchmark_merkle_hash(start_trial, max_trial, compute_graph_size, output_file, timeout=10, apply_quotient=False):
+    num_trials_per_run = 100
+
+    with open(output_file, "w") as f:
+        for trial_i in range(start_trial, max_trial):
+            print("Running trial " + str(trial_i))
+
+            def run_hash(iter_dict, ret_duration):
+                while iter_dict['completed'] < num_trials_per_run:
+                    g = generate_graph(trial_i, compute_graph_size)
+                    start = time.time()
+                    dihash.merkle_hash_graph(g, apply_quotient=apply_quotient)
+                    end = time.time()
+                    iter_dict['completed'] += 1
+                    ret_duration.append(end - start)
+
+            finished = False
+
+            iter_dict = manager.dict()
+            iter_dict['completed'] = 0
+            ret_durations = manager.list()
+
+            while not finished:
+                finished = run_with_limited_time(run_hash, [iter_dict, ret_durations], {}, timeout)
+                if not finished:
+                    print("timeout")
+
+            durations = list(ret_durations)
+
+            f.write(str(trial_i))
+            f.write(',')
+            f.write(str(statistics.median(durations)))
+            f.write('\n')
+
 def nodes_compute_graph_size(trial_i):
     num_nodes = trial_i + 1
     num_edges = random.randint(num_nodes - 1, num_nodes ** 2)
@@ -111,4 +145,5 @@ def benchmark_time_distribution(num_nodes, num_trials, compute_graph_size, outpu
 #benchmark(0, 1000, nodes_compute_graph_size, "graph_hash_1-1000_nodes.csv")
 #benchmark_time_distribution(500, 1000, time_distribution_graph_size, "graph_hash_time_distribution-500_nodes.csv")
 #benchmark(0, 1000, nodes_compute_graph_size, "graph_hash_all_nodes_1-1000_nodes.csv", hash_nodes=True)
-benchmark(0, 1000, nodes_compute_graph_size, "graph_hash_quotient_1-1000_nodes.csv", hash_nodes=False, apply_quotient=True)
+#benchmark(0, 1000, nodes_compute_graph_size, "graph_hash_quotient_1-1000_nodes.csv", hash_nodes=False, apply_quotient=True)
+benchmark_merkle_hash(0, 1000, nodes_compute_graph_size, "merkle_graph_hash_1-1000_nodes.csv", apply_quotient=False)
