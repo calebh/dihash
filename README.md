@@ -1,10 +1,13 @@
 # dihash
 Python implementation of directed graph hashing, from the paper "Directed Graph Hashing"
 
+# Version 2.0
+dihash has been updated to 2.0, which is a rewrite of 1.0 with bugfixes and cleaner code. An updated version of the paper will be forthcoming. Unit tests have been added, as well as a benchmarking script. The hashes of 2.0 are not backward compatible with 1.0 due to a re-write of the string encoding function.
+
 # Dependencies
 - Python 3
 - NetworkX: https://networkx.org/
-- pynauty: The main repository now supports computing orbits, which means using a forked version is no longer necessary. See https://github.com/pdobsan/pynauty for more details
+- pynauty: The main repository now supports computing orbits, which means using a forked version is no longer necessary. See https://github.com/pdobsan/pynauty for more details. Note that when we installed pynauty with pip3, we had to run `pip install --no-binary pynauty pynauty` since the default binary gave segmentation faults.
 
 # How to Use
 The primary graph hashing algorithm has the following definiton:
@@ -14,7 +17,7 @@ The primary graph hashing algorithm has the following definiton:
 ```
 
 `hash_graph` has the following inputs:
-- g: A NetworkX digraph. Each node should have a 'label' entry in its node attribute dictionary. The value of this entry should be a string which determines the label of that node.
+- g: A NetworkX digraph. Each node should have a 'label' entry in its node attribute dictionary. The value of this entry should be a string which determines the label of that node. g may optionally have a graph attribute named 'label', which is a label for the entire graph
 - hash_nodes: A boolean value. If true, hash_graph also returns a dictionary giving the hashes of all nodes in the graph
 - apply_quotient: A boolean value. If true, the input graph g is run through the quotient_fixpoint function, which computes (G/Orb)/Orb... prior to hashing the graph.
 - string_hash_fun: A function which maps strings to a string. The default value, hash_sha256 hashes by using hashlib.sha256 and converting to the result to a hex digest.
@@ -47,8 +50,8 @@ print(node_hashes)
 The following output is printed:
 
 ```
-1a04a11e6643d72321fe9a6742d5a136cb57416711de3bc88cac8c49eee85227
-{0: '223fd1e16ea9d95a5007ec9f38d85609ea57a11d0c37f387e762a6b9c64eaac5', 1: '223fd1e16ea9d95a5007ec9f38d85609ea57a11d0c37f387e762a6b9c64eaac5', 2: '223fd1e16ea9d95a5007ec9f38d85609ea57a11d0c37f387e762a6b9c64eaac5'}
+b37deb748c68bd738fdb647aa638ad8654c690d8ce14507fd21f1f299faf7ed5
+{0: 'ad6321ae4eb544ab1f00db6436938427e01176cc3b4fed44ef0c6a0a88a0a7c3', 1: 'ad6321ae4eb544ab1f00db6436938427e01176cc3b4fed44ef0c6a0a88a0a7c3', 2: 'ad6321ae4eb544ab1f00db6436938427e01176cc3b4fed44ef0c6a0a88a0a7c3'}
 ```
 
 The Merkle graph hashing algorithm has the following definition:
@@ -114,24 +117,30 @@ print(scc_hashes[cond.graph['mapping'][0]]) # Print the hash for the SCC contain
 The following output is printed:
 
 ```
-dd9e82ad81a8ddf421beace1904e131609cf0d0f363f14e54b1139f869462d09
-5caf61e88fa34a9e2d3d7bb06cb585ccc06955ab54531a5431982e139c93f9a7
-5caf61e88fa34a9e2d3d7bb06cb585ccc06955ab54531a5431982e139c93f9a7
-dd9e82ad81a8ddf421beace1904e131609cf0d0f363f14e54b1139f869462d09
-9c004ab952e1b947fd76b308b6ba87edc33c7df7e57ae170e47006a3be38be75
+0794c37c25dd026eab1c46c607a7a44f1faaf32f8d0f7dfdaf7728a25707a9dc
+4ad992c5399689c950e46ec0b4ae4921457f94a319ecba4b3d1f66d8ef00463b
+4ad992c5399689c950e46ec0b4ae4921457f94a319ecba4b3d1f66d8ef00463b
+0794c37c25dd026eab1c46c607a7a44f1faaf32f8d0f7dfdaf7728a25707a9dc
+e9abdcec4447c828c2f259e8bf30e5bf0001da93e3e09fa01654e6d54018d42a
 ```
 
-`multigraph_to_digraph` is an auxillary function that converts a node labelled NetworkX MultiDiGraph into an isomorphic NetworkX DiGraph. This is useful if you wish to hash a MultiDiGraph.
+The edge labeled digraph encoding algorithm has the following definition:
+
+`(g_out, edge_labels) = edge_labeled_digraph_to_digraph(g)`
+
+The input graph `g` with edge labels (defined in the 'label' property of the edge) is converted to a node-labeled digraph via the encoding described in Section 14 of the nauty User's manual. Since the values of the edge labels are erased, the return value `edge_labels` is a sorted list of the set of edge labels in the input graph. If you want to hash an edge labeled digraph, remember to encode `edge_labels` as a string and assign it as the label of `g_out`.
+
+The multigraph encoding algorithm has the following definition:
+
+`g_out = multigraph_to_edge_labeled_digraph(g)`
+
+The input graph `g` is a node labeled multigraph. Parallel (duplicate) edges are encoded in the edge label of `g_out`. The label is defined to be the number of edges encoded as a base 10 string.
+
+`multigraph_to_edge_labeled_digraph` is an auxillary function that converts a node labelled NetworkX MultiDiGraph into an isomorphic NetworkX edge labeled DiGraph. This is
 
 ```
 g_prime = dihash.multigraph_to_digraph(g)
 ```
-
-`multigraph_to_digraph` has the following inputs:
-- g: A NetworkX multi-edged digraph with node labels defined in the node attribute dictionary via the 'label' key
-
-`multigraph_to_digraph` returns the following value:
-- g_prime: A NetworkX digraph with intermediate nodes inserted for every edge of the input. The labels of the intermediate node is the number of times an edge appears in the multi-edged digraph.
 
 Example:
 
@@ -144,17 +153,21 @@ g.nodes[1]['label'] = 'b'
 g.add_edge(0, 1)
 g.add_edge(0, 1)
 
-g_prime = dihash.multigraph_to_digraph(g)
+g_prime = dihash.multigraph_to_edge_labeled_digraph(g)
 
 print(list(g_prime.nodes()))
 print(list(g_prime.edges()))
-print(g_prime.nodes[(0,1)]['label']) # (0, 1) is the intermediate node inserted between 0 and 1
+print(g_prime.edges[0,1]['label'])
 ```
 
 The following output is printed:
 
 ```
-[0, 1, (0, 1)]
-[(0, (0, 1)), ((0, 1), 1)]
+[0, 1]
+[(0, 1)]
 2
 ```
+
+# Further Examples
+
+For further examples, see the unit test script `test.py`.

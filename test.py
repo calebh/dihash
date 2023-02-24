@@ -113,6 +113,12 @@ def test_hash_graph():
     g2.add_edge(2, 3)
     g2.add_edge(3, 0)
 
+    expected_quotient = nx.DiGraph()
+    expected_quotient.add_node(0)
+    expected_quotient.nodes[0]['label'] = 'a'
+
+    expected_quotient.add_edge(0, 0)
+
     (hash_1, node_hashes_1) = dihash.hash_graph(g1, apply_quotient=False)
     assert(node_hashes_1[0] == node_hashes_1[1])
     assert(node_hashes_1[0] == node_hashes_1[2])
@@ -126,7 +132,6 @@ def test_hash_graph():
     assert(node_hashes_1[0] != node_hashes_2[0])
 
     assert(hash_1 != hash_2)
-
 
     (hash_3, node_hashes_3) = dihash.hash_graph(g1, apply_quotient=True)
     assert(node_hashes_3[0] == node_hashes_3[1])
@@ -142,6 +147,11 @@ def test_hash_graph():
     assert(node_hashes_2[0] != node_hashes_4[0])
 
     assert(hash_3 == hash_4)
+
+    (hash_5, node_hashes_5) = dihash.hash_graph(expected_quotient, apply_quotient=False)
+
+    assert(node_hashes_3[0] == node_hashes_5[0])
+    assert(hash_3 == hash_5)
 
     print("test_graph_hash passed")
 
@@ -287,19 +297,17 @@ def test_edge_encoding():
 
     # Make the vertical threads
     expected.add_edge((0,1),(1,1))
-    expected.add_edge((1,1),(0,1))
     expected.add_edge((0,2),(1,2))
-    expected.add_edge((1,2),(0,2))
     expected.add_edge((0,3),(1,3))
-    expected.add_edge((1,3),(0,3))
     expected.add_edge((0,4),(1,4))
-    expected.add_edge((1,4),(0,4))
 
-    g_prime = dihash.edge_labeled_digraph_to_digraph(g)
+    (g_prime, _) = dihash.edge_labeled_digraph_to_digraph(g)
 
     assert(frozenset(g_prime.nodes()) == frozenset(expected.nodes()))
     assert(frozenset(g_prime.edges()) == frozenset(expected.edges()))
     assert(nx.is_isomorphic(g_prime, expected))
+
+    print("test_edge_encoding passed")
 
 test_quotient()
 test_hash_graph()

@@ -38,6 +38,18 @@ def escape(s):
     # Replace backslashes with double backslash and quotes with escaped quotes
     return s.replace('\\', '\\\\').replace('"', '\\"')
 
+def to_str(data):
+    if isinstance(data, list):
+        return "[{}]".format(",".join([to_str(elem) for elem in data]))
+    elif isinstance(data, str):
+        return '"{}"'.format(escape(data))
+    elif isinstance(data, tuple):
+        return "({})".format(",".join([to_str(elem) for elem in data]))
+    elif isinstance(data, int):
+        return str(data)
+    else:
+        raise TypeError("Unable to call to_str on " + str(data))
+
 # Returns a list of lists of nodes, each list is an orbit
 def orbits(idx_to_node, nauty_g):
     # orbs gives the orbits of the graph. Two nodes i,j are in the same orbit if and only if orbs[i] == orbs[j]
@@ -67,6 +79,7 @@ def analyze_graph(g, compute_orbits):
 def compose_dicts(d2, d1):
     return {k: d2.get(v) for (k, v) in d1.items()}
 
+# Returns the number of bits needed to represent an integer input x
 def num_to_bit_counts(x):
     return math.ceil(math.log2(x + 1))
 
@@ -85,12 +98,11 @@ def edge_labeled_digraph_to_digraph(g):
     format_str = '{0:0' + str(num_layers) + 'b}'
     edge_layer_to_bits = {label: format_str.format(i + 1) for (i, label) in enumerate(edge_layers)}
     g_out = nx.DiGraph()
-    # Add the nodes for each layer. Each node is labeled with (layer_i, nlabel) where nlabel
-    # is the original label of the node in the input graph
+    # Add the nodes for each layer
     for layer_i in range(num_layers):
         for n in g.nodes():
             g_out.add_node((layer_i, n))
-            g_out.nodes[(layer_i, n)]['label'] = '(' + str(layer_i) + ',"' + escape(g.nodes[n]['label']) + '")'
+            g_out.nodes[(layer_i, n)]['label'] = g.nodes[n]['label']
     # Create the edges in each layer
     for layer_i in range(num_layers):
         for (s, t) in g.edges():
@@ -101,11 +113,19 @@ def edge_labeled_digraph_to_digraph(g):
             if edge_layer_to_bits[edge_label][from_end_i] == '1':
                 g_out.add_edge((layer_i, s), (layer_i, t))
     # Create the vertical threads for each node
+    # Each node in the layer is connected in one direction to the node above it
     for layer_i in range(num_layers - 1):
         for n in g.nodes():
             g_out.add_edge((layer_i, n), (layer_i + 1, n))
-            g_out.add_edge((layer_i + 1, n), (layer_i, n))
-    return g_out
+    return (g_out, edge_layers)
+
+# g is a MultiDiGraph. This function returns the maximum number of parallel edges in the MultiDiGraph
+# If g has no edges, 1 is returned
+def max_num_multiedges(g):
+    if len(g.edges()) > 0:
+        return max(g.number_of_edges(s,t) for (s, t) in g.edges())
+    else:
+        return 1
 
 # Converts a multigraph to an edge labeled digraph. The edges are labeled with
 # the number of edges between two nodes
@@ -126,7 +146,7 @@ def multigraph_to_edge_labeled_digraph(g):
 def quotient_graph(g):
     if isinstance(g, nx.DiGraph):
         g = nx.MultiDiGraph(g)
-    g_digraph = edge_labeled_digraph_to_digraph(multigraph_to_edge_labeled_digraph(g))
+    (g_digraph, _) = edge_labeled_digraph_to_digraph(multigraph_to_edge_labeled_digraph(g))
     (node_to_idx, nauty_g) = nauty_graph(g_digraph)
     idx_to_node = invert_dict(node_to_idx)
     # orbs is a list of orbits. Each orbit contains a list of nodes,
@@ -195,18 +215,14 @@ def canonical_orbits_mapping(sorted_orbits):
 def hash_sha256(s):
     return hashlib.sha256(s.encode('utf-8')).hexdigest()
 
-def hash_strs(strs, string_hash_fun=hash_sha256):
-    return string_hash_fun(",".join(sorted(strs)))
-
-def adj_list_to_str(adj_list):
-    return "[" + ",".join(["(" + str(s) + "," + str(t) + ")" for (s, t) in adj_list]) + "]"
-
 # (g_hash, node_hashes) = dihash.hash_graph(g, hash_nodes=True, apply_quotient=False, string_hash_fun=hash_sha256)
+#
 # hash_graph has the following inputs:
-# - g: A NetworkX digraph. Each node should have a 'label' entry in its node attribute dictionary. The value of this entry should be a string which determines the label of that node.
+# - g: A NetworkX digraph. Each node should have a 'label' entry in its node attribute dictionary. The value of this entry should be a string which determines the label of that node. g may optionally have a graph attribute named 'label', which is a label for the entire graph
 # - hash_nodes: A boolean value. If true, hash_graph also returns a dictionary giving the hashes of all nodes in the graph
 # - apply_quotient: A boolean value. If true, the input graph g is run through the quotient_fixpoint function, which computes (G/Orb)/Orb... prior to hashing the graph.
 # - string_hash_fun: A function which maps strings to a string. The default value, hash_sha256 hashes by using hashlib.sha256 and converting to the result to a hex digest.
+#
 # hash_graph has the following outputs:
 # - g_hash: A hex digest of the hash of the entire graph
 # - node_hashes: If hash_nodes is False, this value is None. If hash_nodes is True, this value is a dictionary mapping nodes to their hash hex digests.
@@ -215,16 +231,35 @@ def hash_graph(g, hash_nodes=True, apply_quotient=False, string_hash_fun=hash_sh
     original_nodes = frozenset(original_graph.nodes())
     if apply_quotient:
         (sigma, quotient_multigraph) = quotient_fixpoint(original_graph)
-        quotient_digraph = edge_labeled_digraph_to_digraph(multigraph_to_edge_labeled_digraph(quotient_multigraph))
-        sigma = compose_dicts({n: (0, n) for n in original_nodes}, sigma)
-        g = quotient_digraph
+        if max_num_multiedges(quotient_multigraph) == 1:
+            # If there are no multiedges, simply convert back to an ordinary DiGraph
+            g = nx.DiGraph(quotient_multigraph)
+        else:
+            # Otherwise we have to encode the multigraph into a digraph
+            (quotient_digraph, edge_labels) = edge_labeled_digraph_to_digraph(multigraph_to_edge_labeled_digraph(quotient_multigraph))
+            # Map n to nodes on the first layer, then compose with the mapping from (0,n) to the node in the quotient graph
+            sigma = compose_dicts({n: (0, n) for n in original_nodes}, sigma)
+            # The parallel edges in the multigraph were converted to edge labels, and then implicitly
+            # encoded in the structure of quotient_digraph. We lost the value of the labels, so we
+            # need to take that into account. Here we save the edge labels as a global
+            # property of the graph
+            if 'label' in original_graph.graph:
+                quotient_digraph.graph['label'] = to_str((quotient_digraph.graph['label'], edge_labels))
+            else:
+                quotient_digraph.graph['label'] = to_str(edge_labels)
+            g = quotient_digraph
     else:
+        # sigma is the identity mapping
         sigma = {n: n for n in g.nodes()}
     (canonization, orbs) = analyze_graph(g, hash_nodes)
     canon_mapping = invert_list(canonization)
     canon_adj_list = sorted([(canon_mapping[s], canon_mapping[t]) for (s, t) in g.edges])
-    labels_str = "[" + ",".join(['"' + escape(g.nodes[n]['label']) + '"' for n in canonization]) + "]"
-    g_hash = string_hash_fun(labels_str + "," + adj_list_to_str(canon_adj_list))
+    canon_labels = [g.nodes[n]['label'] for n in canonization]
+    if 'label' in g.graph:
+        g_summary = (g.graph['label'], canon_labels, canon_adj_list)
+    else:
+        g_summary = (canon_labels, canon_adj_list)
+    g_hash = string_hash_fun(to_str(g_summary))
     node_hashes = None
     if hash_nodes:
         ordered_orbits = sort_orbits(canon_mapping, orbs)
@@ -235,7 +270,7 @@ def hash_graph(g, hash_nodes=True, apply_quotient=False, string_hash_fun=hash_sh
         node_hashes = {}
         for n in original_nodes:
             quotient_node = sigma[n]
-            node_hashes[n] = string_hash_fun(str(canon_orbits_mapping[quotient_node]) + "," + g_hash)
+            node_hashes[n] = string_hash_fun(to_str((canon_orbits_mapping[quotient_node], g_hash)))
     return (g_hash, node_hashes)
 
 def hash_scc(g, cond, scc, scc_hashes, node_hashes, apply_quotient, string_hash_fun):
@@ -253,8 +288,8 @@ def hash_scc(g, cond, scc, scc_hashes, node_hashes, apply_quotient, string_hash_
             if t not in node_hashes:
                 t_scc = cond.graph['mapping'][t]
                 hash_scc(g, cond, t_scc, scc_hashes, node_hashes, apply_quotient, string_hash_fun)
-        non_scc_succs_hashes = [node_hashes[t] for t in non_scc_succs]
-        scc_graph.nodes[s]['label'] = string_hash_fun('"' + escape(g.nodes[s]['label']) + '",' + hash_strs(non_scc_succs_hashes, string_hash_fun))
+        non_scc_succs_hashes = sorted([node_hashes[t] for t in non_scc_succs])
+        scc_graph.nodes[s]['label'] = string_hash_fun(to_str((g.nodes[s]['label'], non_scc_succs_hashes)))
 
     (scc_hash, scc_node_hashes) = hash_graph(scc_graph, hash_nodes=True, apply_quotient=apply_quotient, string_hash_fun=string_hash_fun)
 
