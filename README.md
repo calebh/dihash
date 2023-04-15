@@ -4,6 +4,9 @@ Python implementation of directed graph hashing, from the paper "Directed Graph 
 # Version 2.0
 dihash has been updated to 2.0, which is a rewrite of 1.0 with bugfixes and cleaner code. An updated version of the paper will be forthcoming. Unit tests have been added, as well as a benchmarking script. The hashes of 2.0 are not backward compatible with 1.0 due to a re-write of the string encoding function.
 
+# Version 2.1
+A critical bug has been fixed with the color ordering passed to pynauty. Previously I had assumed that the order of the node colors passed to pynauty did not matter, however testing revealed this not to be the case. The issue was resolved by sorting the coloring by label lexiographical order before passing to pynauty.
+
 # Dependencies
 - Python 3
 - NetworkX: https://networkx.org/
@@ -122,6 +125,43 @@ The following output is printed:
 4ad992c5399689c950e46ec0b4ae4921457f94a319ecba4b3d1f66d8ef00463b
 0794c37c25dd026eab1c46c607a7a44f1faaf32f8d0f7dfdaf7728a25707a9dc
 e9abdcec4447c828c2f259e8bf30e5bf0001da93e3e09fa01654e6d54018d42a
+```
+
+If we want to simultaneously create multiple node pointers into the given input graph, we can use the hash_graph_node_set function. This function has the following signature:
+
+```
+(g_hash, node_hashes) = hash_graph_node_set(g, node_set, apply_quotient=False, string_hash_fun=hash_sha256)
+```
+
+The node_set input should be a set of nodes that we want to create pointers for into the graph. The function works by modifying the labels of the graph nodes.
+
+Example:
+```
+# Create a cycle graph with 4 nodes
+g2 = nx.DiGraph()
+g2.add_node(1)
+g2.add_node(2)
+g2.add_node(3)
+g2.add_node(4)
+
+g2.nodes[1]['label'] = 'node_label'
+g2.nodes[2]['label'] = 'node_label'
+g2.nodes[3]['label'] = 'node_label'
+g2.nodes[4]['label'] = 'node_label'
+
+g2.add_edge(1, 2)
+g2.add_edge(2, 3)
+g2.add_edge(3, 4)
+g2.add_edge(4, 1)
+
+(g_hash5, node_hashes5) = dihash.hash_graph_node_set(g2, {1, 2})
+(g_hash6, node_hashes6) = dihash.hash_graph_node_set(g2, {3, 4})
+
+assert(g_hash5 == g_hash6)
+assert(node_hashes5[1] != node_hashes5[2])
+assert(node_hashes6[3] != node_hashes6[4])
+assert(node_hashes5[1] == node_hashes6[3])
+assert(node_hashes5[2] == node_hashes6[4])
 ```
 
 The edge labeled digraph encoding algorithm has the following definition:

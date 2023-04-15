@@ -276,6 +276,9 @@ def hash_graph(g, hash_nodes=True, apply_quotient=False, string_hash_fun=hash_sh
             node_hashes[n] = string_hash_fun(to_str((canon_orbits_mapping[quotient_node], g_hash)))
     return (g_hash, node_hashes)
 
+# Compute the hashes of nodes in a graph where we have pointers to all the nodes in the node_set
+# This is in contrast to the node_hashes in the hash_graph function, where we are assuming
+# that we only want the hashes of one pointer into the graph
 def hash_graph_node_set(g, node_set, apply_quotient=False, string_hash_fun=hash_sha256):
     # Copy the graph because we're going to need to mutate it
     g = g.copy()
