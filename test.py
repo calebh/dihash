@@ -309,8 +309,77 @@ def test_edge_encoding():
 
     print("test_edge_encoding passed")
 
+def test_hash_graph_node_set():
+    g = nx.DiGraph()
+    g.add_node(1)
+    g.add_node(2)
+    g.add_node(3)
+    g.add_node(4)
+
+    g.nodes[1]['label'] = 'node_label'
+    g.nodes[2]['label'] = 'node_label'
+    g.nodes[3]['label'] = 'node_label'
+    g.nodes[4]['label'] = 'node_label'
+
+    g.add_edge(1, 2)
+    g.add_edge(2, 1)
+    g.add_edge(2, 3)
+    g.add_edge(3, 2)
+    g.add_edge(3, 4)
+    g.add_edge(4, 3)
+    g.add_edge(4, 1)
+    g.add_edge(1, 4)
+
+    (g_hash1, node_hashes1) = dihash.hash_graph_node_set(g, {1, 3})
+    (g_hash2, node_hashes2) = dihash.hash_graph_node_set(g, {2, 4})
+
+    assert(g_hash1 == g_hash2)
+    assert(node_hashes1[1] == node_hashes1[3])
+    assert(node_hashes2[2] == node_hashes2[4])
+    assert(node_hashes1[1] == node_hashes2[2])
+
+    (g_hash3, node_hashes3) = dihash.hash_graph_node_set(g, {1, 2})
+    (g_hash4, node_hashes4) = dihash.hash_graph_node_set(g, {2, 3})
+
+    assert(g_hash3 == g_hash4)
+    assert(g_hash3 != g_hash1)
+    assert(node_hashes3[1] == node_hashes3[2])
+    assert(node_hashes4[2] == node_hashes4[3])
+    assert(node_hashes3[1] == node_hashes4[2])
+    assert(node_hashes1[1] != node_hashes3[1])
+
+    g2 = nx.DiGraph()
+    g2.add_node(1)
+    g2.add_node(2)
+    g2.add_node(3)
+    g2.add_node(4)
+
+    g2.nodes[1]['label'] = 'node_label'
+    g2.nodes[2]['label'] = 'node_label'
+    g2.nodes[3]['label'] = 'node_label'
+    g2.nodes[4]['label'] = 'node_label'
+
+    g2.add_edge(1, 2)
+    g2.add_edge(2, 3)
+    g2.add_edge(3, 4)
+    g2.add_edge(4, 1)
+
+    (g_hash5, node_hashes5) = dihash.hash_graph_node_set(g2, {1, 2})
+    (g_hash6, node_hashes6) = dihash.hash_graph_node_set(g2, {3, 4})
+
+    assert(g_hash5 == g_hash6)
+    assert(node_hashes5[1] != node_hashes5[2])
+    assert(node_hashes6[3] != node_hashes6[4])
+    assert(node_hashes5[1] == node_hashes6[3])
+    assert(node_hashes5[2] == node_hashes6[4])
+
+    print("test_hash_graph_node_set passed")
+
 test_quotient()
 test_hash_graph()
 test_merkle_hash_graph()
 test_iso_duplicate_removal()
 test_edge_encoding()
+test_hash_graph_node_set()
+
+print("All tests passed!")

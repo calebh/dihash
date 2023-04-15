@@ -20,8 +20,11 @@ def nauty_graph(g):
             colorings_lookup[label] = set()
         colorings_lookup[label].add(node_to_idx[n])
 
+    # It turns out that the order of the vertex_coloring passed to nauty is important
+    ordered_labels = sorted(colorings_lookup.keys())
+
     # Convert the dictionary into a list of sets. Each set contains node indices with identical labels
-    colorings = [nodes for (_, nodes) in colorings_lookup.items()]
+    colorings = [colorings_lookup[label] for label in ordered_labels]
 
     # Construct the pynauty graph
     nauty_g = pynauty.Graph(g.order(), directed=True, adjacency_dict=adj_dict, vertex_coloring=colorings)
@@ -271,6 +274,17 @@ def hash_graph(g, hash_nodes=True, apply_quotient=False, string_hash_fun=hash_sh
         for n in original_nodes:
             quotient_node = sigma[n]
             node_hashes[n] = string_hash_fun(to_str((canon_orbits_mapping[quotient_node], g_hash)))
+    return (g_hash, node_hashes)
+
+def hash_graph_node_set(g, node_set, apply_quotient=False, string_hash_fun=hash_sha256):
+    # Copy the graph because we're going to need to mutate it
+    g = g.copy()
+    if len(node_set) >= 2:
+        # Add a pointer label for each node in the node_set
+        for n in node_set:
+            g.nodes[n]['label'] = to_str(('ptr', g.nodes[n]['label']))
+    (g_hash, node_hashes) = hash_graph(g, hash_nodes=True, apply_quotient=apply_quotient, string_hash_fun=string_hash_fun)
+    node_hashes = {n : node_hashes[n] for n in node_set}
     return (g_hash, node_hashes)
 
 def hash_scc(g, cond, scc, scc_hashes, node_hashes, apply_quotient, string_hash_fun):
