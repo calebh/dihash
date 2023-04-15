@@ -280,9 +280,12 @@ def hash_graph_node_set(g, node_set, apply_quotient=False, string_hash_fun=hash_
     # Copy the graph because we're going to need to mutate it
     g = g.copy()
     if len(node_set) >= 2:
-        # Add a pointer label for each node in the node_set
-        for n in node_set:
-            g.nodes[n]['label'] = to_str(('ptr', g.nodes[n]['label']))
+        for n in g.nodes():
+            if n in node_set:
+                # Add a pointer label for each node in the node_set
+                g.nodes[n]['label'] = to_str(('ptr', g.nodes[n]['label']))
+            else:
+                g.nodes[n]['label'] = to_str(('nonptr', g.nodes[n]['label']))            
     (g_hash, node_hashes) = hash_graph(g, hash_nodes=True, apply_quotient=apply_quotient, string_hash_fun=string_hash_fun)
     node_hashes = {n : node_hashes[n] for n in node_set}
     return (g_hash, node_hashes)
