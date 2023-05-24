@@ -1,6 +1,7 @@
 import networkx as nx
+from .gen_graphs import *
 import dihash
-import gen_graphs
+import pytest
 
 def test_quotient():
     g1 = nx.DiGraph()
@@ -240,7 +241,7 @@ def test_merkle_hash_graph():
 
 def test_iso_duplicate_removal():
     for num_nodes in range(1, 4):
-        assert(len(gen_graphs.generate_graphs(num_nodes)) == len(gen_graphs.generate_graphs_nx_iso(num_nodes)))
+        assert(len(generate_graphs(num_nodes)) == len(generate_graphs_nx_iso(num_nodes)))
 
     print("test_iso_duplicate_removal passed")
 
@@ -375,11 +376,11 @@ def test_hash_graph_node_set():
 
     print("test_hash_graph_node_set passed")
 
-test_quotient()
-test_hash_graph()
-test_merkle_hash_graph()
-test_iso_duplicate_removal()
-test_edge_encoding()
-test_hash_graph_node_set()
+#test_quotient()
+#test_hash_graph()
+#test_merkle_hash_graph()
+#test_iso_duplicate_removal()
+#test_edge_encoding()
+#test_hash_graph_node_set()
 
-print("All tests passed!")
+#print("All tests passed!")

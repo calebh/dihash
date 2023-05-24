@@ -1,8 +1,16 @@
 # dihash
 Python implementation of directed graph hashing, from the paper "Directed Graph Hashing"
 
+# Now on PyPi
+
+This project is now on PyPi and can be directly installed with pip. If you have problems with the pynauty dependency, see the "Dependencies" section below.
+
+```
+pip install dihash
+```
+
 # Version 2.0
-dihash has been updated to 2.0, which is a rewrite of 1.0 with bugfixes and cleaner code. An updated version of the paper will be forthcoming. Unit tests have been added, as well as a benchmarking script. The hashes of 2.0 are not backward compatible with 1.0 due to a re-write of the string encoding function.
+dihash has been updated to 2.0, which is a rewrite of 1.0 with bugfixes and cleaner code. An updated version of the paper is now available on arXiv at https://arxiv.org/abs/2002.06653. Unit tests have been added, as well as a benchmarking script. The hashes of 2.0 are not backward compatible with 1.0 due to a re-write of the string encoding function.
 
 # Version 2.1
 A critical bug has been fixed with the color ordering passed to pynauty. Previously I had assumed that the order of the node colors passed to pynauty did not matter, however testing revealed this not to be the case. The issue was resolved by sorting the coloring by label lexiographical order before passing to pynauty.
@@ -10,7 +18,7 @@ A critical bug has been fixed with the color ordering passed to pynauty. Previou
 # Dependencies
 - Python 3
 - NetworkX: https://networkx.org/
-- pynauty: The main repository now supports computing orbits, which means using a forked version is no longer necessary. See https://github.com/pdobsan/pynauty for more details. Note that when we installed pynauty with pip3, we had to run `pip install --no-binary pynauty pynauty` since the default binary gave segmentation faults.
+- pynauty: The main repository now supports computing orbits, which means using a forked version is no longer necessary. See https://github.com/pdobsan/pynauty for more details. Note that when we installed pynauty with pip3, we had to run `pip install --no-binary pynauty pynauty` since the default binary gave segmentation faults. pynauty does not seem to have Windows support, which means that Linux/Unix is a requirement for this library as well.
 
 # How to Use
 The primary graph hashing algorithm has the following definiton:
@@ -210,4 +218,4 @@ The following output is printed:
 
 # Further Examples
 
-For further examples, see the unit test script `test.py`.
+For further examples, see the unit test script `tests/hash_impl_test.py`.
