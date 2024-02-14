@@ -1,3 +1,6 @@
+[![Latest Release](https://img.shields.io/pypi/v/dihash.svg)](https://pypi.python.org/pypi/dihash/)
+[![PyPI Statistics](https://img.shields.io/pypi/dm/dihash.svg)](https://pypistats.org/packages/dihash)
+
 # dihash
 Python implementation of directed graph hashing, from the paper "Directed Graph Hashing"
 
