@@ -1,6 +1,19 @@
 import networkx as nx
 import matplotlib.pyplot as plt
 
+def lt_metric(a_lst, b_lst):
+    if len(a_lst) < len(b_lst):
+        return True
+    elif len(a_lst) > len(b_lst):
+        return False
+    else:
+        for (a, b) in zip(a_lst, b_lst):
+            if a < b:
+                return True
+            elif b > a:
+                return False
+        return False
+
 class DistinguishingTable:
     def __init__(self):
         self.markings = set()
@@ -13,6 +26,35 @@ class DistinguishingTable:
         # Returns True if a and b are distinguishable
         return frozenset([a, b]) in self.markings
 
+class MetricTable:
+    def __init__(self):
+        self.candidate_distinguishers = dict()
+        self.commited_distinguishers = dict()
+
+    def lookup(self, a, b):
+        return self.commited_distinguishers[(a, b)]
+
+    def is_marked(self, a, b):
+        return (a, b) in self.commited_distinguishers
+
+    def add_candidate(self, a, b, distinguisher):
+        if (a, b) not in self.candidate_distinguishers:
+            self.candidate_distinguishers[(a, b)] = [distinguisher]
+        else:
+            self.candidate_distinguishers[(a, b)].append(distinguisher)
+
+    def commit(self) -> bool:
+        for (pair, candidates) in self.candidate_distinguishers.items():
+            min_distinguisher = candidates[0]
+            for i in range(1, len(candidates)):
+                c = candidates[i]
+                if lt_metric(c, min_distinguisher):
+                    min_distinguisher = c
+            self.commited_distinguishers[pair] = min_distinguisher
+        ret = len(self.candidate_distinguishers) > 0
+        self.candidate_distinguishers.clear()
+        return ret
+
 def pairs(lst):
     ret = []
     for i in range(len(lst)):
@@ -20,8 +62,17 @@ def pairs(lst):
             ret.append((lst[i], lst[j]))
     return ret
 
+def is_distinguishable(table, a, bs):
+    # Returns True if a is distinguishable from all nodes b in bs
+    for b in bs:
+        if not table.is_marked(a, b):
+            return False
+    # If we're here, then all pairs (a, b) are marked
+    return True
+
 def minimize_table(g: nx.DiGraph) -> DistinguishingTable:
     table = DistinguishingTable()
+    metric_table = MetricTable()
 
     node_pairs = pairs(list(g.nodes))
 
@@ -30,13 +81,9 @@ def minimize_table(g: nx.DiGraph) -> DistinguishingTable:
         m_label = g.nodes[m]['label']
         if n_label != m_label:
             table.mark(n, m)
-
-    def is_distinguishable(a, bs):
-        # Returns True if a is distinguishable from all nodes b in bs
-        for b in bs:
-            if not table.is_marked(a, b):
-                return False
-        return True
+            metric_table.add_candidate(n, m, [n_label])
+            metric_table.add_candidate(m, n, [m_label])
+    metric_table.commit()
 
     table_updated = True
     while table_updated:
@@ -44,11 +91,42 @@ def minimize_table(g: nx.DiGraph) -> DistinguishingTable:
         for (n, m) in node_pairs:
             if not table.is_marked(n, m):
                 for n_neighbor in g.neighbors(n):
-                    if is_distinguishable(n_neighbor, g.neighbors(m)):
+                    if is_distinguishable(table, n_neighbor, g.neighbors(m)):
                         table.mark(n, m)
                         table_updated = True
-
     return table
+
+def canonize(minimized_graph):
+    metric_table = MetricTable()
+
+    for n in minimized_graph.nodes:
+        for m in minimized_graph.nodes:
+            n_label = minimized_graph.nodes[n]['label']
+            m_label = minimized_graph.nodes[m]['label']
+            if n_label != m_label:
+                metric_table.add_candidate(n, m, [n_label])
+                metric_table.add_candidate(m, n, [m_label])
+            else:
+                if minimized_graph.out_degree(m) == 0:
+                    for n_neighbor in minimized_graph.neighbors(n):
+                        n_neighbor_label = minimized_graph.nodes[n_neighbor]['label']
+                        metric_table.add_candidate(n, m, [n_label, n_neighbor_label])
+    metric_table.commit()
+
+    table_updated = True
+    while table_updated:
+        for n in minimized_graph.nodes:
+            n_label = minimized_graph.nodes[n]['label']
+            for m in minimized_graph.nodes:
+                if not metric_table.is_marked(n, m):
+                    for n_neighbor in minimized_graph.neighbors(n):
+                        if is_distinguishable(metric_table, n_neighbor, minimized_graph.neighbors(m)):
+                            for m_neighbor in minimized_graph.neighbors(m):
+                                neighbor_distinguisher = metric_table.lookup(n_neighbor, m_neighbor)
+                                metric_table.add_candidate(n, m, [n_label] + neighbor_distinguisher)
+        table_updated = metric_table.commit()
+
+    return metric_table
 
 def equivalence_classes(g: nx.DiGraph, table: DistinguishingTable) -> list[list]:
     equivalence_classes: list[list] = []
@@ -113,19 +191,23 @@ g.nodes[9]['label'] = 'b'
 g.add_node(10)
 g.add_edge(4, 10)
 g.add_edge(5, 10)
-g.add_edge(5, 10)
 g.add_edge(6, 10)
 g.add_edge(7, 10)
 g.add_edge(8, 10)
 g.add_edge(9, 10)
-g.nodes[10]['label'] = 'z'
+g.nodes[10]['label'] = 'x'
 
-#fig=plt.figure()
+#g.add_node(11)
+#g.add_edge(10, 11)
+#g.nodes[11]['label'] = 'zz'
+
+fig=plt.figure()
 min_g = minimize(g)
-nx.draw(min_g, labels={n: min_g.nodes[n]['label'] for n in min_g.nodes})
+nx.draw(min_g, labels={n: f"{n}: {min_g.nodes[n]['label']}" for n in min_g.nodes})
 plt.show()
 
-input("Continue?")
+metric_table = canonize(min_g)
+print(metric_table)
 
 g2 = nx.DiGraph()
 g2.add_node(0)
@@ -138,4 +220,42 @@ g2.nodes[0]['label'] = 'a'
 g2.nodes[1]['label'] = 'a'
 g2.nodes[2]['label'] = 'b'
 
-print(minimize_table(g2))
+g3 = nx.DiGraph()
+g3.add_node(0)
+g3.add_node(1)
+g3.add_edge(0, 1)
+g3.nodes[0]['label'] = 'b'
+g3.nodes[1]['label'] = 'b'
+
+min_g = minimize(g3)
+nx.draw(min_g, labels={n: min_g.nodes[n]['label'] for n in min_g.nodes})
+plt.show()
+
+g4 = nx.DiGraph()
+g4.add_node(0)
+g4.add_node(1)
+g4.add_node(2)
+g4.add_node(3)
+g4.add_node(4)
+g4.add_node(5)
+
+g4.nodes[0]['label'] = 'a'
+g4.nodes[1]['label'] = 'b'
+g4.nodes[2]['label'] = 'b'
+g4.nodes[3]['label'] = 'c'
+g4.nodes[4]['label'] = 'c'
+g4.nodes[5]['label'] = 'c'
+
+g4.add_edge(0, 1)
+g4.add_edge(0, 2)
+g4.add_edge(1, 3)
+g4.add_edge(1, 4)
+g4.add_edge(0, 2)
+g4.add_edge(2, 5)
+g4.add_edge(3, 0)
+g4.add_edge(4, 0)
+g4.add_edge(5, 0)
+
+min_g = minimize(g4)
+nx.draw(min_g, labels={n: min_g.nodes[n]['label'] for n in min_g.nodes})
+plt.show()
