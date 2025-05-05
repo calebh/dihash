@@ -1,3 +1,5 @@
+import functools
+
 import networkx as nx
 import matplotlib.pyplot as plt
 
@@ -13,6 +15,21 @@ def lt_metric(a_lst, b_lst):
             elif b > a:
                 return False
         return False
+
+def make_comparator(less_than):
+    def compare(x, y):
+        if less_than(x, y):
+            return -1
+        elif less_than(y, x):
+            return 1
+        else:
+            return 0
+    return compare
+
+lt_comparator = make_comparator(lt_metric)
+
+def lt_lst_metric(a_lst_lst, b_lst_lst):
+    pass
 
 class DistinguishingTable:
     def __init__(self):
@@ -96,7 +113,30 @@ def minimize_table(g: nx.DiGraph) -> DistinguishingTable:
                         table_updated = True
     return table
 
-def canonize(minimized_graph):
+def equivalence_classes(g: nx.DiGraph, table: DistinguishingTable) -> list[list]:
+    equivalence_classes: list[list] = []
+    for n in g.nodes:
+        found_class = False
+        for cls in equivalence_classes:
+            representative = cls[0]
+            if not table.is_marked(n, representative):
+                cls.append(n)
+                found_class = True
+                break
+        if not found_class:
+            equivalence_classes.append([n])
+
+    return equivalence_classes
+
+def minimize(g: nx.DiGraph):
+    table = minimize_table(g)
+    eq_classes = equivalence_classes(g, table)
+    def label(nodes):
+        n = list(nodes)[0]
+        return {'label': g.nodes[n]['label']}
+    return nx.quotient_graph(g, eq_classes, node_data=label)
+
+def canonize(minimized_graph, certificate=False):
     metric_table = MetricTable()
 
     for n in minimized_graph.nodes:
@@ -126,31 +166,20 @@ def canonize(minimized_graph):
                                 metric_table.add_candidate(n, m, [n_label] + neighbor_distinguisher)
         table_updated = metric_table.commit()
 
-    return metric_table
-
-def equivalence_classes(g: nx.DiGraph, table: DistinguishingTable) -> list[list]:
-    equivalence_classes: list[list] = []
-    for n in g.nodes:
-        found_class = False
-        for cls in equivalence_classes:
-            representative = cls[0]
-            if not table.is_marked(n, representative):
-                cls.append(n)
-                found_class = True
-                break
-        if not found_class:
-            equivalence_classes.append([n])
-
-    return equivalence_classes
-
-def minimize(g: nx.DiGraph):
-    table = minimize_table(g)
-    eq_classes = equivalence_classes(g, table)
-    def label(nodes):
-        n = list(nodes)[0]
-        return {'label': g.nodes[n]['label']}
-    return nx.quotient_graph(g, eq_classes, node_data=label)
-
+    canonical_order = []
+    for n in minimized_graph.nodes:
+        dist = []
+        for m in minimized_graph.nodes:
+            if metric_table.is_marked(n, m):
+                dist.append(tuple(metric_table.lookup(n, m)))
+        # Remove duplicate distinguishers
+        dist = list(set(dist))
+        dist.sort()
+        canonical_order.append((n, tuple(dist)))
+    canonical_order.sort(key=lambda pair: pair[1])
+    if not certificate:
+        canonical_order = [n for (n, _) in canonical_order]
+    return canonical_order
 
 g = nx.DiGraph()
 
@@ -205,9 +234,8 @@ fig=plt.figure()
 min_g = minimize(g)
 nx.draw(min_g, labels={n: f"{n}: {min_g.nodes[n]['label']}" for n in min_g.nodes})
 plt.show()
-
-metric_table = canonize(min_g)
-print(metric_table)
+order = canonize(min_g)
+print(order)
 
 g2 = nx.DiGraph()
 g2.add_node(0)
@@ -220,6 +248,12 @@ g2.nodes[0]['label'] = 'a'
 g2.nodes[1]['label'] = 'a'
 g2.nodes[2]['label'] = 'b'
 
+min_g = minimize(g2)
+nx.draw(min_g, labels={n: min_g.nodes[n]['label'] for n in min_g.nodes})
+plt.show()
+order = canonize(min_g)
+print(order)
+
 g3 = nx.DiGraph()
 g3.add_node(0)
 g3.add_node(1)
@@ -230,6 +264,8 @@ g3.nodes[1]['label'] = 'b'
 min_g = minimize(g3)
 nx.draw(min_g, labels={n: min_g.nodes[n]['label'] for n in min_g.nodes})
 plt.show()
+order = canonize(min_g)
+print(order)
 
 g4 = nx.DiGraph()
 g4.add_node(0)
