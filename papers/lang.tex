@@ -1,4 +1,10 @@
 \documentclass[12pt]{article}
+
+\usepackage{amsthm}
+
+\newtheorem{lemma}{Lemma}
+\newtheorem{sublemma}{Lemma}[lemma]
+
 \begin{document}
 
 \section{Proof of Correctness of Table Filling Algorithm}
@@ -52,6 +58,57 @@ Otherwise let $w'=a_2 ... a_n$ and consider the following subcases:
     contradicts the assumption that $w$ is in exactly one of $L_G(p)$ and
     $L_G(q)$.
 \end{itemize}
+
+\subsection{Proof of Uniqueness of Minimum}
+
+We prove this by constructing an isomorphism. Suppose we have a graph
+$G$ minimized to $G'$ and some arbitrary minimal graph $G_{min}$ where
+$L(G')=L(G_{min})$. We then show that $G' \cong G_{min}$. This is achieved
+by demonstrating the existence of a bijection $f : V(G') \rightarrow V(G_{min})$.
+
+\begin{lemma}
+$f$ is defined everywhere
+\end{lemma}
+\begin{proof}
+Consider some vertex $p$ in $G$. Let $S=L_{G'}(p)$. Then $S \in L(G')$. However
+$L(G')=L(G_{min})$, so $S \in L(G_{min})$. This means there must be a vertex $p'$
+such that $S=L_{G_{min}}(p')$. We can then map $p \mapsto p'$ in $f$.
+\end{proof}
+
+\begin{lemma}
+$f$ is well defined
+\end{lemma}
+\begin{proof}
+$f$ is well defined if $p=q$ implies $f(p)$ = $f(q)$.
+
+Assume $f$ is not well defined. Then there is some $p$ such that
+$f(p)=p'$ and $f(p)=p''$ where $p' \neq p''$.
+
+This means that $L_{G_{min}}(p') = L_{G_{min}}(p'')$ which means that $p'$
+and $p''$ are indistinguishable. This contradicts the assumption that
+$G_{min}$ is minimal.
+\end{proof}
+
+\begin{lemma}
+$f$ is injective
+\end{lemma}
+\begin{proof}
+Assume that $f$ is not injective. Then there are some states $p$ and $q$
+such that $f(p)=f(q)$.
+
+Since $L(G)=L(G_{min})$, this implies that $p$ and $q$ are indiscernable.
+However our algorithm verified that $p$ and $q$ are discernable, which
+is a contradiction.
+\end{proof}
+
+\begin{lemma}
+$f$ is surjective
+\end{lemma}
+\begin{proof}
+Assume $f$ is not surjective. Then there is some state $p'$ such that there
+is no node $p$ such that $f(p)=p'$. This implies that $L(G') \neq L(G_{min})$,
+which is a contradiction.
+\end{proof}
 
 \end{document}
 
