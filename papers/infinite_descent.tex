@@ -1,0 +1,146 @@
+
+Suppose that the theorem that the table filling algorithm
+produces a minimal digraph is false. That is, there is at
+least one pair of states $(a, b)$ such that:
+
+\begin{enumerate}
+    \item States $a$ and $b$ are distinguishable, in the sense
+    that there is some string $w$ that is in exactly one of
+    $L_G(a)$ and $L_G(b)$.
+    \item The table filling algorithm does not find $a$ and
+    $b$ to be distinguished.
+\end{enumerate}
+
+Call this pair a bad pair.
+
+If there are bad pairs, then there
+must be some that are the shortest among all these strings that
+distinguish bad pairs. Let $(p,q)$ be one such bad pair, and let
+$w=a_1 a_2 ... a_n$ be a string as short as any that distinguishes
+$p$ from $q$. Then $w$ is in exactly one of $L_G(p)$ and $L_G(q)$.
+
+Consider the case where $w=a_1$. Then the table filling algorithm
+would have distinguished $p$ from $q$ during the initialization of
+the table in the table filling algorithm.
+
+Otherwise let $r$ be an arbitrary neighbor of $p$, $s$ be an arbitrary
+neighbor of $q$, and $w'=a_2 ... a_n$. Consider the following cases:
+
+\begin{itemize}
+    \item If $w' \notin L_G(r)$ and $w' \notin L_G(s)$, then $w \notin L_G(p)$
+    and $w \notin L_G(q)$. This contradicts the assumption that $w$
+    is in exactly one of $L_G(p)$ and $L_G(q)$.
+    \item If $w' \in L_G(r)$ and $w' \notin L_G(s)$, then the string $w'$ is
+    a distinguishing string shorter than $w$, which contradicts the
+    assumption that $w$ is a string as short as any which
+    distinguishes a bad pair.
+    \item If $w' \notin L_G(r)$ and $w' \in L_G(s)$, then the string $w'$ is
+    a distinguishing string shorter than $w$, which contradicts the
+    assumption that $w$ is a string as short as any which
+    distinguishes a bad pair.
+    \item If $w' \in L_G(r)$ and $w' \in L_G(s)$, then $w \in L_G(p)$ and
+    $w \in L_G(q)$. This contradicts the assumption that $w$ is in
+    exactly one of $L_G(p)$ and $L_G(q)$.
+\end{itemize}
+
+Thus $r$ and $s$ cannot be a bad pair, which means that the table
+filling algorithm would have found $r$ and $s$ to be distinguished.
+If $r$ and $s$ could be distinguished, then the algorithm would
+have distinguished $p$ from $q$ in the algorithm's next inductive step.
+This contradicts the assuption 
+
+\clearpage
+
+Otherwise let $w'=a_2 ... a_n$ and consider the following subcases:
+\begin{itemize}
+    \item If for all $r \in \delta(p)$ and $s \in \delta(q)$,
+    $w' \notin L_G(r)$ and $w' \notin L_G(s)$, then $w \notin L_G(p)$
+    and $w \notin L_G(q)$. This contradicts the assumption that $w$
+    is in exactly one of $L_G(p)$ and $L_G(q)$.
+    \item If there exists an $r \in \delta(p)$ and $s \in \delta(q)$ such that
+    $w' \in L_G(r)$ and $w' \notin L_G(s)$, then the string $w'$ is
+    a distinguishing string shorter than $w$, which contradicts the
+    assumption that $w$ is a string as short as any which
+    distinguishes a bad pair.
+    \item If there exists an $r \in \delta(p)$ and $s \in \delta(q)$ such that
+    $w' \notin L_G(r)$ and $w' \in L_G(s)$, then the string $w'$ is
+    a distinguishing string shorter than $w$, which contradicts the
+    assumption that $w$ is a string as short as any which
+    distinguishes a bad pair.
+    \item If for all $r \in \delta(p)$ and $s \in \delta(q)$, $w' \in L_G(r)$
+    and $w' \in L_G(s)$, then $w \in L_G(p)$ and $w \in L_G(q)$. This
+    contradicts the assumption that $w$ is in exactly one of $L_G(p)$ and
+    $L_G(q)$.
+\end{itemize}
+
+Thus,
+
+
+\subsection{Proof of Construction of Minimal Digraph}
+
+We now show the following:
+
+\begin{theorem}
+If states $p$ and $q$ are distinguishable, in the sense
+that there is some string $w$ that is in exactly one of
+$L_G(p)$ and $L_G(q)$, then the table filling algorithm
+will find $p$ and $q$ to be distinguished.
+\end{theorem}
+\begin{proof}
+By induction on the length of $w$. As a base case, consider
+$w=a_1$. Then the table filling algorithm would have
+distinguished $p$ from $q$ during the initialization of the
+table in the algorithm.
+
+For the inductive step, assume that $p$
+\end{proof}
+
+
+
+Suppose that the theorem that the table filling algorithm
+produces a minimal digraph is false. That is, there is at
+least one pair of states $(a, b)$ such that:
+
+\begin{enumerate}
+    \item States $a$ and $b$ are distinguishable, in the sense
+    that there is some string $w$ that is in exactly one of
+    $L_G(a)$ and $L_G(b)$.
+    \item The table filling algorithm does not find $p$ and
+    $q$ to be distinguished.
+\end{enumerate}
+
+Call this pair a bad pair.
+
+If there are bad pairs, then there
+must be some that are the shortest among all these strings that
+distinguish bad pairs. Let $(p,q)$ be one such bad pair, and let
+$w=a_1 a_2 ... a_n$ be a string as short as any that distinguishes
+$p$ from $q$. Then $w$ is in exactly one of $L_G(p)$ and $L_G(q)$.
+
+Consider the case where $w=a_1$. Then the table filling algorithm
+would have distinguished $p$ from $q$ during the initialization of
+the table in the table filling algorithm.
+
+Otherwise let $w'=a_2 ... a_n$ and consider the following subcases:
+\begin{itemize}
+    \item If for all $r \in \delta(p)$ and $s \in \delta(q)$,
+    $w' \notin L_G(r)$ and $w' \notin L_G(s)$, then $w \notin L_G(p)$
+    and $w \notin L_G(q)$. This contradicts the assumption that $w$
+    is in exactly one of $L_G(p)$ and $L_G(q)$.
+    \item If there exists an $r \in \delta(p)$ and $s \in \delta(q)$ such that
+    $w' \in L_G(r)$ and $w' \notin L_G(s)$, then the string $w'$ is
+    a distinguishing string shorter than $w$, which contradicts the
+    assumption that $w$ is a string as short as any which
+    distinguishes a bad pair.
+    \item If there exists an $r \in \delta(p)$ and $s \in \delta(q)$ such that
+    $w' \notin L_G(r)$ and $w' \in L_G(s)$, then the string $w'$ is
+    a distinguishing string shorter than $w$, which contradicts the
+    assumption that $w$ is a string as short as any which
+    distinguishes a bad pair.
+    \item If for all $r \in \delta(p)$ and $s \in \delta(q)$, $w' \in L_G(r)$
+    and $w' \in L_G(s)$, then $w \in L_G(p)$ and $w \in L_G(q)$. This
+    contradicts the assumption that $w$ is in exactly one of $L_G(p)$ and
+    $L_G(q)$.
+\end{itemize}
+
+Thus, 
