@@ -184,5 +184,37 @@ is no node $p$ such that $f(p)=p'$. This implies that $L(G') \neq L(G_{min})$,
 which is a contradiction.
 \end{proof}
 
+\clearpage
+
+\subsection{Strength of Directed Vertex Language}
+
+\begin{theorem}
+Regular languages are stronger than directed vertex languages.
+\end{theorem}
+\begin{proof}
+The language $\left\{ab\right\}$ cannot be represented by a directed vertex language.
+
+Assume that there is some graph $G$ with language $L(G)=\left\{ab\right\}$. Then inside of
+$G$ there must be a walk that starts at a vertex labeled $a$, transitions to a vertex labeled
+$b$, then stops. However the mere act of visiting the vertex labeled $a$ will add $a$ to 
+the language of the graph. This contradicts the assumption that $L(G)=\left\{ab\right\}$.
+\end{proof}
+
+\begin{theorem}
+Every vertex language is also a regular language.
+\end{theorem}
+\begin{proof}
+This can be accomplished by converting the graph $G$ to a NFA with $\epsilon$-transitions.
+To accomplish this reduction, label all edges in $G$ with $\epsilon$. Split each vertex
+into two vertices, one vertex receives all incoming edges of the original node and one
+vertex emits all outgoing edges of the original node. Create an edge between this pair
+of nodes and label it with the label of the original node.
+
+At each outgoing edge node add a new episilon transition to an accepting state.
+This allows the walk through the graph to end after visiting any node. Add a starting
+state to the NFA that has an epsilon transition to all other nodes in the graph
+except for the accepting state.
+\end{proof}
+
 \end{document}
 
