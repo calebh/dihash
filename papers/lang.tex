@@ -11,7 +11,8 @@
 
 \section{Proof of Correctness of Table Filling Algorithm}
 
-Let $\delta(x)$ give the set of neighbors of $x$ in $G$. $\oplus$ is the logical xor operation.
+Let $\delta(x)$ give the set of neighbors of $x$ in $G$. $\oplus$ is the logical xor operation. When we say
+``$w$ distinguishes $p$ from $q$'' we mean $w \in L_G(p) \oplus w \in L_G(q)$.
 
 \subsection{Proof of Construction of Minimal Digraph}
 
@@ -69,7 +70,7 @@ Consider the following cases:
 
 \begin{lemma}
 \label{thm:tbl_correctness2}
-$\forall w \forall p \forall q.$ The table filling algorithm finds $p$ and $q$ to be distinguished $\rightarrow w \in L_G(p) \oplus w \in L_G(q)$
+$\forall w \forall p \forall q.$ The table filling algorithm finds $p$ and $q$ to be distinguished by $w$ $\rightarrow w \in L_G(p) \oplus w \in L_G(q)$
 \end{lemma}
 \begin{proof}
 Proof by strong induction on the length of $w$.
@@ -82,8 +83,8 @@ We now show the inductive step. As hypotheses, we have the following:
 
 \begin{itemize}
     \item $w=a_1 a_2 ... a_n$
-    \item The table filling algorithm $p$ and $q$ to be distinguished.
-    \item $\forall w' \forall p' \forall q' . |w'| < n \rightarrow$ The table filling algorithm finds $p'$ and $q'$ to be distinguished $\rightarrow w' \in L_G(p') \oplus w' \in L_G(q')$
+    \item The table filling algorithm $p$ and $q$ to be distinguished by $w$.
+    \item $\forall w' \forall p' \forall q' . |w'| < n \rightarrow$ The table filling algorithm finds $p'$ and $q'$ to be distinguished by $w'$ $\rightarrow w' \in L_G(p') \oplus w' \in L_G(q')$
 \end{itemize}
 
 Our goal is to show that $w \in L_G(p) \oplus w \in L_G(q)$
@@ -97,7 +98,7 @@ Consider the following cases:
     \item The string $w$ distinguishes $p$ from $q$, but the string $w'=a_1$ does not.
     Then the table filling algorithm must have determined that one of the following is true:
     \begin{enumerate}
-        \item At least one neighbor $p'$ of $p$ must have been marked for
+        \item At least one neighbor $p'$ of $p$ with label $a_2$ must have been marked for
         all neighbors $q'$ of $q$. Consider the following cases:
         \begin{enumerate}
             \item $q$ has no neighbors. Then the string $a_1 a_2 \in L_G(p)$ but $a_1 a_2 \notin L_G(q)$.
@@ -118,12 +119,25 @@ Consider the following cases:
 
 \end{proof}
 
+\begin{lemma}
+\label{thm:tbl_correctness3}
+The table filling algorithm finds $p$ and $q$ to be distinguished $\rightarrow$ $\exists w.$ The table filling
+algorithm finds $p$ and $q$ to be distinguished by $w$.
+\end{lemma}
+\begin{proof}
+If the table filling algorithm finds $p$ and $q$ to be distinguished, we can easily construct such a $w$ by
+following a trace of the steps taken by the table filling algorithm. We will describe such a construction later
+in this paper.
+\end{proof}
+
 \begin{theorem}
 For all vertices $p$, $q$, the table filling algorithm finds $p$ and $q$ to be
 distinguished if and only if there is a $w$ that is in exactly one of $L_G(p)$ and $L_G(q)$
 \end{theorem}
 \begin{proof}
-This immediately follows by Lemma \ref{thm:tbl_correctness1} and Lemma \ref{thm:tbl_correctness2}.
+This immediately follows by applying Lemmas \ref{thm:tbl_correctness1}, \ref{thm:tbl_correctness2} and
+\ref{thm:tbl_correctness3} appropriately. A Coq/Rocq version of mechanically verifying these lemma applications
+(and properly instantiating the existentials) is available on GitHub.
 \end{proof}
 
 \clearpage
