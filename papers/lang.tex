@@ -2,12 +2,65 @@
 
 \usepackage{amsthm}
 \usepackage{tikz}
+\usepackage{algorithm}% http://ctan.org/pkg/algorithms
+\usepackage{algpseudocode}% http://ctan.org/pkg/algorithmicx
 
 \newtheorem{theorem}{Theorem}
 \newtheorem{lemma}{Lemma}
 \newtheorem{sublemma}{Lemma}[lemma]
 
 \begin{document}
+
+\section{Table Filling Algorithm}
+
+In this section we describe a table filling algorithm used to minimize
+digraphs. The flavor and implementation of the algorithm are similar to
+that used to minimize DFAs.
+
+\begin{algorithm}
+    \caption{Minimization Algorithm}
+    \label{alg:minimization}
+    \begin{algorithmic}[1] % The number tells where the line numbering should start
+        \Procedure{is\_dist}{table, $a$, $bs$}
+            \State \Comment{Returns \textbf{True} if $a$ is distinguishable from all nodes $b$ in $bs$}
+            \For{$b \in bs$}
+                \If{\textbf{not} table.is\_marked($a$, $b$)}
+                    \State \textbf{return} \textbf{False}
+                \EndIf
+            \EndFor
+            \State \Return \textbf{True}
+        \EndProcedure
+        \Procedure{minimize\_table}{$G$}
+            \Comment{A DistinguishingTable is a table that stores parking for unordered node pairs $\{n, m\}$.}
+            \State table $\gets$ new DistinguishingTable()
+            \For{$(n, m) \in $ G.nodes $\times$ G.nodes}
+                \If{G.label(n) $\neq$ G.label(m)}
+                    \State table.mark(n, m)
+                \EndIf
+            \EndFor
+            \State updated $\gets$ \textbf{True}
+            \While{updated}
+                \State updated $\gets$ \textbf{False}
+                \For{$(n, m) \in $ G.nodes $\times$ G.nodes}
+                    \If{\textbf{not} table.is\_marked(n, m)}
+                        \For{$n' \in $ G.neighbors($n$)}
+                            \If{\textsc{is\_dist}(table, $n'$, G.neighbors($m$))}
+                                \State table.mark(n, m)
+                                \State updated $\gets$ \textbf{True}
+                            \EndIf
+                        \EndFor
+                    \EndIf
+                \EndFor
+            \EndWhile
+            \State \Return table
+        \EndProcedure
+        \Procedure{minimize}{$G$}
+            \State table $\gets$ \textsc{minimize\_table($G$)}
+            \State eq\_classes $\gets$ \textsc{equivalence\_classes}($G$, table)
+            \State \Return \textsc{merge}($G$, eq\_classes)
+        \EndProcedure
+    \end{algorithmic}
+\end{algorithm}
 
 \section{Proof of Correctness of Table Filling Algorithm}
 

@@ -1,12 +1,14 @@
-import functools
 from itertools import product
-
 import networkx as nx
 import matplotlib.pyplot as plt
+from util import invert_list, to_str, hash_sha256
 
-def merge(g, equivalence_classes: list[frozenset]):
+
+def merge(g: nx.DiGraph, equivalence_classes: list[frozenset]) -> nx.DiGraph:
+    # This dictionary maps nodes to their equivalence classes
     class_mapping = dict()
     ret = nx.DiGraph()
+    # Add a node for each equivalence class
     for eq_cls in equivalence_classes:
         label = None
         for n in eq_cls:
@@ -14,10 +16,13 @@ def merge(g, equivalence_classes: list[frozenset]):
             label = g.nodes[n]['label']
         ret.add_node(eq_cls)
         ret.nodes[eq_cls]['label'] = label
+    # Add edges between the equivalence classes
     for (u, v) in g.edges:
         u_prime = class_mapping[u]
         v_prime = class_mapping[v]
         ret.add_edge(u_prime, v_prime)
+    if 'label' in g.graph:
+        ret.graph['label'] = g.graph['label']
     return ret
 
 def lt_metric(a_lst, b_lst):
@@ -89,14 +94,7 @@ class MetricTable:
         self.candidate_distinguishers.clear()
         return ret
 
-def pairs(lst):
-    ret = []
-    for i in range(len(lst)):
-        for j in range(i, len(lst)):
-            ret.append((lst[i], lst[j]))
-    return ret
-
-def is_distinguishable(table, a, bs):
+def is_distinguishable(table: MetricTable | DistinguishingTable, a, bs: list) -> bool:
     # Returns True if a is distinguishable from all nodes b in bs
     for b in bs:
         if not table.is_marked(a, b):
@@ -139,12 +137,26 @@ def equivalence_classes(g: nx.DiGraph, table: DistinguishingTable) -> list[froze
 
     return [frozenset(s) for s in equivalence_classes]
 
-def minimize(g: nx.DiGraph):
+def minimize(g: nx.DiGraph) -> nx.DiGraph:
     table = minimize_table(g)
     eq_classes = equivalence_classes(g, table)
     return merge(g, eq_classes)
 
-def order(minimized_graph):
+def edge_saturate(minimized_graph: nx.DiGraph, table: MetricTable) -> nx.DiGraph:
+    saturated_graph = minimized_graph.copy()
+    added_edges = True
+    while added_edges:
+        added_edges = False
+        for n in minimized_graph.nodes:
+            for m in minimized_graph.nodes:
+                if table.is_marked(n, m) and not table.is_marked(m, n):
+                    for (n_parent, _) in minimized_graph.in_edges(n):
+                        if not saturated_graph.has_edge(n_parent, m):
+                            saturated_graph.add_edge(n_parent, m)
+                            added_edges = True
+    return saturated_graph
+
+def canonize(minimized_graph, construct_canonical_graph=True) -> tuple[list, nx.DiGraph] | list:
     metric_table = MetricTable()
 
     for n in minimized_graph.nodes:
@@ -153,7 +165,6 @@ def order(minimized_graph):
             m_label = minimized_graph.nodes[m]['label']
             if n_label != m_label:
                 metric_table.add_candidate(n, m, [n_label])
-                metric_table.add_candidate(m, n, [m_label])
             else:
                 if minimized_graph.out_degree(m) == 0:
                     for n_neighbor in minimized_graph.neighbors(n):
@@ -185,21 +196,27 @@ def order(minimized_graph):
         dist.sort()
         canonical_order.append((n, tuple(dist)))
     canonical_order.sort(key=lambda pair: pair[1])
-    return canonical_order
+    canonical_order = [n for (n, _) in canonical_order]
 
-def canonical_graph(minimized_graph: nx.DiGraph, canonical_order):
-    canonized_graph = minimized_graph.copy()
-    added_edges = True
-    while added_edges:
-        added_edges = False
-        for (n, n_distinguishers) in canonical_order:
-            for (m, m_distinguishers) in canonical_order:
-                if frozenset(n_distinguishers) > frozenset(m_distinguishers):
-                    for (n_parent, _) in canonized_graph.in_edges(n):
-                        if not canonized_graph.has_edge(n_parent, m):
-                            canonized_graph.add_edge(n_parent, m)
-                            added_edges = True
-    return canonized_graph
+    if construct_canonical_graph:
+        canonical_graph = edge_saturate(minimized_graph, metric_table)
+        return (canonical_order, canonical_graph)
+    else:
+        return canonical_order
+
+def hash(g: nx.DiGraph, string_hash_fun=hash_sha256):
+    min_g = minimize(g)
+    (canonical_order, canonical_graph) = canonize(min_g)
+
+    canon_mapping = invert_list(canonical_order)
+    canon_adj_list = sorted([(canon_mapping[s], canon_mapping[t]) for (s, t) in canonical_graph.edges])
+    canon_labels = [canonical_graph.nodes[n]['label'] for n in canonical_order]
+    if 'label' in g.graph:
+        g_summary = (g.graph['label'], canon_labels, canon_adj_list)
+    else:
+        g_summary = (canon_labels, canon_adj_list)
+
+    return string_hash_fun(to_str(g_summary))
 
 def equal_labels(n1, n2):
     return n1['label'] == n2['label']
@@ -216,8 +233,7 @@ def test_isomorphism1():
     g1.nodes[2]['label'] = 'x'
 
     min_g1 = minimize(g1)
-    o1 = order(min_g1)
-    can_g1 = canonical_graph(min_g1, o1)
+    (o1, can_g1) = canonize(min_g1)
 
     g2 = nx.DiGraph()
     g2.add_node(0)
@@ -231,10 +247,27 @@ def test_isomorphism1():
     g2.nodes[2]['label'] = 'x'
 
     min_g2 = minimize(g2)
-    o2 = order(min_g2)
-    can_g2 = canonical_graph(min_g2, o2)
+    (o2, can_g2) = canonize(min_g2)
 
+    assert(o1 == o2)
     assert(nx.is_isomorphic(can_g1, can_g2, node_match=equal_labels))
+
+    g3 = nx.DiGraph()
+    g3.add_node(0)
+    g3.add_node(1)
+    g3.add_node(2)
+    g3.add_edge(2, 1)
+    g3.add_edge(1, 0)
+    g3.nodes[0]['label'] = 'x'
+    g3.nodes[1]['label'] = 'x'
+    g3.nodes[2]['label'] = 'x'
+
+    h1 = hash(g1)
+    h2 = hash(g2)
+    h3 = hash(g3)
+    assert(h1 == h2)
+    assert(h2 == h3)
+
     print("test_isomorphism1 passed")
 
 def test_isomorphism2():
@@ -250,29 +283,63 @@ def test_isomorphism2():
     g1.nodes[2]['label'] = 'x'
 
     min_g1 = minimize(g1)
-    o1 = order(min_g1)
-    can_g1 = canonical_graph(min_g1, o1)
+    (o1, can_g1) = canonize(min_g1)
 
     g2 = g1.copy()
     g2.add_edge(0, 2)
 
     min_g2 = minimize(g2)
-    o2 = order(min_g2)
-    can_g2 = canonical_graph(min_g2, o2)
+    (o2, can_g2) = canonize(min_g2)
 
     g3 = g2.copy()
     g3.add_edge(1, 2)
 
     min_g3 = minimize(g3)
-    o3 = order(min_g3)
-    can_g3 = canonical_graph(min_g3, o3)
+    (o3, can_g3) = canonize(min_g3)
 
+    assert(o1 == o2)
+    assert(o2 == o3)
     assert(nx.is_isomorphic(can_g1, can_g2, node_match=equal_labels))
     assert(nx.is_isomorphic(can_g2, can_g3, node_match=equal_labels))
+
+    h1 = hash(g1)
+    h2 = hash(g2)
+    h3 = hash(g3)
+
+    assert(h1 == h2)
+    assert(h2 == h3)
+
     print("test_isomorphism2 passed")
+
+def test_isomorphism3():
+    cycle_size = 6
+
+    g1 = nx.DiGraph()
+
+    for i in range(cycle_size):
+        g1.add_node(i)
+        g1.nodes[i]['label'] = 'x'
+
+    for i in range(cycle_size):
+        j = (i + 1) % cycle_size
+        g1.add_edge(i, j)
+
+    g2 = nx.DiGraph()
+    g2.add_node(0)
+    g2.nodes[0]['label'] = 'x'
+    g2.add_edge(0, 0)
+
+    h1 = hash(g1)
+    h2 = hash(g2)
+
+    assert(h1 == h2)
+
+    print("test_isomorphism3 passed")
+
 
 test_isomorphism1()
 test_isomorphism2()
+test_isomorphism3()
 
 print("All tests passed")
 
