@@ -11,11 +11,40 @@
 
 \begin{document}
 
+\section{Directed Vertex Language}
+
+Here we define a novel type of language, reminiscient of regular languages.
+Just as regular languages can be represented as automota, our directed vertex
+languages can be represented as directed graphs.
+
+The language $L_G(p)$ of some node $p$ in directed graph $G$ is defined to be
+the set of all strings formed by all walks starting from $p$ in $G$. The strings
+are built from the labels of the vertices visited in each walk. This is in contrast
+to a DFA where the characters are added by walking along an edge.
+
+The language $L(G)$ of some graph $G$ is the union of the languages of all nodes
+in $G$. That is, $L(G) = \bigcup_{p \in G} L_G(p)$.
+
+
 \section{Table Filling Algorithm}
 
 In this section we describe a table filling algorithm used to minimize
 digraphs. The flavor and implementation of the algorithm are similar to
 that used to minimize DFAs.
+
+The algorithm first constructs a distinguishing table. An unordered pair
+of nodes $\{p, q\}$ that is marked in the table indicates that the nodes
+$p$ and $q$ can be distinguished from each other. We will initialize the table
+by marking all node pairs that have different labels. We will then iterate
+through a marking propogation loop by examining the neighbors of node pairs,
+and checking their marking status.
+
+Once we have fully minimized the table, we then compute equivalence classes
+of nodes, then merge all nodes in each equivalence class together. The result
+of this process is a node count minimal digraph, with each node having a different
+language.
+
+\clearpage
 
 \begin{algorithm}
     \caption{Minimization Algorithm}
@@ -61,6 +90,8 @@ that used to minimize DFAs.
         \EndProcedure
     \end{algorithmic}
 \end{algorithm}
+
+\clearpage
 
 \section{Proof of Correctness of Table Filling Algorithm}
 
@@ -347,10 +378,10 @@ Regular languages are stronger than directed vertex languages.
 \begin{proof}
 The language $\left\{ab\right\}$ cannot be represented by a directed vertex language.
 
-Assume that there is some graph $G$ with language $L(G)=\left\{ab\right\}$. Then inside of
-$G$ there must be a walk that starts at a vertex labeled $a$, transitions to a vertex labeled
-$b$, then stops. However the mere act of visiting the vertex labeled $a$ will add $a$ to 
-the language of the graph. This contradicts the assumption that $L(G)=\left\{ab\right\}$.
+Assume that there is some graph $G$ and node $p$ with language $L_G(p)=\left\{ab\right\}$.
+Then inside of $G$ there must be a walk that starts at a vertex labeled $a$, transitions to a
+vertex labeled $b$, then stops. However the mere act of visiting the vertex labeled $a$ will
+add $a$ to the language of the vertex. This contradicts the assumption that $L_G(p)=\left\{ab\right\}$.
 \end{proof}
 
 \begin{theorem}
@@ -364,9 +395,8 @@ vertex emits all outgoing edges of the original node. Create an edge between thi
 of nodes and label it with the label of the original node.
 
 At each outgoing edge node add a new epsilon transition to an accepting state.
-This allows the walk through the graph to end after visiting any node. Add a starting
-state to the NFA that has an epsilon transition to all other nodes in the graph
-except for the accepting state.
+This allows the walk through the graph to end after visiting any node. Label the desired
+node as the starting state.
 \end{proof}
 
 \end{document}
