@@ -25,8 +25,7 @@ to be distinguished
 Proof by strong induction on the length of $w$.
 
 Base case $|w|=1$. Then the table filling algorithm
-would have distinguished $p$ from $q$ during the initialization of
-the table in the table filling algorithm.
+would have distinguished $p$ from $q$ during the initialization phase.
 
 We now show the inductive step. As hypotheses, we have the following:
 
@@ -114,13 +113,12 @@ then one of the following must be true:
 
 \begin{lemma}
 \label{thm:tbl_correctness3}
-The table filling algorithm finds $p$ and $q$ to be distinguished $\rightarrow$ $\exists w.$ The table filling
-algorithm finds $p$ and $q$ to be distinguished by $w$.
+The table filling algorithm finds $p$ and $q$ to be distinguished $\rightarrow$ $\exists n.$ The table filling
+algorithm finds $p$ and $q$ to be distinguished on step $n$.
 \end{lemma}
 \begin{proof}
-If the table filling algorithm finds $p$ and $q$ to be distinguished, we can easily construct such a $w$ by
-following a trace of the steps taken by the table filling algorithm. We will describe such a construction later
-in this paper.
+If the table filling algorithm finds $p$ and $q$ to be distinguished, then there must have been a step $n$
+where $p$ and $q$ were marked.
 \end{proof}
 
 \begin{theorem}
