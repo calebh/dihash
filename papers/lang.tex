@@ -70,51 +70,44 @@ Consider the following cases:
 
 \begin{lemma}
 \label{thm:tbl_correctness2}
-$\forall w \forall p \forall q.$ The table filling algorithm finds $p$ and $q$ to be distinguished by $w$ $\rightarrow w \in L_G(p) \oplus w \in L_G(q)$
+$\forall n . \forall p \forall q.$ The table filling algorithm finds $p$ and $q$ to be distinguished on step $n$ $\rightarrow \exists w . w \in L_G(p) \oplus w \in L_G(q)$
 \end{lemma}
 \begin{proof}
-Proof by strong induction on the length of $w$.
+Proof by strong induction on $n$.
 
-Base case $|w|=1$. Then during the initialization of the table, we discovered that
+Base case $n=1$. Then during the initialization of the table, we discovered that
 the label of $p$ is not equal to the label of $q$. This directly shows that the string consisting
 of the label of $p$ is in $L_G(p)$ but not in $L_G(q)$.
 
 We now show the inductive step. As hypotheses, we have the following:
 
 \begin{itemize}
-    \item $w=a_1 a_2 ... a_n$
-    \item The table filling algorithm $p$ and $q$ to be distinguished by $w$.
-    \item $\forall w' \forall p' \forall q' . |w'| < n \rightarrow$ The table filling algorithm finds $p'$ and $q'$ to be distinguished by $w'$ $\rightarrow w' \in L_G(p') \oplus w' \in L_G(q')$
+    \item The table filling algorithm $p$ and $q$ to be distinguished on step $n$.
+    \item $\forall m \forall p' \forall q' . m < n \rightarrow$ The table filling algorithm finds $p'$ and $q'$ to be distinguished on step $m$ $\rightarrow \exists w . w \in L_G(p') \oplus w \in L_G(q')$
 \end{itemize}
 
-Our goal is to show that $w \in L_G(p) \oplus w \in L_G(q)$
+Our goal is to show that $\exists w . w \in L_G(p) \oplus w \in L_G(q)$
 
-Consider the following cases:
+If the table filling algorithm found $p$ and $q$ to be distinguished on step $n$,
+then one of the following must be true:
+
 \begin{enumerate}
-    \item The string $w'=a_1$ distinguishes $p$ from $q$. Then we can immediately
-    apply the inductive hypothesis to conclude that $w' \in L_G(p) \oplus w' \in L_G(q)$.
-    This implies that the $w$, which starts with $a_1$, also distinguishes $p$ and $q$.
-    This means that $w \in L_G(p) \oplus w \in L_G(q)$ as desired.
-    \item The string $w$ distinguishes $p$ from $q$, but the string $w'=a_1$ does not.
-    Then the table filling algorithm must have determined that one of the following is true:
+    \item At least one neighbor $p'$ of $p$ with label $a_2$ must have been marked for
+    all neighbors $q'$ of $q$. Let $a_1$ be the label of $p$. Consider the following two cases:
     \begin{enumerate}
-        \item At least one neighbor $p'$ of $p$ with label $a_2$ must have been marked for
-        all neighbors $q'$ of $q$. Consider the following cases:
-        \begin{enumerate}
-            \item $q$ has no neighbors. Then the string $a_1 a_2 \in L_G(p)$ but $a_1 a_2 \notin L_G(q)$.
-            Since $w$ starts with $a_1 a_2$, then we have $w \in L_G(p)$ and $w \notin L_G(q)$.
-            \item $q$ has at least one neighbor. Let $q'$ be one of these neighbors.
-            This means that the algorithm found $p'$ to be distinguished from $q'$.
-            By the inductive hypothesis, we then have the following:
-            $w' \in L_G(p') \oplus w' \in L_G(q')$ where $w'=a_2 ... a_n$.
-
-            Since $p'$ is a neighbor of $p$ and $q'$ is a neighbor of $q$, this
-            directly shows that $w \in L_G(p) \oplus w \in L_G(q')$.
-        \end{enumerate}
-        \item At least one neighbor $q'$ of $q$ must have been marked for all
-        neighbors $p'$ of $p$. We can repeat the same argument from the previous
-        step without loss of generality.
+        \item $q$ has no neighbors. Then the string $a_1 a_2$ distinguishes $p$ from $q$,
+        which proves the existential in our desired goal.
+        \item $q$ has at least one neighbor. Let $q'$ be one of these neighbors.
+        If the pair $p'$, $q'$ are marked, this means that the algorithm found $p'$
+        to be distinguished from $q'$ on some earlier step. This allows us to apply
+        the inductive hypothesis to conclude $\exists w' . w' \in L_G(p') \oplus w' \in L_G(q')$.
+        Since $p'$ is a neighbor of $p$ and $q'$ is a neighbor of $q$, it directly follows
+        that $a_1 w' \in L_G(p) \oplus a_1 w' \in L_G(q)$. This matches our
+        proof goal.
     \end{enumerate}
+    \item At least one neighbor $q'$ of $q$ with label $a_2$ must have been marked for
+    all neighbors $p'$ of $p'$. Without loss of generality we can repeat an identical argument
+    from the previous step.
 \end{enumerate}
 
 \end{proof}
