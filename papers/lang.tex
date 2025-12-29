@@ -4,6 +4,7 @@
 \usepackage{tikz}
 \usepackage{algorithm}% http://ctan.org/pkg/algorithms
 \usepackage{algpseudocode}% http://ctan.org/pkg/algorithmicx
+\usepackage{amsmath}
 
 \newtheorem{theorem}{Theorem}
 \newtheorem{lemma}{Lemma}
@@ -64,7 +65,7 @@ language.
             \State table $\gets$ new DistinguishingTable()
             \For{$(n, m) \in $ G.nodes $\times$ G.nodes}
                 \If{G.label(n) $\neq$ G.label(m)}
-                    \State table.mark(n, m)
+                    \State table.mark($\{n, m\}$)
                 \EndIf
             \EndFor
             \State updated $\gets$ \textbf{True}
@@ -74,7 +75,7 @@ language.
                     \If{\textbf{not} table.is\_marked(n, m)}
                         \For{$n' \in $ G.neighbors($n$)}
                             \If{\textsc{is\_dist}(table, $n'$, G.neighbors($m$))}
-                                \State table.mark(n, m)
+                                \State table.mark($\{n, m\}$)
                                 \State updated $\gets$ \textbf{True}
                             \EndIf
                         \EndFor
@@ -153,7 +154,7 @@ Consider the following cases:
 
 \begin{lemma}
 \label{thm:tbl_correctness2}
-$\forall n . \forall p \forall q.$ The table filling algorithm finds $p$ and $q$ to be distinguished on step $n$ $\rightarrow \exists w . w \in L_G(p) \oplus w \in L_G(q)$
+$\forall n \forall p \forall q.$ The table filling algorithm finds $p$ and $q$ to be distinguished on step $n$ $\rightarrow \exists w . w \in L_G(p) \oplus w \in L_G(q)$
 \end{lemma}
 \begin{proof}
 Proof by strong induction on $n$.
@@ -370,6 +371,22 @@ There are two possible ways for this entire susbset to exist in the language of 
 
 \clearpage
 
+\subsection{Uniqueness of Vertex Labels}
+
+\begin{theorem}
+If $L_G(p) = L_{G'}(q)$, then $\text{Reachable}_G(p) \cong \text{Reachable}_{G'}(q)$.
+\end{theorem}
+\begin{proof}
+Consider, for example, some string $w$ from $L_G(p)$. We can construct 
+
+
+Consider the strings in the language of the nodes. We can cons
+
+Consider arbitrary string from $L_G(p)$. Since 
+\end{proof}
+
+\clearpage
+
 \subsection{Strength of Directed Vertex Language}
 
 \begin{theorem}
@@ -398,6 +415,37 @@ At each outgoing edge node add a new epsilon transition to an accepting state.
 This allows the walk through the graph to end after visiting any node. Label the desired
 node as the starting state.
 \end{proof}
+
+\subsection{Canonization of Minimized Digraphs}
+
+We now describe a method for assigning a canonical ordering to the nodes in a minimized digraph
+that does not require a call to a generic graph canonization algorithm. We therefore avoid
+the worst case exponential runtime.
+
+First we note that the input graph is minimized, so we do not have to consider the case where
+two nodes have equal languages. Based on the superset relation on the languages for nodes, we can
+define a partial order. To be more precise, for every node pair $(p, q)$ where $L_G(p) \supset L_G(q)$,
+we say that $p > q$.
+
+The next step is to refine this partial order into a total order. For some currently incomparable
+pair (from the perspective of the partial order so far) $(p, q)$, we know that $L_G(p) \neq L_G(q)$,
+
+
+For some node $p$ in $G$, we can compute the lexiographically minimum distinuishing string
+for all node pairs $(p,q)$ where $q$ is also in $G$. This forms a set $S$ of distinguishing strings
+for each node in $G$. By ordering these sets of distinguishing strings, we can therefore give
+an ordering to all nodes in $G$.
+
+We now make the notion of distinguishing string more precise. Here are the cases to consider:
+\begin{enumerate}
+    \item For some node pair $(p, q)$ where $L_G(p) \supset L_G(q)$, there exists a string $w$ where
+    $w \in L_G(p)$ and $w \notin L_G(q)$ that is lexiographically the smallest (determined first by
+    length and in the event of a tie by lexiographic ordering on the characters.)
+    \item There is no case where a pair $(p, q)$ has the constraint $L_G(p) = L_G(q)$ because $G$
+    is a minimized digraph.
+    \item 
+\end{enumerate}
+
 
 \end{document}
 
