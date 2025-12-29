@@ -1,0 +1,347 @@
+
+\def\filedate{29 March 2022}
+\def\fileversion{2.4.2}
+
+\NeedsTeXFormat{LaTeX2e}
+
+%\documentclass[11pt]{article}
+\documentclass{svproc}
+%
+% RECOMMENDED %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+
+% to typeset URLs, URIs, and DOIs
+\usepackage{url}
+\def\UrlFont{\rmfamily}
+
+
+
+
+% Packages
+\usepackage{latexsym,amsmath,amssymb,graphics,amscd}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{enumitem}
+\usepackage{hyperref}
+%\usepackage[margin=0.7in]{geometry}
+\usepackage{booktabs}
+\usepackage{fancyhdr}
+\usepackage{authblk}
+%\usepackage[usenames]{xcolor}
+\usepackage{xcolor}
+
+
+% Header
+\lhead{ }
+\rhead{Wishful Thinking About Consciousness}
+ 
+% Custom def-s 
+
+
+\def\avec{{\bf a}}
+\def\svec{{\bf s}}
+\def\xvec{{\bf x}} 
+\def\yvec{{\bf y}}
+\def\wvec{{\bf w}}
+\def\uvec{{\bf u}}
+\def\vvec{{\bf v}}
+\def\zvec{{\bf z}}
+\def\evec{{\bf e}}
+\def\cvec{{\bf c}}
+\def\pvec{{\bf p}}
+\def\qvec{{\bf q}}
+
+\setlength{\headheight}{13.59999pt}
+
+\newcommand{\RR}{\mathbb{R}}
+\newcommand{\PP}{\mathbb{P}}
+\newcommand{\hhf}{{\scriptstyle{{\frac{1}{2}}}}}
+\setlength{\parindent}{0.0cm}
+%\setlength{\parskip}{1.0cm}
+
+% Custom colours for draft comments
+\definecolor{magenta}{rgb}{1.0,0.0,1.0}
+\newcommand{\gr}[1]{\textcolor{magenta}{{{}}#1}{}}
+\newcommand{\tat}[1]{\textcolor{blue}{{{}}#1}{}}
+\newcommand{\pg}[1]{\textcolor{green}{{{}}#1}{}}
+\newcommand{\lb}[1]{\textcolor{orange}{{{}}#1}{}}
+
+\pagestyle{fancy}
+
+\title{Wishful Thinking About Consciousness}
+
+%\author[1]{Peter Grindrod {\small CBE}}
+%\author[2]{Catherine F. Higham}
+%\author[3]{Desmond J. Higham}
+%\author[4]{Ka Man Yim}
+ 
+%\affil[1]{Mathematical Institute,  University of Oxford, Oxford, United Kingdom}
+%\affil[2]{School of Computing Science, University of Glasgow, Glasgow, United Kingdom}
+%\affil[3]{School of Mathematics, University of Edinburgh, Edinburgh, United Kingdom}
+%\affil[4]{School of Mathematics, University of Cardiff, Cardiff, United Kingdom}
+% BEGIN DOCUMENT
+
+\begin{document}
+\mainmatter              % start of a contribution
+%
+\title{{Wishful Thinking About Consciousness}}
+%
+\titlerunning{{Wishful Thinking About Consciousness}}  % abbreviated title (for running head)
+%                                     also used for the TOC unless
+%                                     \toctitle is used
+%
+\author{Peter Grindrod {\small CBE}}
+%
+\authorrunning{Peter Grindrod {\small CBE}} % abbreviated author list (for running head)
+%
+%%%% list of authors for the TOC (use if author list has to be modified)
+\tocauthor{Peter Grindrod {\small CBE}}
+%
+\institute{Mathematical Institute, University of Oxford\\
+\email{grindrod@maths.ox.ac.uk} }
+
+\maketitle  
+
+
+
+\begin{abstract}
+We contrast three distinct mathematical approaches to the hard problem of consciousness: quantum consciousness, integrated information theory, and  the very large scale dynamical systems simulation of a network of networks.  We highlight their features and their associated hypotheses, and we discuss how they are aligned or  in conflict. We suggest some challenges for the future theories, in considering how they might apply to  the human brain as it develops both cognitive and conscious sophistication, from infancy to adulthood; and how an evolutionary perspective challenges the distinct approaches to aver performance advantages and  physiological surrogates for consciousness.
+
+\ 
+
+%  
+
+\noindent
+{\bf{Keywords:} Quantum consciousness; Integrated information theory; Dynamical systems simulation; evolutionary advantage; performance  surrogates. } %All article types: you may provide up to 8 keywords; at least 5 are mandatory.
+\end{abstract}
+
+
+\section{Introduction}
+%Conscious phenomena. The hard problem.
+%
+The {\it hard problem of consciousness} \cite{Chalm95},    \cite{Chalm96} asks why  there is something internal to our subjective experience, some set of phenomenological sensations, something that it is {\it like} to be a human brain experiencing the world.  Such repeatable and consistent sensations range from large scale emotions and feelings (anxiety, happiness, love, embarrassment)  down to smaller scale, more specific, {\it qualia} (headache pain, the sight of the blueness of blue, the brassy sound of a trumpet, the feel of stroking cat's fur, the crunch from biting into an apple,...). These are internal mental states with  very distinctive subjective characters. How do such  sensations come about within the physical brain and what is their possible role?
+%\newpage
+
+
+In this paper we consider three alternative mathematical approaches to the hard problem and related matters.  We do so in order to crystallize  and contrast the pros and cons of each paradigm. We wish to avoid a {\it dialogue of the deaf}. We hope that  a direct inter-comparison will stimulate interests and research within all three theories. Comparison, cross fertilization  and competition are huge drivers within science and the present stage of the {\it mathematics of  consciousness} demands a sharpening of its  aims and objectives.
+
+We should stress that other approaches are available, so we have focused here upon the three that are arguably most dominant at the present time. 
+
+\subsection{Quantum consciousness (QC)}\label{QC}
+There are many scientists and writers who hold that conscious phenomena, such as the existence, causes, and role,  of internal phenomenological sensations (emotions, feelings, and  qualia) relate to some type of quantum effects taking place somewhere within the physical brain, usually associated with the cognitive processing of information to produce consequent inferences and actions.  Penrose proposed a type  of wave function collapse,  called  {\it objective reduction}, from which consciousness  phenomena are born \cite{Penrose}.
+
+%The philosopher Chalmers long ago argued against QC  \cite{Chalm96}. More generally he was skeptical that any new physics or mathematics could resolve the hard problem of consciousness,   calling quantum consciousness the law for the {\it minimisation of mysteries}.%  `Consciousness is a mystery, quantum mechanics is a mystery. When you have two mysteries, well maybe there is really only one. Perhaps they are the same thing.’
+
+% JK: I think there are two roads to quantum consciousness:
+%   1.) Penrose' rode, which you already describe nicely.
+%   2.) Identifying 'observation' in Quantum Theory with 'consciousness'
+% Should we add something about the second road?
+
+Quantum consciousness (QC)  usually starts out from a negative: that classical mathematics (dynamical systems, and other concepts) alone cannot explain consciousness, positing instead that quantum-mechanical phenomena, such as entanglement and superposition, might play an important part in the brain's function and could explain critical aspects of consciousness. Up until  a few years ago perhaps the best evidence for this assertion was indeed the failure of those classical mathematical methods to define and substantiate a model that might expose the ``how, what, why" of conscious phenomena. This is no longer the case.   In sections \ref{IIT} and \ref{OHC}, below, we will discuss two now obvious, and available,  alternative candidates: integrated information theory (IIT), and the reverse engineering of very large scale (VLS) dynamical system simulations (DSS). The former required  a novel concept to be  applied  to information processing systems; whilst the latter could not be prosecuted until large  simulations on (multi-core) super-computing platforms became available,  or else until a suitable simplification of the VLS systems could been defined.
+
+So the time is ripe to reconsider the logic and evidence behind the promulgation  of QC.
+
+%JK: Should we say something about the Gödel-type thinking that is employed by Penrose?
+
+The  quantum mind remains a hypothetical speculation, as Penrose and others admit. Until is can  support a prediction that is testable by experimentation, the hypotheses is not based on any empirical evidence. Indeed, quite recently Jedlicka \cite{Jedlicka}  says of quantum biology (a superset of the quantum mind-brain), ``The recent rise of quantum biology as an emerging field at the border between quantum physics and the life sciences suggests that quantum events could play a non-trivial role also in neuronal cells. Direct experimental evidence for this is still missing....". In \cite{Lambert} there is a useful summary of the contemporary evidence both for and  against there being a functional role for quantum effects in a range of biological (and physiological) systems. The authors find no clear evidence one way or the other and they couch their conclusions in weak conditional terms, suggesting further experimentation is required. 
+
+However, just as any evidence to support the presence of quantum effects within the brain remains elusive, it is also hard to obtain positive evidence that rules them out.  The major theoretical argument against the QC hypothesis is the assertion that any quantum states in the brain would lose coherency before they reached a scale where they could be useful \cite{Tegmark,Seife}.  Typical brain reactions are on the order of milliseconds, trillions of times longer than sub-picosecond quantum  timescales.  Over many years though, there have been successive attempts to be  more explicit about where and how quantum effects might be present within the brain \cite{hammer}.
+
+In \cite{Marais}, the authors consider the future of quantum biology as a whole and address QC explicitly.  Given the objections above, on the basis of time-scale and space-scale discrepancy between quantum effects and neuronal dynamics, they conclude that any ``{\it potential theory of quantum effects in biological neural networks would thus have to show how the macroscopic dynamics of biological neural nets can emerge from coherent dynamics on a much smaller scale.}"  
+
+With the present lack of any  positive evidence for  QC, despite  many years of searching, and the existence of some coherent theoretical arguments to its contrary, why then does the quantum consciousness hypothesis persist?   Perhaps the largest force driving its adoption is subjective: it comes from the desires and aspirations of quantum scientists themselves, to have their own physics become relevant to one of the most elusive frontiers in science. This goes far beyond Chalmers' ``minimisation of mysteries" jibe: it would  act as a magnet and an employment-creation opportunity for quantum physicists. 
+
+Of course, the recent rise in quantum technologies (including quantum computing, quantum sensing and quantum communication) within novel synthetic applications, lavishly funded via many national programmes,  performs a similar, though much more rational, purpose.  Moreover, within those non-brain fields there is a focus on fabricating novel  effects in the lab and beyond, rather than on unpicking and understanding a particular existing natural complex system, such as the human brain. 
+
+More  recent ideas about consciousness  introduce  modifications of the quantum-mechanical Schrödinger equation and discuss wave function collapse. For example  Chalmers and  McQueen \cite{Queeen}  and others \cite{Kobi} consider the  evolution of quantum states within the universe when consciousness is also taken into account. They investigate whether conscious phenomena (within some paradigm)  might collapse wave functions, inducing hard certainties. Such a role  is normally reserved for acts of {\it observation} in quantum mechanics, though that is an ambiguous term.  Hence they postulate that conscious phenomena (whether physical or dualist) could impact upon the real external world. Of course, this is the exact reverse of investigating whether or how quantum collapse might beget QC.
+
+%However, suppose that the human brain has indeed evolved so as to  exploit some quantum effects. What would be the evolutionary advantage of that?
+%
+
+
+
+\subsection{Integrated information theory (IIT)}\label{IIT}
+Integrated information theory (IIT) \cite{Tononi}  provides a framework capable of explaining why some physical systems (such as human brains) are conscious,   why they feel the particular way they do in particular states, and whether other physical systems might be conscious. IIT does not build conscious-like phenomena out of physical systems and processes (as does dynamical systems modelling and simulation, discussed in Section \ref{OHC} below), instead it  moves from the abstract phenomenology towards mechanism by attempting to identify the  properties of conscious experience within general information processing systems.
+
+Here a {\it system} refers to a set of elements each of which might be in  two or more discrete internal states. The state of the system is thus summarised by the states of all of its elements.  Subsets of the elements define ``mechanisms", and when the corresponding elements change state they do so in a way that may  be conditional on one another's state, since they inter-dependent and are able to interact.  There is a thus a transition matrix that can stipulate the probability that  state of the system might switch  to another state. IIT applies to whole systems that are capable of carrying out such internal dynamical state changes: it is an integrated view.  In a real sense systems should be irreducible, since if they could be reduced (partitioned) into independent subsets then there would be no point in assembling those subsets into the whole and we might deal with each separately.  This is akin to the notion of  irreducibility (strong connectedness) for  non-negative directed adjacency or dependency  matrices (stipulating all pairwise influences between elements). Thus any properties of such an irreducible system are integrated  and will depend upon all of its elements.
+
+The details of IIT  focus mainly on how a performance quantity called the ``integrated information", denoted by $\Phi$,  is  defined and calculated for different systems. $\Phi$ is  a real valued measure of the subsets of elements  within a system that have (physical) cause-effect power upon one another. Only an irreducible (strongly connected) system full of feedback cycles can have a non-trivial $\Phi$, as it produces output causes (consequences) from the incoming sensory effects. The conscious part of the human brain thus has a very high $\Phi$, and is therefore highly conscious.  Systems with a low $\Phi$ have a very small amount of consciousness.
+
+
+In fact it is rather surprising how much effort is focused on the calculation of $\Phi$, as a surrogate for the system's internal {\it agility} and {\it sophistication}. This is apparent in the successively increasing formalism presented after a decade or so within  IIT 3.0 in 2014 \cite{Oiz}. 
+
+% JK: I think we'd ahve to argue for that in more detail.
+
+The mathematical essentials of IIT are well set out in \cite{JandS}, including its possible application within  a quantum setting, introduced earlier in \cite{Zan}. 
+
+Of course, given any specific system, it would be  {\it nice} to be able to calculate $\Phi$, yet knowing its exact value is of no use to the system's owner (except possibly for bragging). The owner continues to operate the system just as it is configured. Analogously we might all accept that there is a performance measure of human intelligence, called   IQ, but knowing its actual value does not affect an individual's own decision making or ability to operate as now.  Of course a high value of $\Phi$  (like a high vale of IQ) might confer some advantages to the system owner, such as having a comfortable life, or increased  fecundity. It is easy to imagine how such advantages would cause some evolutionary selection to shift a population of owners to relatively higher and higher distributions of such =measures. Thus the importance of higher $\Phi$ lies in its associated evolutionary advantages, not in its objective transparency or accessible calculation. 
+
+It is very interesting to ask how much improvement in $\Phi$ might be achieved if evolution re-architected the human brain; or even if  individual (plastic) brains develop an abundance of connections when  subject to specific training (specific experiences).  Conversely, within a single operational lifetime, the brain's consciousness development is not necessarily a one way street.  
+
+Equally, it is important to understand how $\Phi$ might increase  as an infant brain develops through puberty, when both the cognitive sophistication and the conscious inner life develop along with the evolving neural connectivity and neurological structures, due to neurotransmitters and life experience.
+
+Thus, the most important and appealing part of IIT is that it supplies a performance measure, $\Phi$, as a system level attribute, that aims to be correlated  with the level of internal conscious phenomena, and which might be increased. The ability to calculate  $\Phi$ for any given class of systems is thus rather irrelevant to their owners -- it is the internal consequences, that are measured by $\Phi$, that will count.  Any calculation of $\Phi$ is only relevant to demonstrating its well defined-ness and constructive nature, and possibly useful in future testing the IIT.
+
+Like the quantum mind, IIT has its critics. The claims of IIT as a theory of consciousness are not yet scientifically established or testable  \cite{Lau}, and IIT  cannot be applied at the scale of  a whole brain system. There is also no demonstration that  systems which  exhibit integration,  in the sense  of  IIT, are in fact conscious at all. Obviously, a relatively high $\Phi$-level might be a  necessary condition for consciousness phenomena yet it may not  be sufficient \cite{Bjornagain}.  An explanatory gap remains.
+
+
+\subsection{Very large scale (VLS) dynamical system simulations (DSS)}\label{OHC}
+Recent years have seen the possibility of VLS DSS containing 10B individual neurons, as a dynamic model for the human cortex.  This approach is based on empirical observations of  the cortex structure; it is an open system, subject to ongoing sensory inputs; it is experimental; and it is predictive.  It makes predictions about  why the cortex architecture should be so uniform (so to maximise the total dynamical degrees of freedom while constraining energy and volume) \cite{GrinLee}; it explains how the whole system response is governed by  (competing) internal dynamical modes \cite{GrinLes} which result in a preconditioning of the immediate cognitive processing, providing  a  {\it fast thinking} advantage \cite{CCE,kahn}; and it suggests that consciousness and cognition  are entwined, with each catalysing  and constraining the other, and the brain has evolved so as to exploit that advantage. Yet, as  we shall see, there remains an explanatory gap \cite{CCE}. 
+
+In such VLS DSS neurons are arranged within a directed network architecture based on that of the human cortex. In fact, it is a {\it network-of-networks}. The inner networks,  called {\it modules} (or communities)  in network theory,  each represent a single neural column containing 10,000 or so individual neurons  which are internally very densely connected. The outer network connects up the neural columns with occasional connections between pairs of neurons from near-neighbouring columns. The columns are arranged in grid across the (flattened out) cerebral cortex. The individual neurons, just as  in vivo,  are both excitable (they spike when they stimulated by receiving an incoming spike) and refractory (following a spike they require a recovery time for the intra- and extra-cellular ions to re-equilibriate and they will not fire immediately if re-stimulated). Each directed neuron-to-neuron transmission takes some time, based on the tortuous nature of the individual axonal-synaptic-dendritic connection.  
+
+Recent work in  such VLS DSS  shows that under many distinct externally stimulated conditions the internal response defaults to react within one of a number of (hierarchically related)  dynamical modes \cite{GrinLes}.  The modes exist across the cortex and across time and cannot be represented by snapshots, and are also mutually exclusive at any particular level in the hierarchy. Such  VLS simulations require a supercomputer \cite{Spin}, and the reverse engineering of the internal responses to stimulation, and the the identification of the hierarchically defined modes, is highly non-trivial \cite{GrinLes}. 
+
+The  DSS  approach recognises that the cognitive processing system in open, as it is constantly subject to sensory stimulation: it is not  about dynamical {\it emergence}  (symmetry breaking within disordered complex systems). The observed dynamical modes arise in response to various stimulations, and they are extremely good candidates for hierarchical emotions, feelings, and qualia. The hypothesis that internal phenomenological sensations correspond to the brain's own experiences of  dynamical modes kicking-in directly addresses  the {\it hard problem}:  how humans  have such internal sensations and exposing their role  in enabling a fast thinking \cite{kahn} evolutionary advantage by preconditioning immediate cognition and  reducing the immediate decisions set. 
+
+Yet there remains an explanatory gap. While  has  been  shown that any nonlinear system of this type, including the human cortex, must have such internal competing dynamical modes,  it has not be proven that these are in correspondence with internal phenomenological sensations. The  set of internal modes is arranged  hierarchically, and at any particular level they are mutually exclusive. 
+
+VLS DSS represents some of the largest numbers of simulations using massive cortex-like complex systems that have ever been made \cite{12}\cite{13}. This endeavour requires significant resources. IBM has been particularly active and has carried out TrueNorth simulations  in 2019 \cite{14}, realizing the vision of the 2008 DARPA Systems of Neuromorphic Adaptive Plastic Scalable Electronics (SyNAPSE) program. The simulations and analytics  in \cite{GrinLes} were  carried out on the SpiNNaker 1 million-core platform \cite{15,Spin,17}. 
+
+The tribulations of two large science projects aiming to fully simulate human brains, within  the US and EU,  have been well documented \cite{ohdear}; and were caused by a variety of issues. These programmes have  become  focused on  goals of brain mapping and building data processing facilities and new tools with which to study the brain.
+%Sometimes science can be over-funded (few scientists admit this), and failures in big projects usually result from failures within leadership (from the project and the funder) rather than failures in theory or technology. 
+Many efforts  have benefited from the computing facilities developed. The progress in  \cite{GrinLes}, discussed above, exploited the massively parallel SpiNNaker  supercomputer  \cite{Spin} \cite{15} \cite{17}  that took over 10 years in construction, from  2006,  and required  $\pounds$15M, funded by the UKRI/EPSRC and the EU Human Brain Project \cite{18}.
+
+In \cite{ohdear} these big science projects were summarised, ``{\it ...instead of answering the question of consciousness, developing these methods has, if anything, only opened up more questions about the brain—and shown just how complex it is.}"
+
+In more recent work the modules (the neural columns)  have been replaced by multi-dimensional clocks \cite{GrinBren} (with multiple phases winding forwards,  which isolated), coupled via individual edge-based  phase-resetting mechanisms, with appropriate time-delays. The results are the same as those for the the full VLS DSS -- internal, hierarchically-arranged, dynamical modes responding to external stimulation. Yet these {\it Kuramoto}-type simulations only require 1M or so multi dimensional clocks, with say 10M degrees of freedom in total. Whereas the full VLS DSS simulations require 10B degrees of freedom. As a result the reduced system may  run on a laptop (dual core), as opposed to a supercomputer \cite{CCE}\cite{GrinBren}. 
+
+
+Over many years various {\it toy} circuits built with neurons have been investigated. But this is a red herring. The full scale simulations with realistic architectures and dynamics had to wait for suitable computing platforms. As a result it is clear that the possibility of  VLS simulations producing a dynamical systems and network science ennabled response to the hard problem  was discounted prematurely. Once investigators could peer inside such systems and reverse engineer them  (in a way that is impossible for human brains, given the resolution of even the most powerful scanners), the internal dynamics became apparent.   The {\it Entwinement Hypothesis} \cite{CCE} is thus a logical outgrowth of VLS DSS.  
+
+Much of the earlier philosophical work  often argued that cognition and consciousness  are separate, or that cognition begets consciousness as a consequence or by-product of processing (see the multiple drafts hypothesis  \cite{Dennett}, for example).  However, it is now  suggested that one should  accept the  corollary  (from  the insights) gained via   DSS,  that internal conscious phenomena are crucial to certain efficiencies within cognition. Cognition and consciousness would be thus mutually dependent, and entwined \cite{CCE}. 
+
+%{\color{green}  PG Note to all..}
+
+
+
+
+\section{Comparisons}
+DSS considers an open dynamical system containing up to 10B neurons embedded within a directed network-of-networks that is irreducible (strongly connected) and is subject to a continuous stream of sensory inputs, yet it responds is consistent ways. It moves from causes to effects - from stimuli to decisions, inferences, and instantiating appropriate internal modes. The structures employed rest on  what is observed  in terms of neuronal dynamics, cortex architecture, and transmission time lags. DSS enables the  analysis and reverse engineering  of the integrated system behaviour, including the discovery of internal latent modes, which are hypothesised to be physical causes of sensations and qualia. DSS shows how these in turn can  influence and constrain immediate cognition. These conclusions are thus based on the observed brain structure and behaviour, and on a multitude of DSS experiments.
+
+On the other hand IIT moves in the opposite direction, It starts out from   a generalised irreducible (strongly connected) and agile system, and measures the integrated (whole-system) performance  via $\Phi$. In fact $\Phi$ really seeks to measure  a whole range of possible dynamical phenomenon,  including all possible internal response modes to incoming stimuli.  Thus, within its generality,  IIT subsumes the internal responsive structures  that are exhibited by particular systems, yet it does not explicitly demonstrate the existences dynamical modes within the integrated response.   IIT does not rely  on the specific network-of-networks architecture, only properties of it; and consequently  IIT is not  able make testable predictions (such as  having a fairly uniform size of neural columns \cite{GrinLee}\cite{GrinLes} in maximising the total number of dynamical degrees of freedom).   The power of having a measure lies not in its derivation (and well-definedness) but in introducing a systems-level concept beyond energy, entropy, and complexity measures (such as modularity). 
+
+Both IIT and  DSS are described by  similar vocabulary and they exhibit the same obvious role for evolutionary cognitive and consciousness development. Assuming that high-$\Phi$ induces some advantages to an organism, such as the preconditioning and hence fast-thinking advantage \cite{kahn} implied by DSS, then the brain can have evolved in structural form and dynamics so as to increases this. 
+
+IIT and VLS DSS are really the same thing but  coming from different directions.   DSS constructs a {\bf bottom-up} narrative of {\it what occurs within} \cite{GrinLes} for a very specific class of cortex-like systems, making specific and testable predictions based on observed structure and experimentation.   IIT provides a much more general setting, a {\bf top-down} view, and it asserts that a high level of a suitably defined performance measure can imply the existences of conscious internal phenomena.
+
+QC is a rather special case of a theoretical approach  offering a (presently) theoretical solution. It comes with no practical justification nor evidence for its establishment and relevance,  and  yet it supplies  some sophisticated  benefits - elements that deal with uncertainty   and also seek to explain why conscious phenomena are elusive and beyond physical measurement (observation). 
+
+The evolutionary question is important  for QC, and quantum biology in general. Has biology evolved so as to exploit quantum effects within {\it warm and wet} environments, on the increasing spatial scales of molecules, cells, organs and organisms? If not why not? Does cellular and systems biology take place at the wrong scales for quantum effects to be relevant? The advantages of quantum effects within cognitive and conscious performance might be very great, if ever achievable. Objections have encouraged proponents to become more specific  about where and how quantum effects might ever arise within the human brain \cite{hammer}, and yet still persist.
+
+QC says nothing about relative levels of consciousness (compared to IIT) and nothing at all about the brain's evolved architecture or the  plethora and role of inner sensations (compared with VLS DSS); beyond  seeking sub-cellular  structures that might support any quantum effects. Instead it provides a theoretical {\it raison d'etre} for conscious experiences. 
+
+Of course DSS is classical, and far simpler and more straightforward than QC. It is also testable and produces  observable consequences, including support for the {\it Entwinement hypothesis} \cite{CCE}. Moreover, any DSS progress at all required the development of supercomputing facilities that could simulate such VLS dynamics \cite{Spin}\cite{15}\cite{17}.  Hence such a classical approach (as set out in \cite{GrinLes}) was held up until about five years ago.   Perhaps its efficacy was simply discounted too early by commentators; since  (human)  ``nature abhors a vacuum".
+
+VLS DSS implies that QC is unnecessary. QC implies that whatever DSS demonstrates is irrelevant. 
+
+Very usefully, in theory  IIT applies to both classical and quantum approaches \cite{JandS,Zan}. Yet any implementation requires some detailed descriptions of the system architecture  and dependencies of the systems' elements and mechanisms. 
+
+It would be fascinating if IIT could ever calculate $\Phi$ for the same systems set out and deployed within DSS, for both the  VLS DSS and the simpler Kuramoto-style,  network of multidimensional clocks systems. This would be a very good next step.
+
+Furthermore, any physiological surrogate for  $\Phi$, possibly tied to some   evolutionary advantages, would be extremely useful. We can argue that DSS shows us some facets of the  dynamics and architecture (the total dynamical degrees of freedom, for example) that would confer fast-thinking advantages.  We can also  observe many physiological surrogates for individual inner feelings (blushing, trembling, non-poker faces, heart rate, cortisol, and so on). Could we identify some  more generalised observables that might be a surrogates for the full measure, $\Phi$?
+
+In summary, we suggest that the best next steps for IIT should be (i) to ground it further  to the specific system observed within the cortex, from where  DSS starts out; (ii) and identify appropriate physiological markers that are aligned with $\Phi$. For VLS DSS the immediate experimental challenge is to identify evidence for the existence of specific internal dynamical modes  corresponding to certain internal sensations. Such a step requires high resolution neuroimaging, 
+over time as well as across the cortex (not highly localised), relating cognitive and consciousness entwinement more closely to the recent the progress on {\it neural correlates of consciousness} \cite{nani}. The reverse engineering of massive ensembles of VLS simulations creates its own ``big data" problem. The methodology deployed in \cite{GrinLes}\cite{GrinBren} should be improved and made more transparent.
+  
+
+
+
+% 
+
+
+ 
+\newpage
+
+\begin{thebibliography}{98}% Replace 9 by 99 if 10 or more references
+
+ \bibitem{Chalm95}Chalmers, D.J. (1995) Facing up to the Problem of Consciousness,  Journal of Consciousness Studies 2: 200-19.
+
+\bibitem{Chalm96}Chalmers, D.J. (1996). The Conscious Mind: In Search of a Fundamental Theory, New York: Oxford University Press.
+
+
+\bibitem{Penrose}Penrose, R. (1989). The Emperor's New Mind. New York, NY: Penguin Books. ISBN 0-14-01-4534-6.
+
+
+
+\bibitem{Jedlicka}Jedlicka, P. (2017). Revisiting the Quantum Brain Hypothesis: Toward Quantum (Neuro)biology? Front Mol Neurosci.10:366. doi: 10.3389/fnmol.2017.00366. PMID: 29163041; PMCID: PMC5681944.
+
+\bibitem{Lambert}Lambert, N., Chen, Y.N., Cheng, Y.C. et al. Quantum biology. Nature Phys 9, 10–18 (2013). \url{ https://doi.org/10.1038/nphys2474}.
+
+\bibitem{Tegmark}Tegmark, M. (2000). Importance of quantum decoherence in brain processes. Phys. Rev. E 61, 4194–4206  (10.1103/PhysRevE.61.4194).
+
+\bibitem{Seife}Seife, C. (2000). Cold Numbers Unmake the Quantum Mind. Science. 287 (5454): 791.
+
+\bibitem{hammer}Penrose, R.,  and  Hameroff, S. (2011). Consciousness in the Universe: Neuroscience, Quantum Space-Time Geometry and Orch OR Theory,  Journal of Cosmology. 14. .
+
+\bibitem{Marais} Marai, A., Adams, B., Ringsmuth, A.K., Ferretti, M., Gruber, J.M., Hendrikx, R., Schuld, M., Smith, S.L., Sinayskiy, I., Krüger, T.P.J., Petruccione, F., and van Grondelle, R.  (2018). The future of quantum biology. J R Soc Interface 15(148):20180640. doi: 10.1098/rsif.2018.0640. PMID: 30429265; PMCID: PMC6283985
+
+\bibitem{Queeen}Chalmers, D.J., and  McQueen, K.J. (2022). Consciousness and the Collapse of the Wave Function. Consciousness and Quantum Mechanics, 11.
+
+\bibitem{Kobi}Kremnizer, K., and   Ranchin, A. (2015). Integrated Information-Induced Quantum Collapse,  Foundations of Physics, vol 45 issue 8, 889-899.
+
+\bibitem{Tononi} Tononi, G. (2004-11-02). An information integration theory of consciousness. BMC Neuroscience. 5 (1): 42. doi:10.1186/1471-2202-5-42. ISSN 1471-2202. PMC 543470. PMID 15522121.
+
+\bibitem{Oiz}Oizumi, M., Albantakis, L., and Tononi, G. (2014). From the Phenomenology to the Mechanisms of Consciousness: Integrated Information Theory 3.0. PLOS Comput Biol. 10 (5): e1003588.
+
+\bibitem{JandS}Kleiner, J., and  Tull, S. (2020). The Mathematical Structure 
+of Integrated Information Theory, Front. Appl. Math. Stat., Volume 6 - 2020 \url{https://doi.org/10.3389/fams.2020.602973}.
+
+\bibitem{Zan}Zanardi, P., Tomka, M., and Venuti, L.C. (2018), Quantum Integrated Information Theory. (2018). arXiv preprint arXiv:1806.01421,  Comparison with Standard Presentation of IIT 3.0.
+
+\bibitem{Lau}Lau, H. (2020). Open letter to NIH on Neuroethics Roadmap (BRAIN initiative) 2019. In Consciousness We Trust.
+\url{https://inconsciousnesswetrust.blogspot.com/2020/05/open-letter-to-nih-on-neuroethics.html}.
+
+\bibitem{Bjornagain}Merker, B. (19 May 2021). "The Integrated Information Theory of consciousness: A case of mistaken identity". Behavioral and Brain Sciences. 45: e41.
+
+\bibitem{GrinLee}
+Grindrod, P. \&  Lee, T.E. (2017) On strongly connected networks with excitable-refractory dynamics and delayed coupling, {\em Roy. Soc. Open Sci.}  4(4): 160912 doi: 10.1098/rsos.160912. 
+ 
+\bibitem{GrinLes}Grindrod, P.,  \&  Lester, C. (2021).  Cortex-like complex systems: what occurs within?,  Frontiers in Applied Mathematics and Statistics, 7, p 51,  \url{https://www.frontiersin.org/article/10.3389/fams.2021.627236}.
+
+\bibitem{CCE}Grindrod, P., and Brennan, M. (2023). Cognition and Consciousness Entwined. Brain Sciences. 2023; 13(6):872 \url{https://doi.org/10.3390/brainsci13060872}.
+
+\bibitem{kahn}Kahneman, D. (2011). Thinking, Fast and Slow,  Farrar, Straus and Giroux, New York.
+
+\bibitem{Spin}Furber, S.B., Galluppi, F.,  Temple, S., and  Plana, L.A. (2014), The SpiNNaker Project, Proceedings of the IEEE. 102 (5): 652–665.
+
+\bibitem{12} Eliasmith, C., and Trujillo, O. The Use and Abuse of Large-Scale Brain Models. Curr Opin Neurobiol (2014) 25:1–6. doi:10.1016/j.conb.2013.09.009
+
+
+\bibitem{13} Chen, S., He, Z., Han, X., He, X., Li, R., Zhu, H., et al. How Big Data and High-Performance Computing Drive Brain Science. Genomics, Proteomics \& Bioinformatics (2019) 17:381–92. doi:10.1016/j.gpb.2019.09.003
+
+
+\bibitem{14}DeBole, M.V., Appuswamy, R., Carlson, P.J., Cassidy, A.S., Datta, P., Esser, S.K., et al. TrueNorth: Accelerating from Zero to 64 Million Neurons in 10 Years. Computer (2019) 52(5):20–9.  
+
+
+\bibitem{15} Temple, S., and Furber, S. (2007). Neural Systems Engineering. J R Soc Interf  4(13):193–206. doi:10.1098/rsif.2006.0177
+CrossRef Full Text | Google Scholar
+
+
+\bibitem{17} Moss, S. (2018). SpiNNaker: Brain Simulation Project Hits One Million Cores on a Single Machine Modeling the Brain Just Got a Bit Easier. Data Center Dynamics (2018). Available at: \url{https://www.datacenterdynamics.com/en/news/spinnaker-brain-simulation-project-hits-one-million-cores-single-machine/}(October 16, 2018).
+
+
+\bibitem{vonNeumann2018}Von Neumann, J. (1932). Mathematical Foundations of Quantum Mechanics/Mathematische Grundlagen der Quantenmechanik. Springer.
+
+\bibitem{Wigner1995}
+Wigner, E. P. (1995). Remarks on the mind-body question. Philosophical reflections and syntheses, 247-260.
+
+\bibitem{18}Wikipedia. The Human Brain Project (2020). Available at: \url{https://en.wikipedia.org/wiki/Human_Brain_Project }(extracted May, 2020).
+
+
+\bibitem{ohdear} Mullin, E. (2021).  
+How big science failed to unlock the mysteries of the human brain, MIT Tech Review, \url{https://www.technologyreview.com/2021/08/25/1032133/big-science-human-brain-failure/}.
+
+\bibitem{GrinBren}Grindrod, P.,  and  Brennan, M. (2023).  Generalised Kuramoto models with time-delayed phase-resetting for $k$-dimensional clocks,   Brain Multiphysics,
+Volume 4, \url{https://doi.org/10.1016/j.brain.2023.100070}.
+
+
+\bibitem{Dennett}
+Dennett, D.C. (1991). Consciousness Explained, Little, Brown and Co.
+
+\bibitem{nani}Nani A, Manuello J, Mancuso L, Liloia D, Costa T, Cauda F. The Neural Correlates of Consciousness and Attention: Two Sister Processes of the Brain. Front Neurosci. 2019 Oct 31;13:1169.
+\end{thebibliography}
+\end{document}
+
+
+
