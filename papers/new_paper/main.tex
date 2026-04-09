@@ -87,7 +87,7 @@ Hashing functions are fundamental building blocks in the modern software stack. 
 \text{mh}(n) =
 \begin{cases} 
     \mathcal{H}(n.\text{label}) & n \text{ is a leaf} \\
-    \mathcal{H}(n.\text{label} \text{+} \text{mh}(n.\text{left}) \text{+} \text{mh}(n.\text{right})) & \text{otherwise}
+    \mathcal{H}(n.\text{label} \circ \text{mh}(n.\text{left}) \circ \text{mh}(n.\text{right})) & \text{otherwise}
 \end{cases}
 \]
 \label{alg:merklehashing}
@@ -191,6 +191,8 @@ The recursive Merkle-style algorithm will utilize the analysis of cycles within 
 
 \section{Algorithms}
 
+\subsection{Design Space}
+
 \subsection{Canonization for Graph Hashing}
 
 \begin{algorithm}
@@ -269,11 +271,11 @@ Since the orbit indices are equal and $\mathcal{H_G}(G_1)=\mathcal{H_G}(G_2)$, t
 
 \subsection{Outgoing Ordered Edge Graphs}
 
-For many real world applications of graph hashing, the labels of outgoing edges can be strictly ordered.  We can take advantage of this extra structure on the edges to create hashing algorithms that can run in polynomial time. Doing so also removes the dependency on the more complicated and exponential time canonization and orbit partitioning algorithms that are required for general digraphs.
+For many real world applications of graph hashing, the labels of outgoing edges can be strictly ordered.  We can take advantage of this extra structure on the edges to create hashing algorithms that run in polynomial time. Doing so also removes the dependency on the more complicated and exponential time canonization and orbit partitioning algorithms that are required for general digraphs.
 
 The algorithms in this section are directly inspired by the more general Scott graph canonization algorithm given by Bloyet, Marteau and Fr\'enod \cite{scott}. The basic idea for our approach is that due to the ordering of the edges, we can give an order to the nodes based on when they are visited in a graph traversal algorithm (in this case depth-first search).
 
-We can take advantage of this extra structure on the edges to create a node hashing algorithm that runs in polynomial time and neatly encapsulates the idea that the hash of a node should depend only the reachable subgraph structure. Algorithm \ref{alg:node-outgoing-edges} gives an overview of this approach based on the traversal order of a depth-first search. Note that the algorithms given in this section are directly inspired by the more general Scott graph canonization algorithm given by Bloyet, Marteau and Fr\'enod \cite{scott}.
+%We can take advantage of this extra structure on the edges to create a node hashing algorithm that runs in polynomial time and neatly encapsulates the idea that the hash of a node should depend only the reachable subgraph structure. Algorithm \ref{alg:node-outgoing-edges} gives an overview of this approach based on the traversal order of a depth-first search. Note that the algorithms given in this section are directly inspired by the more general Scott graph canonization algorithm given by Bloyet, Marteau and Fr\'enod \cite{scott}.
 
 \begin{algorithm}[H]
     \caption{Node Hash - Outgoing Ordered Edges}\label{alg:node-outgoing-edges}
@@ -355,10 +357,37 @@ To compute the hash of a specific node, we begin by computing the strongly conne
 
 \section{Directed Vertex Languages}
 
-Let $A$, $B$, and $C$ be finite sets of strings such that $A \neq B \neq C$. We define a new relation $X < Y \iff \min(X \triangle Y) \in Y \setminus X$ where $\triangle$ is the symmetric difference.
+We will now explore the design space for hashing a node in the directed graph
+by computing the hash of a node's \textit{vertex language}. This type of language is
+highly reminiscient of how we can define regular languages using finite automata.
+
+We define the directed vertex language $\mathcal{L}_G(u)$ of some node $u$ in directed graph
+$G$ to be the set of all strings formed by all walks starting from $u$ in $G$. The strings
+in this set are built from the labels of the vertices visited in each walk. This is in contrast
+to a DFA where the characters are added by walking along an edge. More formally,
+the language of a node can be recursively defined as follows:
+
+\begin{equation}
+  \mathcal{L}_G(u) = \{L(u)\} \cup \bigcup_{v \in \text{neighbor}(u)} \{L(u) \circ x \mid x \in \mathcal{L}_G(v)\}
+\end{equation}
+
+We now proceed to construct an algorithm that can compute a hash for this (potentially infinite) set.
+To accomplish this, we will use the following strategy, given some input graph $G$ and node $u$
+\begin{enumerate}
+  \item We will aggressively merge vertices in $G$ that are indistinguishable from the perspective of
+  walks through the graph starting at $u$. This will result in a minimized digraph.
+  \item We will show that this minimal digraph is unique.
+  \item We will canonically order nodes in the minimal digraph using a relation we will define Section \ref{sec:relation}.
+  \item With the ordering in hand, we can order the minimal digraph's adjacency list, which can be fed to a typical string hashing function as we have done in previous sections.
+\end{enumerate}
+
+\subsection{Relation}
+\label{sec:relation}
+
+Let $A$, $B$, and $C$ be sets of strings such that $A \neq B \neq C$. We define a new relation $X \prec Y \iff \min(X \triangle Y) \in Y \setminus X$ where $\triangle$ is the symmetric difference.
 
 \begin{theorem}
-The relation $<$ is transitive. That is, if $A < B$ and $B < C$, then $A < C$.
+The relation $\prec$ is transitive. That is, if $A \prec B$ and $B \prec C$, then $A \prec C$.
 \end{theorem}
 \begin{proof}
 We begin by defining the following two strings $p$ and $q$:
@@ -413,10 +442,10 @@ For all $n < q$, $n \in B \iff n \in C$.
 
   \medskip
 
-  \item \textbf{Case p = q}. From our hypotheses, $p \in B \setminus A$ and $q \in C \setminus B$. This means that $p \in B$ and $q \notin B$. However $p=q$, so $p \in B$ and $p \notin B$, which is a contradiction.
+  \item \textbf{Case $p = q$}. From our hypotheses, $p \in B \setminus A$ and $q \in C \setminus B$. This means that $p \in B$ and $q \notin B$. However $p=q$, so $p \in B$ and $p \notin B$, which is a contradiction.
 \end{itemize}
 
-\noindent In all possible cases, $\min(A \triangle C) \in C \setminus A$, so $A < C$.
+\noindent In all possible cases, $\min(A \triangle C) \in C \setminus A$, so $A \prec C$.
 
 \end{proof}
 
