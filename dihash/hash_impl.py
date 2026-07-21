@@ -1,9 +1,7 @@
-import hashlib
 import networkx as nx
 import pynauty
 import math
 from .util import invert_list, to_str, hash_sha256
-
 
 # Convert a NetworkX graph to a nauty graph
 # Input should be a NetworkX digraph with node labels represented as strings, stored in the 'label'
