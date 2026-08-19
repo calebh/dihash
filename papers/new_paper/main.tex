@@ -337,12 +337,12 @@ We then proceed to operate on the new quotient graph, and pass it through a fres
 
 For each node $n$ in the quotient graph, there will be some step $i$ in which that node becomes locally stable. On that round we can create a canonical order for the nodes in the reachable subgraph of $n$ by sorting the colors $\lambda_i$ for each node. We can then use this ordering to create a canonical adjacency list, which can then be serialized to a string and passed through a string hashing function. This gives the node hash for vertex $n$.
 
-To summarize our approach, we begin by merging any nodes which are identical modulo tree expansion by using graph coloring with the global stabilization condition. We then construct a quotient graph, merging any of these identical nodes. We then compute a new graph coloring for each node, this time using the local stabilization condition. Since these colors are unique, they can be canonically ordered. The canonical ordering can then be used to construct a canonical adjacency list, which can then be hashed using an ordinary string hashing function.
+To summarize our approach, we begin by merging any nodes which are identical modulo tree expansion by using graph coloring with the global stabilization condition. We then construct a quotient graph, merging any of these identical nodes. We then compute a new graph coloring for each node, this time using the local stabilization condition. Since these colors are unique, they can be canonically ordered. The canonical ordering can then be used to construct a canonical adjacency list, which can then be hashed using an ordinary string hashing function. Algorithm \ref{alg:local-node-hash} gives a pseudo-code implementation of this approach.
 
 \begin{algorithm}[t]
-    \caption{Local Digraph Node Hash}\label{alg:local-digraph-node-hash}
+    \caption{Local Digraph Node Hash}\label{alg:local-node-hash}
     \begin{algorithmic}[1]
-    \Function{$\mathcal{H_N}$}{$G=(V, E, L)$}
+    \Function{$\mathcal{H_L}$}{$G=(V, E, L)$}
         \State $C \gets$ \textproc{global\_colors}($G$) \Comment Map nodes in $V$ to colors
         \State $Q \gets G / C$ \Comment Use colors as an equivalence class to compute a quotient graph
         \State $(V', E', L') \gets Q$ \Comment $L'$ maps nodes in $V'$ to the original node labels
@@ -356,7 +356,7 @@ To summarize our approach, we begin by merging any nodes which are identical mod
             \If{$n \notin \text{stable}$}
               \If{\textproc{partition\_unchanged}(reachable[n], colors, new\_colors)}
                 \State stable $\gets \text{stable} \cup \{n\}$
-                \State final\_hash[n] $\gets$ \textproc{serialize}($Q$, $n$, reachable[n], new\_colors)
+                \State final\_hash[n] $\gets$ \textproc{serialize}($Q$, $n$, reachable[n], colors)
               \EndIf
             \EndIf
           \EndFor
@@ -366,8 +366,26 @@ To summarize our approach, we begin by merging any nodes which are identical mod
     \end{algorithmic}
 \end{algorithm}
 
+\begin{theoremrep}[Local Hash Proof of Correctness]
+\label{thm:localhashcorrect}
+Given some node $u$ from $G_1$ and some node $v$ from $G_2$, $\mathcal{H_L}(G_1)[u] = \mathcal{H_L}(G_2)[v]$ if and only if $\textproc{tree\_expansion}(G_1, u) \cong \textproc{tree\_expansion}(G_2, v)$
+\end{theoremrep}
 
+\begin{inlineproof}
+  ($\Rightarrow$) If $\mathcal{H_L}(G_1)[u] = \mathcal{H_L}(G_2)[v]$, then the reachable subgraphs in the quotient graph from $u$ and $v$ are identical. Since the tree expansion depends only on the reachable parts of the graph, and taking the quotient leaves the tree expansion unchanged, the tree expansions are isomorphic.
 
+  ($\Leftarrow$) Let $V_1$ be the vertices of the quotient graph $Q_1 = G_1 / C_1$ reachable from $u$ and $V_2$ be the vertices of the quotient graph $Q_2 = G_2 / C_2$ reachable from $v$.
+  
+  Then it is easy to construct a bijection of the vertices in the tree expansions since they are isomorphic. This bijection maps between nodes with isomorphic subtrees. Since the quotient graph merges any nodes with identical tree expansions, this same bijection can be re-interpreted as a bijection $f : V_1 \rightarrow V_2$ between the nodes in the reachable portions of the quotient graph.
+
+  We now show that $f$ also preserves edges. We prove the following cases:
+  \begin{itemize}
+    \item If $(a, b) \in E_1$, then $(f(a), f(b)) \in E_2$. Assume that $(f(a), f(b)) \notin E_2$. Then $\textproc{tree\_expansion}(G_1, a) \ncong  \textproc{tree\_expansion}(G_1, f(a))$, which contradicts the assumption that $f$ also maps between isomorphic tree expansions.
+    \item If $(f(a), f(b)) \in E_2$, then $(a, b) \in E_1$. Assume that $(a, b) \notin E_1$. Then $\textproc{tree\_expansion}(G_1, a) \ncong  \textproc{tree\_expansion}(G_1, f(a))$, which contradicts the assumption that $f$ also maps between isomorphic tree expansions.
+  \end{itemize}
+
+  We now show that if $(a, b) \in E_1$, then $(f(a), f(b)) \in E_2$.
+\end{inlineproof}
 
 
 \clearpage

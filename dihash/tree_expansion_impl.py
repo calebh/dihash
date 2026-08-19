@@ -137,7 +137,7 @@ def _canonical_quotient_hashes(Q, string_hash_fun):
                 stable.add(n)
                 # Order n's WHOLE reachable set by the colors of n's own
                 # stabilization round (uniform round per subgraph).
-                final_hash[n] = _serialize_reachable(Q, n, reachable[n], new_colors, string_hash_fun)
+                final_hash[n] = _serialize_reachable(Q, n, reachable[n], colors, string_hash_fun)
         colors = new_colors
     return final_hash
 
