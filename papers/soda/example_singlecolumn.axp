@@ -1,0 +1,1 @@
+\makeatletter \let \proof \axp@oldproof \let \endproof \endaxp@oldproof \let \section \axp@oldsection 
