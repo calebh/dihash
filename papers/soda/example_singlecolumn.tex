@@ -176,7 +176,7 @@ Unauthorized reproduction of this article is prohibited}}
 %\setcounter{page}{1}%Leave this line commented out.
 
 \begin{abstract}
-  In this paper we present various methodologies and algorithmic implementations for hashing node-labeled directed graphs. We distinguish between hashing graphs based on their global structure and hashing based on local observerations obtained by traversing the graph. Our approaches are careful to take into account any symmetry in the graph, so that nodes that are identical modulo automorphism are assigned equal hashes. Structurally hashing trees has seen widespread use in blockchain, source code version control, and web applications. Despite the popularity of tree hashing, directed graph hashing remains unstudied in the literature.
+  In this paper we present various methodologies and algorithmic implementations for hashing node-labeled directed graphs. We distinguish between hashing graphs based on their global structure and hashing based on local observerations obtained by traversing the graph. Our approaches are careful to take into account any symmetry in the graph, so that nodes that are identical modulo automorphism or unfolding are assigned equal hashes. Structurally hashing trees has seen widespread use in blockchain, source code version control, and web applications. Despite the popularity of tree hashing, directed graph hashing remains unstudied in the literature.
 \end{abstract}
 
 \section{Introduction}\label{sec:introduction}
@@ -201,7 +201,7 @@ Extending hashing to node-labeled directed graphs is non-trivial due to the pres
 
 \begin{itemize}
   \item \textbf{Global Hashing} (Section \ref{sec:global-graph-hashing}) - for use cases where the \textit{global} structure of the digraph is of importance. A correct algorithm should produce equal hashes if and only if two graphs are isomorphic. Nodes in the graph should hash to the same value if and only if them come from isomorphic graphs and they are identical modulo automorphism.
-  \item \textbf{Local Hashing} (Section \ref{sec:local-graph-hashing}) - for use cases where observers can only observe \textit{local} information by traversing from a node to a neighbor on an outgoing edge. There are several formulations of local hashing, but in this paper we will discuss an algorithm that produces equal hashes for nodes if and only if the (potentially infinite) tree expansions from outward exploration are isomorphic. Local hashing has many commonalities with bisimulation and co-inductive representations of finite directed graphs \cite{bisimulation_book,coinductive_graphs}.
+  \item \textbf{Local Hashing} (Section \ref{sec:local-graph-hashing}) - for use cases where observers can only observe \textit{local} information by traversing from a node to a neighbor on an outgoing edge. There are several formulations of local hashing, but in this paper we will discuss an algorithm that produces equal hashes for nodes if and only if the (potentially infinite) unfoldings from outward exploration are isomorphic. Local hashing has many commonalities with bisimulation and co-inductive representations of finite directed graphs \cite{bisimulation_book,coinductive_graphs}.
   \item \textbf{Ordered Outgoing Edges} (Section \ref{sec:outgoing-ordered-edge-graphs}) - in many practical applications the outgoing edges from a node are ordered. We can use this additional structure to simplify and improve the runtime performance of our hashing algorithms.
   \item \textbf{Merkle Graph Hashing} (Section \ref{sec:merkle-graph-hashing}) - for use cases where we want graphs to be hashed recursively, or graphs are structures that are built up over time. In this approach we hash strongly connected components individually using either global or local hashing, then recurse over the acyclic condensation graph induced by the strongly connected components.
 \end{itemize}
@@ -287,7 +287,7 @@ An \textit{automorphism} of some graph $G=(V,E,L)$ is defined as a permutation $
 A \textit{vertex orbit} is the equivalence class of vertices of a graph under the action of automorphisms. Informally, the orbit of a vertex $v$ can be thought of as the set of vertices that are symmetrically identical to $v$. Figure \ref{fig:orbitexample} gives an example of how orbits can be used to partition a graph.
 
 \[
-\text{Orb}(v,G) = \{u \in V \mid \exists \sigma \in \text{Aut}(G) \text{ such that } \sigma(v) = u\}
+\text{Orb}(G, v) = \{u \in V \mid \exists \sigma \in \text{Aut}(G) \text{ such that } \sigma(v) = u\}
 \]
 
 \textit{Canonical labeling} is the process of ordering graph vertices such that isomorphic graphs canonize to the same value. Note that canonical labeling algorithms cannot distinguish between different graph automorphisms. Algorithms that can compute canonical labels are widely used in practice for graph isomorphism testing. Some examples of canonical labeling algorithms include nauty \cite{nauty}, bliss \cite{bliss}, and saucy \cite{saucy}.
@@ -299,7 +299,7 @@ A \textit{vertex orbit} is the equivalence class of vertices of a graph under th
   \label{fig:condensation}
 \end{figure}
 
-The recursive Merkle-style algorithm will utilize the analysis of cycles within a directed graph. A \textit{strongly connected component} of a graph is a maximal set of vertices such that there exists a path in the graph between any two vertices within the strongly connected component. A \textit{condensation graph} is formed by contracting strongly connected components into single nodes. We will exploit the acyclicity of the condensation graph to construct our recursive algorithm. Figure \ref{fig:condensation} shows an example of strongly connected components and the induced condensation graph.
+The recursive Merkle-style algorithm will utilize the analysis of cycles within a directed graph. A \textit{strongly connected component} of a graph is a maximal set of vertices such that there exists a path in the graph between any two vertices within the strongly connected component. A \textit{condensation graph} is formed by contracting strongly connected components into single nodes. We will exploit the acyclicity of the condensation graph to construct our Merkle-style recursive algorithm. Figure \ref{fig:condensation} shows an example of strongly connected components and the induced condensation graph.
 
 \section{Global Graph Hashing}
 \label{sec:global-graph-hashing}
@@ -309,7 +309,7 @@ The recursive Merkle-style algorithm will utilize the analysis of cycles within 
 \begin{algorithm}[b]
     \caption{Global Digraph Hash}\label{digraphhash}
     \begin{algorithmic}[1]
-    \Function{$\mathcal{H_G}$}{G=(V,E,L)}
+    \Function{$\mathcal{H_G}$}{$G=(V,E,L)$}
         \State \Comment{V is the set of vertices, E is the set of edges, L is the node labeling function}
         \State $\rho \gets$ \textproc{canonize}($G$) \Comment{\textproc{canonize} returns a mapping from vertices to their location in the canonical order}
         \State adj\_list $\gets$ \textproc{sort}($[(\rho(u), \rho(v)) \mid (u,v) \in E]$)
@@ -335,7 +335,7 @@ Assuming that the string hashing function $\mathcal{H}$ is injective, $\mathcal{
 
 %Of course real string hashing functions are not injective by the pigeonhole principle, however in practice nobody has yet found collisions for algorithms such as SHA512. Therefore for this approach we treat string hashing algorithms as injective. The identity function or an asymmetric encryption algorithm are examples of truly injective string transformation functions, so those could be used as alternatives if desired.
 
-($\Leftarrow)$ Let $G_3$ be the output graph of canonizing $G_1$, and $G_4$ be the output of canonizing graph $G_2$. Since $G_1 \cong G_2$, we conclude that $G_3=G_4$ since isomorphic graphs canonize to the same graph. This implies that the sorted adjacency lists and ordered vertex label lists are equivalent, so the string representation is equivalent. Therefore the string hash output are equivalent as well, which shows that $\mathcal{H_G}(G_1)=\mathcal{H_G}(G_2)$. \qed
+($\Leftarrow)$ Let $G_3$ be the output graph of canonizing $G_1$, and $G_4$ be the output of canonizing graph $G_2$. Since $G_1 \cong G_2$, we conclude that $G_3=G_4$ since isomorphic graphs canonize to the same graph. This implies that the sorted adjacency lists and ordered vertex label lists are equivalent, so the string representation is equivalent. Therefore the string hash output are equivalent as well, which shows that $\mathcal{H_G}(G_1)=\mathcal{H_G}(G_2)$. 
 \end{proof}
 
 %\begin{inlineproof}
@@ -345,10 +345,10 @@ Assuming that the string hashing function $\mathcal{H}$ is injective, $\mathcal{
 \begin{algorithm}[t]
     \caption{Global Digraph Node Hash}\label{alg:digraph-node-hash}
     \begin{algorithmic}[1]
-    \Function{$\mathcal{H_N}$}{v, G}
-        \State $\rho \gets$ \textproc{canonize}(G)
-        \State g\_hash $\gets \mathcal{H_G}(G)$
-        \State orbit\_idx $\gets$ $\min(\text{Orb}(\rho(v),\rho(G)))$
+    \Function{$\mathcal{H_N}$}{$G$, $v$}
+        \State $\rho \gets$ \textproc{canonize}($G$)
+        \State g\_hash $\gets \mathcal{H_G}($G$)$
+        \State orbit\_idx $\gets$ $\min(\text{Orb}(\rho(G), \rho(v)))$
         \State \Return $\mathcal{H}$(\textproc{to\_str}((orbit\_idx, g\_hash)))
     \EndFunction
     \end{algorithmic}
@@ -373,7 +373,7 @@ $=\text{Orb}(\rho_2 (v_2), \rho_1(G_1))$. Then trivially $\rho_1(v_1) \in \text{
 
 Then by definition of orbit, $\text{Orb}(\rho_2(\phi(v_1)), \rho_2(G_2))=\text{Orb}(f(\rho_2(\phi(v_1))), \rho_2(G_2))$ and $\text{Orb}(\rho_1(\phi'^{-1}(v_2)),\rho_1(G_1)) = \text{Orb}(f'(\rho_1(\phi'^{-1}(v_2)),\rho_1(G_1)))$. Substituting in the definitions of $f$ and $f'$, we have $\text{Orb}(\rho_2(\phi(v_1)), \rho_2(G_2))=\text{Orb}(\rho_1(v_1), \rho_2(G_2))$ and $\text{Orb}(\rho_1(\phi'^{-1}(v_2)),\rho_1(G_1)) = \text{Orb}(\rho_2(v_2),\rho_1(G_1))$. This shows that $\rho_2(v_2) \in \text{Orb}(\rho_1(v_1), \rho_2(G_2))$ and $\rho_1(v_1) \in \text{Orb}(\rho_2(v_2),\rho_1(G_1))$. Since $G_1 \cong G_2$, $\rho_1(G_1)=\rho_2(G_2)$ so $\rho_2(v_2) \in \text{Orb}(\rho_1(v_1), \rho_1(G_1))$ and $\rho_1(v_1) \in \text{Orb}(\rho_2(v_2),\rho_2(G_2))$. This suffices to show that the orbit indices of are equal in the computations of $\mathcal{H_N}(v_1, G_1)$ and $\mathcal{H_N}(v_2, G_2)$.
 
-Since the orbit indices are equal and $\mathcal{H_G}(G_1)=\mathcal{H_G}(G_2)$, then $\mathcal{H_N}(v_1, G_1)=\mathcal{H_N}(v_2, G_2)$. \qed
+Since the orbit indices are equal and $\mathcal{H_G}(G_1)=\mathcal{H_G}(G_2)$, then $\mathcal{H_N}(v_1, G_1)=\mathcal{H_N}(v_2, G_2)$. 
 \end{proof}
 
 %\begin{inlineproof}
@@ -457,7 +457,7 @@ Since the orbit indices are equal and $\mathcal{H_G}(G_1)=\mathcal{H_G}(G_2)$, t
 \draw[cont] (b3)  -- (-3.7,-7.2);  \node[dots] at (-3.7,-7.7) {$\vdots$};
 \draw[cont] (c3)  -- (-1.1,-7.2);  \node[dots] at (-1.1,-7.7) {$\vdots$};
 \draw[cont] (cc3) -- ( 2.4,-7.2);  \node[dots] at ( 2.4,-7.7) {$\vdots$};
-\node[font=\small] at (0,-8.7) {unfolding $\mathcal{T}(G,a)$};
+\node[font=\small] at (0,-8.7) {unfolding tree $\textproc{unfolding}(G, a)$ rooted at $a$};
 \end{tikzpicture}
 \caption{Unfolding of a directed graph with cycles. Starting from the root
 $a$, every vertex is replaced by one copy per path reaching it, so the cycle
@@ -469,9 +469,9 @@ of the unfolding finite Merkle-tree up to layer $i$.}
 \label{fig:unfolding}
 \end{figure}
 
-In comparison to the global hashing strategy which depends on the global structure of the graph, the local hashing strategy depends only on properties we can \textit{observe} by traversing the digraph forward along its edges. To make this concept precise, we say that the hash of two nodes in a digraph should be equal if and only if their unfoldings are isomorphic. An unfolding is the formed by selecting a starting node, placing it at the root of the tree, then adding neighboring nodes as children, and expanding recursively. This forms a (potentially infinite) tree induced by the structure of the underlying digraph.
+In comparison to the global hashing strategy which depends on the global structure of the graph, the local hashing strategy depends only on properties we can \textit{observe} by traversing the digraph forward along its edges. To make this concept precise, we say that the hash of two nodes in a digraph should be equal if and only if their \textit{unfoldings} are isomorphic. An unfolding is the formed by selecting a starting node, placing it at the root of the tree, then adding successor nodes as children, and expanding recursively. This forms a (potentially infinite) tree induced by the structure of the underlying digraph. Figure \ref{fig:unfolding} shows an example of an unfolding for a directed graph.
 
-Our strategy for local graph hashing uses a variation of an algorithm to compute color refinement. In color refinement, nodes are repeatedly colored and propogated over multiple iterations until a stable coloring is achieved. To be more precise, the initial coloring $\lambda_0$ of the nodes is defined to be the hash of the node's labels:
+Our strategy for local graph hashing uses a variation of an algorithm to compute color refinement. In color refinement, nodes are repeatedly colored and propagated over multiple iterations until a stable coloring is achieved. To be more precise, the initial coloring $\lambda_0$ of the nodes is defined to be the hash of the node's labels:
 
 \begin{equation}
   \lambda_0(u) = \mathcal{H}(L(u))
@@ -480,10 +480,11 @@ Our strategy for local graph hashing uses a variation of an algorithm to compute
 We then compute colorings over multiple iterations using the following equation (note that $\{\{...\}\}$ is a multiset, and that a multiset can be converted to a string by sorting its members):
 
 \begin{equation}
+  \label{eq:coloring-step}
   \lambda_{i+1}(u) = \mathcal{H}(\textproc{to\_str}((L(u), \{\{\lambda_{i}(v) \mid (u, v) \in E\}\})))
 \end{equation}
 
-The color of a node in round $i$ is exactly the Merkle-hash of an unfolding tree with a maximum depth of $i+1$ layers. Note here that our unfolded finite tree is being built bottom-up, with a new layer added to the tree every iteration. Due to the bottom-up construction, the hashing process maximally shares computation, making this a dynamic programming approach. Note that we differ here from classic color refinement by operating over directed rather than undirected graphs. Our approach also draws inspiration from DFA partition refinement strategies, such as Hopcraft's DFA minimization algorithm \cite{hopcraft-redescribe,hopcraft}.
+The color of a node in round $i$ is exactly the Merkle-hash of an unfolding tree with a maximum depth of $i+1$ layers. Note here that our unfolded finite tree is being built bottom-up, with a new layer added to the tree every iteration. Due to the bottom-up construction, the hashing process maximally shares computation, making this a dynamic programming approach.
 
 We now define the following stabilization condition which will tell us when to stop computing new colors:
 
@@ -491,9 +492,7 @@ We now define the following stabilization condition which will tell us when to s
 \textbf{Global Stabilization Condition}: Global stabilization is achieved in round $i$ if for all nodes $u$, $v$ in $G$, $\lambda_{i+1}(u)=\lambda_{i+1}(v)$ if and only if $\lambda_i(u)=\lambda_i(v)$.
 \end{stoppingcondition}
 
-
 Our first step of local graph hashing, then, is to take the input graph and compute the stable colors of each node, stopping when the global stabilization condition is achieved. With this in hand, we then construct a quotient graph induced by the stable colors, merging any nodes together with identical color. Note here that the quotient graph produced is a multi-digraph, so that we preserve the unfolding of all nodes.
-
 
 We then proceed to operate on the new quotient graph, and pass it through a fresh round of color refinement, this time making use of the following stabilization condition:
 
@@ -503,9 +502,7 @@ We then proceed to operate on the new quotient graph, and pass it through a fres
 
 For each node $n$ in the quotient graph, there will be some step $i$ in which that node becomes locally stable. On that round we can create a canonical order for the nodes in the reachable subgraph of $n$ by sorting the colors $\lambda_i$ for each node. We can then use this ordering to create a canonical adjacency list, which can then be serialized to a string and passed through a string hashing function. This gives the node hash for vertex $n$.
 
-To summarize our approach, we begin by merging any nodes which are identical modulo tree expansion by using graph coloring with the global stabilization condition. We then construct a quotient graph, merging any of these identical nodes. We then compute a new graph coloring for each node, this time using the local stabilization condition. Since these colors are unique, they can be canonically ordered. The canonical ordering can then be used to construct a canonical adjacency list, which can then be hashed using an ordinary string hashing function. Algorithm \ref{alg:local-node-hash} gives a pseudo-code implementation of this approach that computes the hash for all nodes in the input graph.
-
-\begin{algorithm}[t]
+\begin{algorithm*}[!b]
     \caption{Local Digraph Node Hash}\label{alg:local-node-hash}
     \begin{algorithmic}[1]
 
@@ -520,49 +517,66 @@ To summarize our approach, we begin by merging any nodes which are identical mod
 
     \Function{$\mathcal{H_L}$}{$G=(V, E, L)$}
         \State $C \gets$ \textproc{global\_colors}($G$) \Comment Map nodes in $V$ to colors
-        \State $Q \gets G / C$ \Comment Use colors as an equivalence class to compute a quotient graph
+        \State $Q \gets G / C$ \Comment Use colors as an equivalence class to compute a quotient multi-digraph
         \State $(V', E', L') \gets Q$ \Comment $L'$ maps nodes in $V'$ to the original node labels
-        \State reachable $\gets \{n \mapsto \textproc{reachable}(Q, n) \mid n \in V'\}$
-        \State stable $\gets \{\}$
+        \State reach $\gets \{n \mapsto \textproc{reachable}(Q, n) \mid n \in V'\}$
+        \State locally\_stable $\gets \{\}$
         \State final\_hash $\gets \textproc{empty\_dict}()$
-        \State colors $\gets \{n \mapsto \mathcal{H}(L'(n)) \mid n \in V'\}$
-        \While{$|\text{stable}|<|V'|$}
-          \State new\_colors $\gets$ \textproc{refine\_round}($Q$, colors, $L'$)
+        \State $\lambda \gets \{n \mapsto \mathcal{H}(L'(n)) \mid n \in V'\}$
+        \While{$|\text{locally\_stable}|<|V'|$}
+          \State $\lambda_{next} \gets$ \textproc{refine\_round}($Q, \lambda, L'$)
           \For{$n \in V'$}
-            \If{$n \notin \text{stable}$}
-              \If{\textproc{partition\_unchanged}(reachable[n], colors, new\_colors)}
-                \State stable $\gets \text{stable} \cup \{n\}$
-                \State final\_hash[n] $\gets$ \textproc{serialize}($Q$, $n$, reachable[n], colors)
+            \If{$n \notin \text{locally\_stable}$}
+              \If{\textproc{partition\_unchanged}(reach[n], $\lambda$, $\lambda_{next}$)}
+                \State locally\_stable $\gets \text{locally\_stable} \cup \{n\}$
+                \State final\_hash[n] $\gets$ \textproc{serialize}($Q$, $n$, reach[n], colors)
               \EndIf
             \EndIf
           \EndFor
+          \State $\lambda \gets \lambda_{next}$
         \EndWhile
-        \State \Return $\{n \mapsto \text{final\_hash}[C[n]] \mid n \in V\}$
+        \State \Return $\{n \mapsto \text{final\_hash}[C[n]] \mid n \in V\}$ \Comment Return the hashes for all nodes in the graph
     \EndFunction
     \end{algorithmic}
-\end{algorithm}
+\end{algorithm*}
+
+To summarize our approach, we begin by merging any nodes which are identical modulo tree expansion by using graph coloring with the global stabilization condition. We then construct a quotient graph, merging any of these identical nodes. We then compute a new graph coloring for each node, this time using the local stabilization condition. Since these colors are unique, they can be canonically ordered. The canonical ordering can then be used to construct a canonical adjacency list, which can then be hashed using an ordinary string hashing function. Algorithm \ref{alg:local-node-hash} gives a pseudo-code implementation of this approach that computes the hash for all nodes in the input graph.
+
+We now show that the stabilization conditions (both global and local) are a sufficient stopping condition for the problem we are trying to solve:
+
+\begin{lemma}
+\label{thm:stability}
+If stability (local or global) is achieved on round $i$, then the partition of colors (ie, by placing nodes with equal colors in the same partition) is unchanged for all future rounds $j > i$.
+\end{lemma}
+\begin{proof}
+By induction on the round number. As a base case, consider $j=i+1$. By the definition of stable, the partition remains unchanged on this step. For the inductive step, assume in step $j$ the partition remains unchanged. When computing the colors for step $j+1$, the only value affecting the paritition of the nodes is the partition of the values from the previous step. In other words, the partition of the values in the multiset in Equation \ref{eq:coloring-step} remains the same. This means that the partition of the nodes remains unchanged in step $j+1$.
+\end{proof}
+
+By Lemma \ref{thm:stability}, we see that using the stable colors as an equivalence class when computing the quotient graph is the same as using the infinite limit of the colors (which is a Merkle-tree hash) as an equivalence class.
+
+Our approach in this section draws inspiration from two different areas: classic color refinement algorithms that operate over \textit{undirected} graphs; also known as Weisfeiler-Lehman graph or subtree kernels \cite{Shervashidze2011-dt}, and DFA partition refinement strategies, such as Hopcraft's DFA minimization algorithm \cite{hopcraft, hopcraft-redescribe}. The idea of unfolding a graph into a tree for isomorphism testing has been discussed before in the literature on Weisfeiler-Lahman graph kernels \cite{Shervashidze2011-dt, fast_subtree_kernels_on_graphs}, however the locally stable condition and use of the colors as a canonical order for hashing is novel.
 
 \begin{theorem}[Local Hash Proof of Correctness]
 \label{thm:localhashcorrect}
-Given some node $u$ from $G_1$ and some node $v$ from $G_2$, $\mathcal{H_L}(G_1)[u] = \mathcal{H_L}(G_2)[v]$ if and only if $\textproc{tree\_expansion}(G_1, u) \cong \textproc{tree\_expansion}(G_2, v)$
+Given some node $u$ from $G_1$ and some node $v$ from $G_2$, $\mathcal{H_L}(G_1)[u] = \mathcal{H_L}(G_2)[v]$ if and only if $\textproc{unfolding}(G_1, u) \cong \textproc{unfolding}(G_2, v)$
 \end{theorem}
 
 \begin{proof}
-  ($\Rightarrow$) If $\mathcal{H_L}(G_1)[u] = \mathcal{H_L}(G_2)[v]$, then the reachable subgraphs in the quotient graph from $u$ and $v$ are identical. Since the tree expansion depends only on the reachable parts of the graph, and taking the quotient leaves the tree expansion unchanged, the tree expansions are isomorphic.
+  ($\Rightarrow$) If $\mathcal{H_L}(G_1)[u] = \mathcal{H_L}(G_2)[v]$, then the reachable subgraphs in the quotient graph from $u$ and $v$ are identical. Since the unfolding depends only on the reachable parts of the graph, and taking the quotient leaves the unfolding unchanged, the unfoldings of the original graphs are isomorphic.
 
   ($\Leftarrow$) Let $V_1, E_1$ be the vertices and edges of the quotient graph $Q_1 = G_1 / C_1$ reachable from $u$. Let $V_2, E_2$ be the vertices and edges of the quotient graph $Q_2 = G_2 / C_2$ reachable from $v$.
   
-  Then it is easy to construct a bijection $f$ of the vertices in the tree expansions since they are isomorphic. This bijection maps between nodes with isomorphic subtrees. Since the quotient graph merges any nodes with identical tree expansions, this same bijection can be re-interpreted as a bijective induced map $g : V_1 \rightarrow V_2$ between the nodes in the reachable portions of the quotient graphs.
+  Then it is easy to construct a bijection $f$ of the vertices in the unfoldings since they are isomorphic. This bijection maps between nodes with isomorphic subtrees. Since the quotient graph merges any nodes with identical unfoldings, this same bijection can be re-interpreted as a bijective induced map $g : V_1 \rightarrow V_2$ between the nodes in the reachable portions of the quotient graphs.
 
   We now show that $g$ also preserves edges. That is, $(a, b) \in E_1$ if and only if $(g(a), g(b)) \in E_2$.
   
   Consider the following cases:
   \begin{itemize}
-    \item If $(a, b) \in E_1$, then $(g(a), g(b)) \in E_2$. Assume that $(g(a), g(b)) \notin E_2$. Then $\textproc{tree\_expansion}(G_1, a) \ncong  \textproc{tree\_expansion}(G_2, g(a))$, which contradicts the assumption that the original bijection $f$ maps between isomorphic tree expansions.
-    \item If $(g(a), g(b)) \in E_2$, then $(a, b) \in E_1$. Assume that $(a, b) \notin E_1$. Then $\textproc{tree\_expansion}(G_1, a) \ncong  \textproc{tree\_expansion}(G_2, g(a))$, which contradicts the assumption that the original bijection $f$ maps between isomorphic tree expansions.
+    \item If $(a, b) \in E_1$, then $(g(a), g(b)) \in E_2$. Assume that $(g(a), g(b)) \notin E_2$. Then $\textproc{unfolding}(G_1, a) \ncong  \textproc{unfolding}(G_2, g(a))$, which contradicts the assumption that the original bijection $f$ maps between isomorphic unfoldings.
+    \item If $(g(a), g(b)) \in E_2$, then $(a, b) \in E_1$. Assume that $(a, b) \notin E_1$. Then $\textproc{unfolding}(G_1, a) \ncong  \textproc{unfolding}(G_2, g(a))$, which contradicts the assumption that the original bijection $f$ maps between isomorphic unfoldings.
   \end{itemize}
 
-  We have therefore shown that the reachable portions of the quotient graph are isomorphic. We now note that the process of computing the final\_hash values in Algorithm \ref{alg:local-node-hash} is permutation invariant with respect to the quotient graph. This is because the color refinement portion of the computation is independent of vertex order, and the locally stable colors for each node when \textproc{partition\_unchanged} is true must be unique (by virtue of operating over a globally stable color quotient graph). We can therefore conclude that $\mathcal{H_L}(G_1)[u] = \mathcal{H_L}(G_2)[v]$.
+  We have therefore shown that the reachable portions of the quotient graph are isomorphic via $g$. We now note that the process of computing the final\_hash values in Algorithm \ref{alg:local-node-hash} is permutation invariant with respect to the quotient graph. This is because the color refinement portion of the computation is independent of vertex order, and the locally stable colors for each node when \textproc{partition\_unchanged} is true must be unique (by virtue of operating over a globally stable color quotient graph). We can therefore conclude that $\mathcal{H_L}(G_1)[u] = \mathcal{H_L}(G_2)[v]$. 
 \end{proof}
 
 %\begin{inlineproof}
@@ -580,18 +594,19 @@ The strategy employed for local hashing depends on properties we can observe by 
   \text{Lang}_G(u) = \{L(u)\} \cup \bigcup_{v \in \text{successor}(u)} \{L(u) \circ x \mid x \in \text{Lang}_G(v)\}
   \end{equation}
 
-  This particular formulation is very similar to that of nondeterminstic finite automata, except that characters are accumulated in a string by visiting nodes (instead of traversing edges), and all states can be terminal states.
+  This particular formulation is very similar to that of nondeterminstic finite automata, except that characters are accumulated in a string by visiting nodes (instead of traversing edges), and all states can be terminal states. This formulation may be alternatively viewed as the set of walks that can be discovered by starting from a specific node.
 
-  Our primary note on this formulation of local graph hashing is that computing a hash value is \textbf{PSPACE-hard}. For this reason, we will not elaborate much further on solving this problem as an efficient algorithm is not possible.
+  Our primary note on this formulation of local graph hashing is that computing a hash value of the set is \textbf{PSPACE-hard}. For this reason, we will not elaborate much further on solving this problem as an efficient algorithm is not possible.
 
   \textbf{Proof Sketch:} We perform a poly-time reduction from the NFA universality problem (UNIV), which is \textbf{PSPACE-complete} \cite{univ}. We say that an NFA is universal if it accepts every string. Given an input NFA, we can perform a poly-time version to an equivalent directed vertex language. We can then construct a universal NFA and encode it in a directed vertex language. If we could compute the hash of a directed vertex language, we could decide the equality between the input NFA and the universal NFA.
 
-  \item As a \textit{bisimulation system}. The approach given in Section \ref{sec:local-graph-hashing} seeks to hash the unfolding, which is a slight twist on the philosophy of bisimulation. In a typical bisimulation setup, we say that nodes $a$ and $b$ are bisimilar if they have the same labels and if the following two conditions are met:
-  \begin{itemize}
+  \item As a \textit{bisimulation system}. The approach given in Section \ref{sec:local-graph-hashing} seeks to hash the unfolding, which is a slight twist on the philosophy of bisimulation. In a typical bisimulation setup, we say that nodes $a$ and $b$ are bisimilar if the following conditions are met:
+  \begin{enumerate}
+    \item $a$ and $b$ have the same label
     \item For every outgoing edge $a \rightarrow a'$, there exists a $b \rightarrow b'$ such that $a'$ and $b'$ are bisimilar.
     \item For every outgoing edge $b \rightarrow b'$, there exists a $a \rightarrow a'$ such that $b'$ and $a'$ are bisimilar.
-  \end{itemize}
-  Note the use of the existential operator instead of a bijective mapping between successor nodes. This means that bisimulation inherently ignores duplicate bisimilar states. For example, two nodes may be bisimilar but have different out-degrees if mulitple successor nodes are themselves bisimilar. Extending computation of a node's hash modulo bisimilarity instead of tree expansion requires only a small modification to the previously described procedure: when computing the quotient graph $G/C$, collapse the graph to an ordinary digraph instead of a multi-digraph.
+  \end{enumerate}
+  Note the use of the existential operator instead of a bijective mapping between successor nodes. This means that bisimulation inherently ignores duplicate bisimilar states. For example, two nodes may be bisimilar but have different out-degrees if multiple successor nodes are themselves bisimilar. Extending computation of a node's hash modulo bisimilarity instead of unfolding requires only a small modification to the previously described procedure: when computing the quotient graph $G/C$, collapse the graph to an ordinary digraph instead of a multi-digraph.
 \end{enumerate}
 
 \section{Outgoing Ordered Edge Graphs}
@@ -642,7 +657,8 @@ For many real world applications of graph hashing, the labels of outgoing edges 
 %We can take advantage of this extra structure on the edges to create a node hashing algorithm that runs in polynomial time and neatly encapsulates the idea that the hash of a node should depend only the reachable subgraph structure. Algorithm \ref{alg:node-outgoing-edges} gives an overview of this approach based on the traversal order of a depth-first search. Note that the algorithms given in this section are directly inspired by the more general Scott graph canonization algorithm given by Bloyet, Marteau and Fr\'enod \cite{scott}.
 
 \begin{algorithm}[H]
-    \caption{Node Hash - Outgoing Ordered Edges}\label{alg:node-outgoing-edges}
+    \caption{Node Hash - Outgoing Ordered Edges}
+    \label{alg:node-outgoing-edges}
     \begin{enumerate}
         \item For some input node $n$, perform a depth first search starting at $n$ and record the visitation order of the reachable nodes. Relabel each node in the order visited by the DFS.
         \item Create an adjacency list of this relabeled subgraph. Sort this adjacency list.
@@ -654,7 +670,8 @@ For many real world applications of graph hashing, the labels of outgoing edges 
 For the \textbf{special case of a strongly connected graph}, we can use these hashes to compute both a canonical order and orbit partition in quadratic time. This special case is useful for the Merkle-style graph hashing algorithm given in Section \ref{sec:merkle-graph-hashing} where strongly connected components are hashed recursively.
 
 \begin{algorithm}[H]
-    \caption{Canonization and Orbit Partitioning for Strongly Connected Outgoing Ordered Edge Graphs}\label{alg:scc-outgoing-edges}
+    \caption{Canonization and Orbit Partitioning for Strongly Connected Outgoing Ordered Edge Graphs}
+    \label{alg:scc-outgoing-edges}
     \begin{enumerate}
         \item For each node $n$, compute the hash using Algorithm \ref{alg:node-outgoing-edges}. Nodes in the same orbit will have identical hash values, which can be used to compute the orbit partition. \textbf{Proof}: It is easy to construct an automorphism by examining the adjacency list constructed during the DFS.
         \item Take the node with the minimal hash value, and use its DFS ordering as the canonical order for the graph.
@@ -669,17 +686,17 @@ Why must we restrict ourselves to the special case of strongly connected graphs?
 
 For applications where graphs are built up over time taking a recursive algorithmic approach similar to Merkle-tree hashing would be highly beneficial. We will now construct such an algorithm that recursively operates over the condensation graph, which is a directed acyclic graph by construction. Algorithm \ref{alg:merklegraphhash} gives a pseudo-code implementation of the approach we will now discuss.
 
-To compute the hash of a specific node, we begin by computing the strongly connected component containing the node. We then recursively compute the hashes of the targets of any edges leaving the strongly connected component. New labels for each node in the SCC are created by concatenating on the multiset of the hashes of non-SCC targets. Finally we compute the hash of each node using Algorithm \ref{alg:digraph-node-hash}.
+To compute the hash of a specific node, we begin by computing the strongly connected component containing the node. We then recursively compute the hashes of the targets of any edges leaving the strongly connected component. New labels for each node in the SCC are created by concatenating on the multiset of the hashes of non-SCC targets. Finally we compute the hash of each node using Algorithm \ref{alg:digraph-node-hash} (Algorithm \ref{alg:scc-outgoing-edges} can be used instead if the edges are ordered).
 
 \begin{algorithm}
     \caption{Merkle Graph Node Hashing}\label{alg:merklegraphhash}
     \begin{algorithmic}[1]
-    \Function{$\mathcal{H_{NM}}$}{v,G=(V,E,L)}
-        \State $S \gets$ \textproc{Scc}(v,$G$) \Comment{$S$ is the set of vertices in the SCC containing v}
-        \State $L'(u)=\textproc{to\_str}((L(u),\{\{\mathcal{H_{NM}}(w,G) \mid u \in S \land w \notin S \land (u,w) \in E\}\}))$ \\ \Comment{Relabel all nodes in the SCC using the recursively computed hashes}
-        \State $(V', E', L'') \gets$ \textproc{Subgraph}(S, $G$)
+    \Function{$\mathcal{H_M}$}{$G=(V,E,L), v$}
+        \State $S \gets$ \textproc{Scc}($G, v$) \Comment{$S$ is the set of vertices in the strongly connected component containing $v$}
+        \State $L'(x)=\mathcal{H}(\textproc{to\_str}((L(x),\{\{\mathcal{H_M}(G,y) \mid x \in S \land y \notin S \land (x,y) \in E\}\})))$ \\ \Comment{Relabel all nodes in the SCC using the recursively computed hashes of nodes outside the SCC}
+        \State $(V', E', L'') \gets$ \textproc{Subgraph}($G, S$)
         \State $G' \gets (V',E',L')$
-        \State \Return $\mathcal{H_N}(v, G')$ \Comment{Hash the relabelled SCC containing v}
+        \State \Return $\mathcal{H_N}(G', v)$ \Comment{Hash the relabelled SCC containing $v$ (Algorithm \ref{alg:scc-outgoing-edges} may be used instead if the outgoing edges are ordered)}
     \EndFunction
     \end{algorithmic}
 \end{algorithm}
@@ -830,19 +847,17 @@ From the algorithms given so far, it may not be obvious how to implement these g
 
 In this sketch, we will assume that our web pages are static HTML files which link to each other and to external websites. These files form a directed graph where each page is a node, and links between pages are edges. The outgoing edges from a node are labeled by natural numbers in the order in which the links appear in the HTML file. Figure \ref{fig:webpage-example} gives a concrete example of the process described here.
 
-We begin by considering the links within each file and the strongly connected components created by our website. All intra-SCC links are replaced with natural numbers in the order in which the links appear. Links leaving the SCC are recursively hashed, and these hash values are inserted verbatim into the HTML of our webpages. We then compute the canonical order and orbit partition of the SCC in polynomial time using Algorithm \ref{alg:scc-outgoing-edges}.
-
-We then insert the SCC into the DHT as follows:
-\begin{itemize}
-  \item \textbf{Key}: The hash of the SCC computed via Algorithm \ref{digraphhash}.
-  \item \textbf{Value}: The canonized adjacency list and the label list (which is ordered in the canonical order).
-\end{itemize}
-
-For each page in the SCC, we insert the following into the DHT:
+We begin by considering the links within each file and the strongly connected components created by our website. All intra-SCC links are replaced with natural numbers in the order in which the links appear. Links leaving the SCC are recursively hashed, and these hash values are inserted verbatim into the HTML of our webpages. We then compute the canonical order and orbit partition of the SCC in polynomial time using Algorithm \ref{alg:scc-outgoing-edges}. We then insert the following items into the distributed hash table:
 
 \begin{itemize}
-  \item \textbf{Key}: The string hash of the (orbit index, SCC hash). We compute the orbit index as is done in Algorithm \ref{alg:digraph-node-hash}.
-  \item \textbf{Value}: The (orbit index, SCC hash) pair.
+  \item The strongly connected component as a whole: \begin{itemize}
+    \item \textbf{Value}: The canononically ordered adjacency list, along with the label list (ordered in the canonical order)
+    \item \textbf{Key}: The string hash $\mathcal{H}$ of the value.
+  \end{itemize}
+  \item For each page, a reference to a specific node in the strongly connected component \begin{itemize}
+    \item \textbf{Value}: The orbit index of the page, along with the overall SCC hash
+    \item \textbf{Key}: The string hash $\mathcal{H}$ of the value.
+  \end{itemize}
 \end{itemize}
 
 Suppose that a user wants to navigate our website, and has obtained a hash for one specific page. The browser software will begin by retrieving the orbit index and SCC hash from our distributed hash table (DHT). The browser then retrieves the SCC, giving us the adjacency list and allowing the SCC digraph to be reconstructed. The orbit index will then point us to a specific node in the SCC. The browser will display the contents of this node to the user.
@@ -851,15 +866,15 @@ If the user clicks a link within the same SCC, the browser simply follows the gr
 
 \section{Related Work}
 
-The core of the digraph Merkle hashing algorithm was independently discovered by the developers of the Unison programming language for use in hashing abstract syntax trees of the Unison language. However, their approach does not take into account computation of the orbits of the nodes, and 
+The core of the digraph Merkle hashing algorithm was independently discovered by the developers of the Unison programming language \cite{unison} for use in hashing abstract syntax trees of the Unison language. Each function and datatype in the Unison language is represented as a node in a digraph, with the AST acting as the node label. We note here that their approach does not take into account the possibility that nodes can lie in the same orbit, making their algorithm incomplete. In the real-world use of the Unison language, the possibility of non-singleton orbits is negligable, and could only occur in incredibly contrived situations.
 
+The Weisfeiler-Lehman graph hash \cite{Shervashidze2011-dt} is a kernel method that iteratively hashes and aggregates neighborhoods of each node in an input graph. Isomorphic graphs are guaranteed to result in equal hashes, and a strong guarantee is given that non-isomorphic graphs will have different hashes. In the literature on this method an iteration parameter is often given as input, which leads to different outputs for different parameter settings. However this parameter is not actually necessary; termination is guaranteed to happen in $n-1$ rounds for a graph of size $n$ since the number of partitions can be at most $n$ and the number of partitions grows monotonically. The algorithm given in Section \ref{sec:local-graph-hashing} can be viewed as a type of Weisfeiler-Lehman graph hash.
 
+In a 2014 paper, Arshad et al. \cite{Arshad2014-cc} presented an algorithm for hashing directed graphs, given additional inputs of a fixed source node and depth-first search traversal tree. The depth-first search traversal tree breaks the graph up into different edge types (tree, back, forward, and cross edges) depending on search order. The hashing algorithm then uses the traversal numbers to order the nodes and construct the hash. The authors note that isomorphic graphs may hash to different values due to this input dependence on source node and DFS tree. The approach presented by Arshad can be used to hash nodes with outgoing ordered edges, and can be viewed as an alternative to the algorithms presented in Section \ref{sec:outgoing-ordered-edge-graphs}.
 
-The Weisfeiler Lehman graph hash \cite{Shervashidze2011-dt} is a kernel method that iteratively hashes and aggregates neighborhoods of each node in an input graph. Isomorphic graphs are guaranteed to result in equal hashes, and a strong guarantee is given that non-isomorphic graphs will have different hashes. This kernel method takes an iteration parameter as input, which changes the result of the hashes computed for different settings of this parameter. Our algorithm gives similar guarantees as the Weisfeiler Lehman graph hash, with the added benefit that there is no requirement for an iteration parameter.
+In a separate 2018 paper, Arshad et al. \cite{Arshad2018-ij} presented a graph hashing algorithm where the hash of a node depends on the XORing together the hashes of the labels of all of that node's descendants. The hash of the entire graph is then computed by hashing each node concatenated with the accumulated graph hash. This approach is problematic in two different ways. While the node hash heuristic may be admissible in many cases, it is easy to construct two non-isomorphic graphs containing nodes with equal hashes, and therefore also equal graph hashes. Indeed, consider a $k$-clique and a $k$-cycle graph containing nodes with equivalent labels. These two graphs are not isomorphic, but each node has $k-1$ descendants, each of which are identically labelled. For this particular example, Arshad's algorithm will output equal hashes.
 
-In a 2014 paper, Arshad et al. \cite{Arshad2014-cc} presented an algorithm for hashing directed graphs, given additional inputs of a fixed source node and depth-first search traversal tree. The depth-first search traversal tree breaks the graph up into different edge types (tree, back, forward, and cross edges) depending on search order. The hashing algorithm then uses the traversal numbers to order the nodes and construct the hash. The authors note that isomorphic graphs may hash to different values due to this input dependence on source node and DFS tree. In contrast, the algorithms presented in this paper do not rely on an input DFS tree or node ordering.
-
-In a separate 2018 paper, Arshad et al. \cite{Arshad2018-ij} presented a graph hashing algorithm where the hash of a node depends on the XORing together the hashes of the labels of all of that node's descendants. The hash of the entire graph is then computed by hashing each node concatenated with the accumulated graph hash. This approach is problematic in two different ways. While the node hash heuristic may be admissible in many cases, it is easy to construct two non-isomorphic graphs containing nodes with equal hashes, and therefore also equal graph hashes. Indeed, consider a $k$-clique and a $k$-cycle graph containing nodes with equivalent labels. These two graphs are not isomorphic, but each node has $k-1$ descendants, each of which are identically labelled. This also shows that the hash of the entire graph are equal. Another problematic aspect of their approach lies with the dependence on DFS order. Two isomorphic graphs may have different graph hashes depending on the DFS order.
+%Another problematic aspect of their approach lies with the dependence on DFS order. Two isomorphic graphs may have different graph hashes depending on the DFS order.
 
 \section{Experimental Results}
 
