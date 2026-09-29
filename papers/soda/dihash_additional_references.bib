@@ -10,19 +10,39 @@
 }
 
 @inproceedings{babai2016quasipolynomial,
-  author    = {L{\'a}szl{\'o} Babai},
-  title     = {Graph Isomorphism in Quasipolynomial Time},
-  booktitle = {Proceedings of the 48th Annual ACM Symposium on Theory of Computing (STOC)},
-  pages     = {684--697},
-  year      = {2016}
+  author = {Babai, L{\'a}szl{\'o}},
+  title = {Graph isomorphism in quasipolynomial time [extended abstract]},
+  year = {2016},
+  isbn = {9781450341325},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/2897518.2897542},
+  doi = {10.1145/2897518.2897542},
+  abstract = {We show that the Graph Isomorphism (GI) problem and the more general problems of String Isomorphism (SI) andCoset Intersection (CI) can be solved in quasipolynomial(exp((logn)O(1))) time. The best previous bound for GI was exp(O( √n log n)), where n is the number of vertices (Luks, 1983); for the other two problems, the bound was similar, exp(O~(√ n)), where n is the size of the permutation domain (Babai, 1983). Following the approach of Luks’s seminal 1980/82 paper, the problem we actually address is SI. This problem takes two strings of length n and a permutation group G of degree n (the “ambient group”) as input (G is given by a list of generators) and asks whether or not one of the strings can be transformed into the other by some element of G. Luks’s divide-and-conquer algorithm for SI proceeds by recursion on the ambient group. We build on Luks’s framework and attack the obstructions to efficient Luks recurrence via an interplay between local and global symmetry. We construct group theoretic “local certificates” to certify the presence or absence of local symmetry, aggregate the negative certificates to canonical k-ary relations where k = O(log n), and employ combinatorial canonical partitioning techniques to split the k-ary relational structure for efficient divide-and- conquer. We show that in a well–defined sense, Johnson graphs are the only obstructions to effective canonical partitioning. The central element of the algorithm is the “local certificates” routine which is based on a new group theoretic result, the “Unaffected stabilizers lemma,” that allows us to construct global automorphisms out of local information.},
+  booktitle = {Proceedings of the Forty-Eighth Annual ACM Symposium on Theory of Computing},
+  pages = {684–697},
+  numpages = {14},
+  keywords = {group theory, graphs, graph isomorphism, divide and conquer, complexity of computation, algorithms},
+  location = {Cambridge, MA, USA},
+  series = {STOC '16}
 }
 
 @inproceedings{babai2019canonical,
-  author    = {L{\'a}szl{\'o} Babai},
-  title     = {Canonical Form for Graphs in Quasipolynomial Time: Preliminary Report},
-  booktitle = {Proceedings of the 51st Annual ACM Symposium on Theory of Computing (STOC)},
-  pages     = {1237--1246},
-  year      = {2019}
+  author = {Babai, L{\'a}szl{\'o}},
+  title = {Canonical form for graphs in quasipolynomial time: preliminary report},
+  year = {2019},
+  isbn = {9781450367059},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/3313276.3316356},
+  doi = {10.1145/3313276.3316356},
+  abstract = {We outline how to turn the author's quasipolynomial-time graph isomorphism test into a construction of a canonical form within the same time bound. The proof involves a nontrivial modification of the central symmetry-breaking tool, the construction of a canonical relational structure of logarithmic arity on the ideal domain based on local certificates.},
+  booktitle = {Proceedings of the 51st Annual ACM SIGACT Symposium on Theory of Computing},
+  pages = {1237–1246},
+  numpages = {10},
+  keywords = {isomorphism, group theory, graphs, complexity, canonical form, algorithms},
+  location = {Phoenix, AZ, USA},
+  series = {STOC 2019}
 }
 
 @article{berkholz2017tight,
@@ -36,13 +56,22 @@
 }
 
 @article{boldi2002fibrations,
-  author  = {Paolo Boldi and Sebastiano Vigna},
-  title   = {Fibrations of Graphs},
-  journal = {Discrete Mathematics},
-  volume  = {243},
-  number  = {1--3},
-  pages   = {21--66},
-  year    = {2002}
+  author = {Boldi, Paolo and Vigna, Sebastiano},
+  title = {Fibrations of graphs},
+  year = {2002},
+  issue_date = {January 28, 2002},
+  publisher = {Elsevier Science Publishers B. V.},
+  address = {NLD},
+  volume = {243},
+  number = {1–3},
+  issn = {0012-365X},
+  url = {https://doi.org/10.1016/S0012-365X(00)00455-6},
+  doi = {10.1016/S0012-365X(00)00455-6},
+  journal = {Discrete Math.},
+  month = jan,
+  pages = {21–66},
+  numpages = {46},
+  keywords = {graph coverings, graph factorizations, graph fibrations}
 }
 
 @article{cardon1982partitioning,
@@ -56,33 +85,59 @@
 }
 
 @article{hennessy1985algebraic,
-  author  = {Matthew Hennessy and Robin Milner},
-  title   = {Algebraic Laws for Nondeterminism and Concurrency},
-  journal = {Journal of the ACM},
-  volume  = {32},
-  number  = {1},
-  pages   = {137--161},
-  year    = {1985}
+  author = {Hennessy, Matthew and Milner, Robin},
+  title = {Algebraic laws for nondeterminism and concurrency},
+  year = {1985},
+  issue_date = {Jan. 1985},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  volume = {32},
+  number = {1},
+  issn = {0004-5411},
+  url = {https://doi.org/10.1145/2455.2460},
+  doi = {10.1145/2455.2460},
+  abstract = {Since a nondeterministic and concurrent program may, in general, communicate repeatedly with its environment, its meaning cannot be presented naturally as an input/output function (as is often done in the denotational approach to semantics). In this paper, an alternative is put forth. First, a definition is given of what it is for two programs or program parts to be equivalent for all observers; then two program parts are said to be observation congruent if they are, in all program contexts, equivalent. The behavior of a program part, that is, its meaning, is defined to be its observation congruence class.The paper demonstrates, for a sequence of simple languages expressing finite (terminating) behaviors, that in each case observation congruence can be axiomatized algebraically. Moreover, with the addition of recursion and another simple extension, the algebraic language described here becomes a calculus for writing and specifying concurrent programs and for proving their properties.},
+  journal = {J. ACM},
+  month = jan,
+  pages = {137–161},
+  numpages = {25}
 }
 
 @article{kanellakis1990ccs,
-  author  = {Paris C. Kanellakis and Scott A. Smolka},
-  title   = {{CCS} Expressions, Finite State Processes, and Three Problems of Equivalence},
-  journal = {Information and Computation},
-  volume  = {86},
-  number  = {1},
-  pages   = {43--68},
-  year    = {1990}
+  author = {Kanellakis, Paris C. and Smolka, Scott A.},
+  title = {CCS expressions, finite state processes, and three problems of equivalence},
+  year = {1983},
+  isbn = {0897911105},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/800221.806724},
+  doi = {10.1145/800221.806724},
+  abstract = {We examine the computational complexity of testing finite state processes for equivalence, in the Calculus of Communicating Systems (CCS). This equivalence problem in CCS is presented as a refinement of the familiar problem of testing whether two nondeterministic finite state automata (n.f.s.a.) accept the same language. Three notions of equivalence, proposed for CCS, are investigated: (1) observation equivalence, (2) congruence, and (3) failure equivalence. We show that observation equivalence (@@@@) can be tested in cubic time and is the limit of a sequence of equivalence notions (@@@@k), where, @@@@1 is the familiar n.f.s.a. equivalence and, for each fixed k, @@@@k is PSPACE-complete. We provide an O(nlogn) test for congruence for n state processes of bounded fanout, by extending the algorithm that minimizes the states of d.f.s.a.'s. Finally, we show that, even for a very restricted type of process, testing for failure equivalence is PSPACE-complete.},
+  booktitle = {Proceedings of the Second Annual ACM Symposium on Principles of Distributed Computing},
+  pages = {228–240},
+  numpages = {13},
+  location = {Montreal, Quebec, Canada},
+  series = {PODC '83}
 }
 
 @article{kao2009nfas,
-  author  = {Jui-Yi Kao and Narad Rampersad and Jeffrey Shallit},
-  title   = {On {NFAs} Where All States Are Final, Initial, or Both},
-  journal = {Theoretical Computer Science},
-  volume  = {410},
-  number  = {47--49},
-  pages   = {5010--5021},
-  year    = {2009}
+  author = {Kao, Jui-Yi and Rampersad, Narad and Shallit, Jeffrey},
+  title = {On NFAs where all states are final, initial, or both},
+  year = {2009},
+  issue_date = {November, 2009},
+  publisher = {Elsevier Science Publishers Ltd.},
+  address = {GBR},
+  volume = {410},
+  number = {47–49},
+  issn = {0304-3975},
+  url = {https://doi.org/10.1016/j.tcs.2009.07.049},
+  doi = {10.1016/j.tcs.2009.07.049},
+  abstract = {We examine questions involving nondeterministic finite automata where all states are final, initial, or both initial and final. First, we prove hardness results for the nonuniversality and inequivalence problems for these NFAs. Next, we characterize the languages accepted. Finally, we discuss some state complexity problems involving such automata.},
+  journal = {Theor. Comput. Sci.},
+  month = nov,
+  pages = {5010–5021},
+  numpages = {12},
+  keywords = {State complexity, PSPACE-complete problem, Nondeterministic finite automata}
 }
 
 @book{konig1936theorie,
@@ -94,30 +149,58 @@
 }
 
 @article{mauborgne2000incremental,
-  author  = {Laurent Mauborgne},
-  title   = {An Incremental Unique Representation for Regular Trees},
-  journal = {Nordic Journal of Computing},
-  volume  = {7},
-  number  = {4},
-  pages   = {290--311},
-  year    = {2000}
+  author = {Mauborgne, Laurent},
+  title = {An incremental unique representation for regular trees},
+  year = {2000},
+  issue_date = {Winter 2000},
+  publisher = {Publishing Association Nordic Journal of Computing},
+  address = {FIN},
+  volume = {7},
+  number = {4},
+  issn = {1236-6064},
+  abstract = {In order to deal with infinite regular trees (or other pointed graph structures) efficiently, we give new algorithms to store such structures. The trees are stored in such a way that their representation is unique and shares substructures as much as possible. This maximal sharing allows substantial memory gain and speed up over previous techniques. For example, equality testing becomes constant time (instead of O(nlog(n))). The algorithms are incremental, and as such allow good reactive behavior. These new algorithms are then applied in a representation of sets of trees. The expressive power of this new representation is exactly what is needed by the original set-based analyses of Heintze and Jaffar [1990], or Heintze [1994].},
+  journal = {Nordic J. of Computing},
+  month = dec,
+  pages = {290–311},
+  numpages = {22},
+  keywords = {tree skeletons, sharing, infinite trees, cartesian approximation}
 }
 
 @inproceedings{maziarz2021hashing,
-  author    = {Krzysztof Maziarz and Tom Ellis and Alan Lawrence and Andrew Fitzgibbon and Simon {Peyton Jones}},
-  title     = {Hashing Modulo Alpha-Equivalence},
-  booktitle = {Proceedings of the 42nd ACM SIGPLAN Conference on Programming Language Design and Implementation (PLDI)},
-  pages     = {960--973},
-  year      = {2021}
+  author = {Maziarz, Krzysztof and Ellis, Tom and Lawrence, Alan and Fitzgibbon, Andrew and Peyton Jones, Simon},
+  title = {Hashing modulo alpha-equivalence},
+  year = {2021},
+  isbn = {9781450383912},
+  publisher = {Association for Computing Machinery},
+  address = {New York, NY, USA},
+  url = {https://doi.org/10.1145/3453483.3454088},
+  doi = {10.1145/3453483.3454088},
+  abstract = {In many applications one wants to identify identical subtrees of a program syntax tree. This identification should ideally be robust to alpha-renaming of the program, but no existing technique has been shown to achieve this with good efficiency (better than O(n2) in expression size). We present a new, asymptotically efficient way to hash modulo alpha-equivalence. A key insight of our method is to use a weak (commutative) hash combiner at exactly one point in the construction, which admits an algorithm with O(n (logn)2) time complexity. We prove that the use of the commutative combiner nevertheless yields a strong hash with low collision probability. Numerical benchmarks attest to the asymptotic behaviour of the method.},
+  booktitle = {Proceedings of the 42nd ACM SIGPLAN International Conference on Programming Language Design and Implementation},
+  pages = {960–973},
+  numpages = {14},
+  keywords = {abstract syntax tree, equivalence, hashing},
+  location = {Virtual, Canada},
+  series = {PLDI 2021}
 }
 
 @article{mckay2014practical,
-  author  = {Brendan D. McKay and Adolfo Piperno},
-  title   = {Practical Graph Isomorphism, {II}},
-  journal = {Journal of Symbolic Computation},
-  volume  = {60},
-  pages   = {94--112},
-  year    = {2014}
+  author = {Mckay, Brendan D. and Piperno, Adolfo},
+  title = {Practical graph isomorphism, II},
+  year = {2014},
+  issue_date = {January, 2014},
+  publisher = {Academic Press, Inc.},
+  address = {USA},
+  volume = {60},
+  issn = {0747-7171},
+  url = {https://doi.org/10.1016/j.jsc.2013.09.003},
+  doi = {10.1016/j.jsc.2013.09.003},
+  abstract = {We report the current state of the graph isomorphism problem from the practical point of view. After describing the general principles of the refinement-individualization paradigm and pro ving its validity, we explain how it is implemented in several of the key implementations. In particular, we bring the description of the best known program nauty up to date and describe an innovative approach called Traces that outperforms the competitors for many difficult graph classes. Detailed comparisons against saucy, Bliss and conauto are presented.},
+  journal = {J. Symb. Comput.},
+  month = jan,
+  pages = {94–112},
+  numpages = {19},
+  keywords = {Traces, Partition refinement, Nauty, Graph isomorphism, Canonical labelling}
 }
 
 @article{norris1995universal,
@@ -131,23 +214,31 @@
 }
 
 @article{paige1987three,
-  author  = {Robert Paige and Robert E. Tarjan},
-  title   = {Three Partition Refinement Algorithms},
+  author = {Paige, Robert and Tarjan, Robert E.},
+  title = {Three Partition Refinement Algorithms},
   journal = {SIAM Journal on Computing},
-  volume  = {16},
-  number  = {6},
-  pages   = {973--989},
-  year    = {1987}
+  volume = {16},
+  number = {6},
+  pages = {973-989},
+  year = {1987},
+  doi = {10.1137/0216062},
+  URL = {https://doi.org/10.1137/0216062},
+  eprint = {https://doi.org/10.1137/0216062},
+  abstract = { We present improved partition refinement algorithms for three problems: lexicographic sorting, relational coarsest partition, and double lexical ordering. Our double lexical ordering algorithm uses a new, efficient method for unmerging two sorted sets. }
 }
 
 @article{tarjan1972depth,
-  author  = {Robert Tarjan},
-  title   = {Depth-First Search and Linear Graph Algorithms},
+  author = {Tarjan, Robert},
+  title = {Depth-First Search and Linear Graph Algorithms},
   journal = {SIAM Journal on Computing},
-  volume  = {1},
-  number  = {2},
-  pages   = {146--160},
-  year    = {1972}
+  volume = {1},
+  number = {2},
+  pages = {146-160},
+  year = {1972},
+  doi = {10.1137/0201010},
+  URL = {https://doi.org/10.1137/0201010},
+  eprint = {https://doi.org/10.1137/0201010},
+  abstract = { The value of depth-first search or “backtracking” as a technique for solving problems is illustrated by two examples. An improved version of an algorithm for finding the strongly connected components of a directed graph and at algorithm for finding the biconnected components of an undirect graph are presented. The space and time requirements of both algorithms are bounded by \$k\_1 V + k\_2 E + k\_3 \$ for some constants \$k\_1 ,k\_2 \$, and \$k\_3 \$, where V is the number of vertices and E is the number of edges of the graph being examined. }
 }
 
 @inproceedings{valmari2008partial,
@@ -171,11 +262,13 @@
 }
 
 @article{yamashita1996anonymous,
-  author  = {Masafumi Yamashita and Tsunehiko Kameda},
-  title   = {Computing on Anonymous Networks: Part {I}---Characterizing the Solvable Cases},
-  journal = {IEEE Transactions on Parallel and Distributed Systems},
-  volume  = {7},
-  number  = {1},
-  pages   = {69--89},
-  year    = {1996}
+  author={Yamashita, M. and Kameda, T.},
+  journal={IEEE Transactions on Parallel and Distributed Systems}, 
+  title={Computing on anonymous networks. I. Characterizing the solvable cases}, 
+  year={1996},
+  volume={7},
+  number={1},
+  pages={69-89},
+  keywords={Computer networks;Computer aided software engineering;Nominations and elections;Network topology;Distributed algorithms;Probes;Upper bound;Distributed computing;Joining processes},
+  doi={10.1109/71.481599}
 }
