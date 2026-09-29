@@ -234,6 +234,8 @@ By construction $\rho_G$ is an isomorphism $G\to\canon(G)$. It is determined onl
   \label{fig:condensation}
 \end{figure}
 
+\footnotetext{\url{https://commons.wikimedia.org/wiki/File:Graph_Condensation.svg}}
+
 \subsection{Strongly connected components.}
 A \textit{strongly connected component} (SCC) of a digraph is a maximal set of vertices such that there is a path between any two of them. The \textit{condensation graph} is formed by contracting each SCC into a single node; it is acyclic, and all SCCs together with the condensation can be computed in linear time \cite{tarjan1972depth}. The \emph{height} of an SCC is the number of edges on a longest path starting from it in the condensation. Figure \ref{fig:condensation} shows an example.
 
@@ -250,8 +252,6 @@ Condition (ii) says that a failure of the ``only if'' direction exhibits an expl
 
 \section{Global Graph Hashing}
 \label{sec:global-graph-hashing}
-
-\footnotetext{\url{https://commons.wikimedia.org/wiki/File:Graph_Condensation.svg}}
 
 \begin{algorithm}[b]
     \caption{Global Digraph Hash}\label{digraphhash}
@@ -310,7 +310,7 @@ Let $\rho_1,\rho_2$ be the canonical labelings of $G_1,G_2$.
 \section{Local Graph Hashing}
 \label{sec:local-graph-hashing}
 
-\begin{figure}[htbp]
+\begin{figure*}[!b]
 \centering
 \begin{tikzpicture}[
   x=0.85cm, y=0.85cm,
@@ -381,7 +381,7 @@ corresponds to a walk of length $i$ from $a$ in $G$; colours indicate the
 end vertex of the walk. The color $\lambda_i(a)$ is the (multiset) Merkle hash
 of the truncation $\Unf_i(G,a)$ consisting of layers $0,\dots,i$.}
 \label{fig:unfolding}
-\end{figure}
+\end{figure*}
 
 In comparison to the global hashing strategy which depends on the global structure of the graph, the local hashing strategy depends only on properties we can \textit{observe} by traversing the digraph forward along its edges. To make this concept precise, the hashes of two nodes should be equal if and only if their \textit{unfoldings} are isomorphic.
 
@@ -697,10 +697,10 @@ To compute the hash of each node, we process the strongly connected components i
     \begin{algorithmic}[1]
     \Function{$\HM$}{$G=(V,E,L)$}
         \State $h \gets \textproc{empty\_dict}()$
-        \For{$S$ \textbf{in} \textproc{Scc}($G$)} \Comment{Tarjan's algorithm; sinks first}
+        \For{\textbf{each} SCC $S$ in reverse topological order} \Comment{Tarjan's algorithm; sinks first}
           \For{$x \in S$}
             \If{outgoing edges are unordered}
-              \State $X(x) \gets \mset{h[y] \mid (x,y)\in E,\ y\notin S}$
+              \State $X(x) \gets \mset{h[y] \mid y\notin S \land (x,y)\in E}$
             \Else
               \State $X(x) \gets (\,h[y] \text{ if } y\notin S \text{ else } \star \mid y \in s(x)\,)$
             \EndIf
