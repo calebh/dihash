@@ -588,7 +588,7 @@ The strategy employed for local hashing depends on properties we can observe by 
     \item For every outgoing edge $a \rightarrow a'$, there exists a $b \rightarrow b'$ such that $a'$ and $b'$ are bisimilar.
     \item For every outgoing edge $b \rightarrow b'$, there exists a $a \rightarrow a'$ such that $b'$ and $a'$ are bisimilar.
   \end{enumerate}
-  Note the use of the existential operator instead of a bijective mapping between successor nodes. This means that bisimulation inherently ignores duplicate bisimilar states. For example, two nodes may be bisimilar but have different out-degrees if multiple successor nodes are themselves bisimilar. Extending computation of a node's hash modulo bisimilarity instead of unfolding requires only a small modification to the previously described procedure: when computing the quotient graph $G/C$, collapse the graph to an ordinary digraph instead of a multi-digraph.
+  Note the use of the existential operator instead of a bijective mapping between successor nodes. This means that bisimulation inherently ignores duplicate bisimilar states. For example, two nodes may be bisimilar but have different out-degrees if multiple successor nodes are themselves bisimilar. Extending computation of a node's hash modulo bisimilarity instead of unfolding requires two small modification to the previously described procedure: when computing next round colors in Equation \ref{eq:coloring-step}, use a set instead of a multiset, and when computing the quotient graph $G/C$, collapse the graph to an ordinary digraph instead of a multi-digraph.
 \end{enumerate}
 
 \section{Outgoing Ordered Edge Graphs}
