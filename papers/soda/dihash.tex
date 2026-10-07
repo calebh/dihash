@@ -418,7 +418,7 @@ Assuming $\mathcal{H}$ is injective, for nodes $u$ of $G_1$ and $v$ of $G_2$ and
 Induction on $i$. For $i=0$ both sides say $L_1(u)=L_2(v)$. For the step, by injectivity $\lambda_{i+1}(u)=\lambda_{i+1}(v)$ if and only if $L_1(u)=L_2(v)$ and the multisets $\mset{\lambda_i(x)\mid x\in\mathrm{succ}(u)}$ and $\mset{\lambda_i(y)\mid y\in\mathrm{succ}(v)}$ are equal. By the induction hypothesis the latter holds if and only if there is a bijection between the children of the two roots of $\Unf_{i+1}$ matching isomorphic depth-$i$ subtrees, which (with the labels) is exactly $\Unf_{i+1}(G_1,u)\iso\Unf_{i+1}(G_2,v)$. Monotonicity follows because an isomorphism of $\Unf_{i+1}$ restricts to one of $\Unf_i$.
 \end{proof}
 
-Thus $\lambda_i(u)$ is exactly the multiset Merkle hash of the finite tree $\Unf_i(G,u)$, built bottom-up one layer per round; the bottom-up construction maximally shares computation. Since colors change every round, we stop based on the \emph{partition} they induce. For $S\subseteq V$ let $\pi_i(S)$ be the partition of $S$ into classes of equal $\lambda_i$.
+Thus $\lambda_i(u)$ is exactly the multiset Merkle hash of the finite tree $\Unf_i(G,u)$, built bottom-up one layer per round; the bottom-up construction maximally shares computation in a dynamic programming fashion. Since colors change every round, we stop based on the \emph{partition} they induce. For $S\subseteq V$ let $\pi_i(S)$ be the partition of $S$ into classes of equal $\lambda_i$.
 
 \begin{stoppingcondition}
 \textbf{Stabilization on $S$}: a set $S$ is \emph{stable in round $i$} if $\pi_{i+1}(S)=\pi_i(S)$. \emph{Global stabilization} is stabilization on $S=V$. A node $n$ is \emph{locally stable} in round $i$ if $\Reach(n)$ is stable in round $i$.
@@ -431,7 +431,7 @@ By monotonicity, $\pi_{i+1}(S)=\pi_i(S)$ holds if and only if $\lambda_i$ and $\
 Assume $\mathcal{H}$ is injective and let $S$ be forward-closed. If $S$ is stable in round $i$, then $\pi_j(S)=\pi_i(S)$ for all $j\ge i$. Moreover, $S$ is stable in some round $i \le |S|-1$.
 \end{lemma}
 \begin{proof}
-It suffices to show that stability in round $j$ implies stability in round $j+1$. If $\pi_{j+1}(S)=\pi_j(S)$, the assignment $\beta(\lambda_j(x)) = \lambda_{j+1}(x)$ for $x \in S$ is a well-defined bijection between the color sets of rounds $j$ and $j+1$ on $S$. Let $u,v\in S$. All successors of $u$ and $v$ lie in $S$ because $S$ is forward-closed, and the round-$(j+1)$ multiset of successor colors of $u$ is the image under $\beta$ of the round-$j$ multiset. Since $\beta$ is injective, the round-$(j+1)$ multisets of $u$ and $v$ are equal if and only if the round-$j$ multisets are. By \eqref{eq:coloring-step} and injectivity of $\mathcal{H}$, $\lambda_{j+2}(u)=\lambda_{j+2}(v)$ if and only if $\lambda_{j+1}(u)=\lambda_{j+1}(v)$, i.e.\ $\pi_{j+2}(S)=\pi_{j+1}(S)$.
+It suffices to show that stability in round $j$ implies stability in round $j+1$. If $\pi_{j+1}(S)=\pi_j(S)$, the assignment $\beta(\lambda_j(x)) = \lambda_{j+1}(x)$ for $x \in S$ is a well-defined bijection between the color sets of rounds $j$ and $j+1$ on $S$. Let $u,v\in S$. All successors of $u$ and $v$ lie in $S$ because $S$ is forward-closed, and the round-$(j+1)$ multiset of successor colors of $u$ is the image under $\beta$ of the round-$j$ multiset. Since $\beta$ is injective, the round-$(j+1)$ multisets of $u$ and $v$ are equal if and only if the round-$j$ multisets are. By \eqref{eq:coloring-step} and injectivity of $\mathcal{H}$, $\lambda_{j+2}(u)=\lambda_{j+2}(v)$ if and only if $\lambda_{j+1}(u)=\lambda_{j+1}(v)$, i.e.\ $\pi_{j+2}(S)=\pi_{j+1}(S)$. This completes the inductive step.
 
 For the bound: by monotonicity each round either leaves $\pi_i(S)$ unchanged or strictly increases the number of classes, which is at most $|S|$; $\pi_0(S)$ has at least one class.
 \end{proof}
@@ -458,7 +458,7 @@ i.e.\ the number of edges from a single representative of $A$ into $B$.
 
 This is \emph{not} the naive quotient that creates one edge $[u]\to[v]$ for every edge $(u,v)$ of $G$: that construction multiplies multiplicities by class sizes and does not preserve unfoldings. Definition~\ref{def:quotient} coincides with the minimum base of a graph fibration \cite{boldi2002fibrations}.
 
-\begin{lemma}
+\begin{lemma}%[Quotient preserves unfoldings]
 \label{lem:quotient}
 Definition~\ref{def:quotient} is independent of the chosen representative; $\Unf(Q,[u])\iso\Unf(G,u)$ for every $u \in V$; and distinct vertices of $Q$ have non-isomorphic unfoldings.
 \end{lemma}
@@ -499,7 +499,7 @@ The first claim follows by induction on $i$ from \eqref{eq:coloring-init}--\eqre
 
     \Function{$\HL$}{$G=(V, E, L)$}
         \State $C \gets$ \textproc{global\_stable\_colors}($G$) \Comment{refine with \eqref{eq:coloring-step} until global stabilization}
-        \State $Q=(V_Q,\mu_Q,L_Q) \gets G / C$ \Comment{unfolding quotient, Definition~\ref{def:quotient}; $\pi : V\to V_Q$ is the projection}
+        \State $Q=(V_Q,\mu_Q,L_Q) \gets G / C$ \Comment{unfolding quotient, Definition~\ref{def:quotient}; $C : V\to V_Q$ is the projection}
         \State reach $\gets \{n \mapsto \Reach_Q(n) \mid n \in V_Q\}$
         \State final\_hash $\gets \textproc{empty\_dict}()$
         \State $\lambda \gets \{n \mapsto \mathcal{H}(\enc(L_Q(n))) \mid n \in V_Q\}$
@@ -512,7 +512,8 @@ The first claim follows by induction on $i$ from \eqref{eq:coloring-init}--\eqre
           \EndFor
           \State $\lambda \gets \lambda_{next}$
         \EndWhile
-        \State \Return $\{u \mapsto \text{final\_hash}[\pi(u)] \mid u \in V\}$
+        %\State \Return $\{u \mapsto \text{final\_hash}[\pi(u)] \mid u \in V\}$
+        \State \Return $\{u \mapsto \text{final\_hash}[C(u)] \mid u \in V\}$
     \EndFunction
     \end{algorithmic}
 \end{algorithm*}
