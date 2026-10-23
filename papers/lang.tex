@@ -189,16 +189,18 @@ which is a contradiction.
 \end{proof}
 
 \begin{lemma}
+\label{thm:bijection_final}
 Although a bijection between vertices $f$ must exist, it is not the case that
 $G' \cong G_{min}$
 \end{lemma}
 \begin{proof}
 By Lemmas \ref{thm:bijection1}, \ref{thm:bijection2}, \ref{thm:bijection3} and \ref{thm:bijection4},
-$f$ must exist. However the edge structure of $G'$ and $G_{min}$ need not be the same, as Figure
-\ref{fig:bijection_counterexample} demonstrates.
+$f$ must exist. However the edge structure of $G'$ and $G_{min}$ need not be the same, as the 
+counterexample in Figure \ref{fig:isomorphism_counterexample} demonstrates.
+\end{proof}
 
 \begin{figure}
-\label{fig:bijection_counterexample}
+\label{fig:isomorphism_counterexample}
 \begin{tikzpicture}[main/.style = {draw, circle}] 
     \node[main] (1) {$a$};
     \node[main] (2) [right of = 1] {$x$};
@@ -228,20 +230,47 @@ $f$ must exist. However the edge structure of $G'$ and $G_{min}$ need not be the
 \end{tikzpicture}
 \end{figure}
 
-\end{proof}
+\subsection{Edge Saturation}
 
-
-
-\begin{lemma}
-If $(p,q) \in E(G')$ then $(f(p),f(q)) \in E(G_{min})$
-\end{lemma}
-\begin{proof}
-
-\end{proof}
+Given a minimal graph $G$, we will now add edges to the graph until we reach a
+condition of \textit{edge saturation}. We first observe that for some pair of nodes
+$p$ and $q$ where $L_G(p) \supseteq L_G(q)$, for every incoming edge $(a, p)$, we can
+add a new edge $(a, q)$. Due to the superset relation, this has no effect on the language
+of the graph. We can repeat this process repeatedly until no more edges can be added.
+We call such a graph an \textit{edge saturated} graph.
 
 \begin{theorem}
-$(p,q) \in E(G')$ if and only if $(f(p),f(q)) \in E(G_{min})$
+For some graph $G$ minimized and edge saturated to $G'$ and some arbitrary minimal
+edge saturated graph $G_{min}$ where $L(G')=L(G_{min})$, $G'$ is isomorphic to $G_{min}$.
 \end{theorem}
+\begin{proof}
+By Lemma \ref{thm:bijection_final}, a bijection between the nodes of $G'$ and
+$G_{min}$ must exist. We now make use of the edge saturation property to complete
+a proof of isomorphism. We do this by showing that $(p,q) \in E(G')$ if and only if
+$(f(p), f(q)) \in E(G_{min})$.
+
+$\Rightarrow$ We now show that if $(p,q) \in E(G')$ then $(f(p), f(q)) \in E(G_{min})$.
+Suppose that node $p$ has label $a$. Now consider the set of strings $\{aw \mid w \in L_G(q)\}$.
+By the bijection of $f$, this same set of strings must also appear in the language of
+$f(p)$. There are two possible ways for this entire subset to exist in the language of $f(p)$:
+\begin{itemize}
+    \item $(f(p), f(q)) \in E(G_{min})$, in which case we have proved the goal.
+    \item $(f(p), q') \in E(G_{min})$ where $L_{G_{min}}(q') \supseteq L_{G_{min}}(f(q))$.
+    However $G_{min}$ is edge saturated, which means that the edge $(f(p), f(q))$ is also in
+    $E(G_{min})$.
+\end{itemize}
+
+$\Leftarrow$ We now show that if $(f(p), f(q)) \in E(G_{min})$, then $(p,q) \in E(G')$. This
+argument is almost identical to the previous case. Suppose that node $f(p)$ has label $a$.
+Now consider the set of strings $\{aw \mid w \in L_G(f(q))\}$. By the bijection of $f$, this
+same set of strings must also appear in the language of $f^{-1}(f(p))=p$.
+There are two possible ways for this entire susbset to exist in the language of $p$.
+\begin{itemize}
+    \item $(p, q) \in E(G')$, in which case we have proved the goal.
+    \item $(p, q') \in E(G')$ where $L_{G'}(q') \supseteq L_{G'}(q)$. However $G'$ is edge
+    saturated, which means that $(p, q)$ is also in $E(G')$.
+\end{itemize}
+\end{proof}
 
 \clearpage
 
@@ -269,7 +298,7 @@ into two vertices, one vertex receives all incoming edges of the original node a
 vertex emits all outgoing edges of the original node. Create an edge between this pair
 of nodes and label it with the label of the original node.
 
-At each outgoing edge node add a new episilon transition to an accepting state.
+At each outgoing edge node add a new epsilon transition to an accepting state.
 This allows the walk through the graph to end after visiting any node. Add a starting
 state to the NFA that has an epsilon transition to all other nodes in the graph
 except for the accepting state.
