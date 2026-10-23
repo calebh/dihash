@@ -12,7 +12,8 @@ import dihash
 from dihash.util import encode
 from dihash.local_hash import LocalHashVariant, local_hash, local_sc_hash
 from dihash.merkle_hash import merkle_hash, MerkleHashVariant, GlobalMH, LocalMH, OrderedGlobalMH, OrderedLocalMH
-from dihash.ordered_hash import _dfs, _port_successors, ordered_node_hash, ordered_sc_global_hash
+from dihash.ordered_hash import (_dfs, _port_successors, ordered_node_hash, ordered_sc_global_hash,
+                                 ordered_local_hash, ordered_sc_local_hash)
 
 UNF = LocalHashVariant.UNFOLDING
 BISIM = LocalHashVariant.BISIMULATION
@@ -47,13 +48,15 @@ def test_merkle_variants_can_be_constructed():
     """GlobalMH() and OrderedGlobalMH() used to raise in MerkleHashVariant.__init__, so the global Merkle variants
     could not be used at all."""
     g = build(same_labels(range(3)), [(0, 1), (1, 2), (2, 0)])
-    for variant in [GlobalMH(), OrderedGlobalMH(), LocalMH(UNF), LocalMH(BISIM)]:
+    o = build(same_labels(range(3)), [(0, 1, 0), (1, 2, 0), (2, 0, 0)])
+    for variant in [GlobalMH(), OrderedGlobalMH(), LocalMH(UNF), LocalMH(BISIM), OrderedLocalMH()]:
         assert isinstance(variant, MerkleHashVariant)
     assert len(set(merkle(g, GlobalMH()).values())) == 1
+    assert len(set(merkle(o, OrderedLocalMH()).values())) == 1
     with pytest.raises(ValueError):
         MerkleHashVariant()
     with pytest.raises(NotImplementedError):
-        merkle_hash(g, OrderedLocalMH())
+        merkle_hash(g, object())
 
 
 def test_bisimulation_variant_on_graphs_with_edges():
@@ -108,12 +111,13 @@ def test_ordered_input_validation():
         ordered_sc_global_hash(path)
 
 
-@pytest.mark.parametrize("make_variant", [GlobalMH, lambda: LocalMH(UNF), lambda: LocalMH(BISIM)],
-                         ids=["global", "local-unfolding", "local-bisimulation"])
+@pytest.mark.parametrize("make_variant", [GlobalMH, lambda: LocalMH(UNF), lambda: LocalMH(BISIM), OrderedGlobalMH,
+                                          OrderedLocalMH],
+                         ids=["global", "local-unfolding", "local-bisimulation", "ordered-global", "ordered-local"])
 def test_merkle_long_chain_of_sccs(make_variant):
     """The recursive traversal of the condensation exceeded Python's recursion limit for chains of ~1000 SCCs."""
     n = 3000
-    chain = build(same_labels(range(n)), [(i, i + 1) for i in range(n - 1)])
+    chain = build(same_labels(range(n)), [(i, i + 1, 0) for i in range(n - 1)])
     hashes = merkle(chain, make_variant())
     assert len(hashes) == n and len(set(hashes.values())) == n
 
@@ -135,7 +139,10 @@ def test_custom_string_hash_function_is_used_everywhere(monkeypatch):
         outputs += list(local_sc_hash(o, variant=variant, string_hash_fun=md5)[1].values())
     outputs += [ordered_node_hash(o, 0, string_hash_fun=md5)]
     outputs += list(ordered_sc_global_hash(o, hash_nodes=True, string_hash_fun=md5)[1].values())
-    for (graph, variant) in [(g, GlobalMH()), (g, LocalMH(UNF)), (g, LocalMH(BISIM)), (o, OrderedGlobalMH())]:
+    outputs += list(ordered_local_hash(o, string_hash_fun=md5).values())
+    outputs += list(ordered_sc_local_hash(o, string_hash_fun=md5)[1].values())
+    for (graph, variant) in [(g, GlobalMH()), (g, LocalMH(UNF)), (g, LocalMH(BISIM)), (o, OrderedGlobalMH()),
+                             (o, OrderedLocalMH())]:
         outputs += list(merkle_hash(graph, variant, string_hash_fun=md5)[2].values())
     assert all(len(h) == 32 for h in outputs)
 
@@ -145,6 +152,61 @@ def test_encoding_is_injective_on_tricky_strings():
               [[]], ([],), 1, "1", [1], ["1"], -1, "[1]", "(1)", ("a", ["b", "c"]), ("a", ["b"], "c")]
     encodings = [encode(v) for v in values]
     assert len(set(encodings)) == len(values)
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Ordered local hashing
+# ---------------------------------------------------------------------------------------------------------------------
+
+def test_ordered_local_hash_examples():
+    loop = build({"u": "a"}, [("u", "u", 0)])
+    two_cycle = build(same_labels("pq"), [("p", "q", 0), ("q", "p", 0)])
+    lead_in = build(same_labels("vw"), [("v", "w", 0), ("w", "w", 0)])
+    # all three unfold to an infinite path of a's
+    h = {**ordered_local_hash(loop), **ordered_local_hash(two_cycle), **ordered_local_hash(lead_in)}
+    assert len(set(h.values())) == 1
+    assert ordered_sc_local_hash(loop) == (ordered_sc_local_hash(two_cycle)[0], {"u": ordered_sc_local_hash(two_cycle)[1]["p"]})
+    # Merkle: the local variant ignores the size of a cycle but not whether an edge leaves its SCC
+    assert merkle(loop, OrderedLocalMH())["u"] == merkle(two_cycle, OrderedLocalMH())["p"]
+    assert merkle(loop, OrderedGlobalMH())["u"] != merkle(two_cycle, OrderedGlobalMH())["p"]
+    assert merkle(loop, OrderedLocalMH())["u"] != merkle(lead_in, OrderedLocalMH())["v"]
+
+    # s(a) = (a, b), s(b) = (a, b): same ordered unfolding, different orbits
+    o = build(same_labels("ab"), [("a", "a", 0), ("a", "b", 1), ("b", "a", 0), ("b", "b", 1)])
+    assert ordered_local_hash(o)["a"] == ordered_local_hash(o)["b"]
+    assert merkle(o, OrderedLocalMH())["a"] == merkle(o, OrderedLocalMH())["b"]
+    assert merkle(o, OrderedGlobalMH())["a"] != merkle(o, OrderedGlobalMH())["b"]
+
+    # the order of the edges matters
+    g1 = build({"r": "r", "x": "x", "y": "y"}, [("r", "x", 0), ("r", "y", 1), ("x", "y", 0), ("x", "r", 1)])
+    g2 = build({"r": "r", "x": "x", "y": "y"}, [("r", "x", 0), ("r", "y", 1), ("x", "r", 0), ("x", "y", 1)])
+    assert ordered_local_hash(g1)["r"] != ordered_local_hash(g2)["r"]
+
+
+def test_ordered_hashes_accept_repeated_links():
+    """A page may link to the same target twice; this needs a MultiDiGraph, with one port per link."""
+    twice = nx.MultiDiGraph()
+    for (n, l) in [("u", "a"), ("x", "b")]:
+        twice.add_node(n, label=l)
+    twice.add_edge("u", "x", port=0)
+    twice.add_edge("u", "x", port=1)
+    two_targets = build({"u": "a", "x": "b", "y": "b"}, [("u", "x", 0), ("u", "y", 1)])
+    once = build({"u": "a", "x": "b"}, [("u", "x", 0)])
+    assert ordered_local_hash(twice)["u"] == ordered_local_hash(two_targets)["u"]
+    assert ordered_local_hash(twice)["u"] != ordered_local_hash(once)["u"]
+    assert ordered_node_hash(twice, "u") != ordered_node_hash(two_targets, "u")  # different reachable subgraphs
+
+
+def test_ordered_local_hash_of_deep_graphs():
+    """Deep graphs are where DFA minimization pays off: a cycle with a single distinguished node needs about n/2
+    rounds of naive refinement, but every node is in its own class."""
+    n = 2000
+    cycle = build({i: ("b" if i == 0 else "a") for i in range(n)}, [(i, (i + 1) % n, 0) for i in range(n)])
+    (_, node_hashes) = ordered_sc_local_hash(cycle)
+    assert len(set(node_hashes.values())) == n
+    assert len(set(ordered_local_hash(cycle).values())) == n
+    path = build(same_labels(range(n)), [(i, i + 1, 0) for i in range(n - 1)])
+    assert len(set(ordered_local_hash(path).values())) == n
 
 
 # ---------------------------------------------------------------------------------------------------------------------

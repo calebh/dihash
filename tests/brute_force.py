@@ -16,15 +16,18 @@ import networkx as nx
 # Random graph generation
 # ---------------------------------------------------------------------------------------------------------------------
 
-def random_digraph(rng, n, p, alphabet, ordered=False, loops=True):
+def random_digraph(rng, n, p, alphabet, ordered=False, loops=True, multi=False):
     """Random labeled digraph with nodes 0..n-1. If ordered, every edge gets a distinct (per source) port number,
-    drawn from a sparse range so that sorting by port is actually exercised."""
-    g = nx.DiGraph()
+    drawn from a sparse range so that sorting by port is actually exercised. If multi (ordered only), the result is a
+    MultiDiGraph in which a node sometimes links to the same target more than once."""
+    g = nx.MultiDiGraph() if multi else nx.DiGraph()
     for i in range(n):
         g.add_node(i, label=rng.choice(alphabet))
     for i in range(n):
         targets = [j for j in range(n) if (loops or i != j) and rng.random() < p]
-        ports = rng.sample(range(3 * n + 3), len(targets))
+        if multi and targets and rng.random() < 0.4:
+            targets += rng.choices(targets, k=rng.randint(1, 2))
+        ports = rng.sample(range(3 * n + 6), len(targets))
         for (j, port) in zip(targets, ports):
             if ordered:
                 g.add_edge(i, j, port=port)
@@ -40,7 +43,7 @@ def shuffled_copy(rng, g):
     names = [f"v{i}" for i in range(len(nodes))]
     rng.shuffle(names)
     mapping = dict(zip(nodes, names))
-    h = nx.DiGraph()
+    h = g.__class__()
     order = nodes[:]
     rng.shuffle(order)
     for n in order:
@@ -52,15 +55,15 @@ def shuffled_copy(rng, g):
     return (h, mapping)
 
 
-def random_pair(rng, max_nodes=6, ordered=False, probabilities=(0.15, 0.3, 0.45), copy_probability=0.4):
+def random_pair(rng, max_nodes=6, ordered=False, probabilities=(0.15, 0.3, 0.45), copy_probability=0.4, multi=False):
     """A pair of random graphs; with probability copy_probability the second is a shuffled isomorphic copy."""
     alphabet = rng.choice([["a"], ["a", "b"]])
     p = rng.choice(probabilities)
-    g1 = random_digraph(rng, rng.randint(1, max_nodes), p, alphabet, ordered=ordered)
+    g1 = random_digraph(rng, rng.randint(1, max_nodes), p, alphabet, ordered=ordered, multi=multi)
     if rng.random() < copy_probability:
         g2 = shuffled_copy(rng, g1)[0]
     else:
-        g2 = random_digraph(rng, rng.randint(1, max_nodes), p, alphabet, ordered=ordered)
+        g2 = random_digraph(rng, rng.randint(1, max_nodes), p, alphabet, ordered=ordered, multi=multi)
     return (g1, g2)
 
 
@@ -70,7 +73,7 @@ def random_pair(rng, max_nodes=6, ordered=False, probabilities=(0.15, 0.3, 0.45)
 
 def successors(g, u, ordered):
     if ordered:
-        return [v for (v, d) in sorted(g[u].items(), key=lambda item: item[1]['port'])]
+        return [v for (_, v, port) in sorted(g.out_edges(u, data='port'), key=lambda edge: edge[2])]
     return list(g.successors(u))
 
 
@@ -277,3 +280,36 @@ def _merkle_witness(g1, g2, S, T, f, eq, ordered):
                 else:
                     return False
     return True
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Unfolding-preserving transformations
+# ---------------------------------------------------------------------------------------------------------------------
+
+def split_node(rng, g, ordered=False):
+    """Returns (h, origin): h is g with one node x duplicated into x and a fresh copy with the same label and the same
+    successors (same ports), and with a random nonempty proper subset of the edges into x redirected to the copy.
+    origin maps every node of h to the node of g it came from. Every node of h has the same (ordered) unfolding as its
+    origin, while h is in general not isomorphic to g. Returns None if no node has two incoming edges."""
+    candidates = [x for x in g.nodes if g.in_degree(x) >= 2]
+    if not candidates:
+        return None
+    x = rng.choice(candidates)
+    copy = ("copy", x, len(g))
+    h = g.copy()
+    h.add_node(copy, **g.nodes[x])
+    for (_, t, d) in list(g.out_edges(x, data=True)):
+        h.add_edge(copy, copy if t == x and rng.random() < 0.5 else t, **d)
+    incoming = list(h.in_edges(x, data=True, keys=True)) if h.is_multigraph() else list(h.in_edges(x, data=True))
+    rng.shuffle(incoming)
+    for e in incoming[:rng.randint(1, len(incoming) - 1)]:
+        if h.is_multigraph():
+            (s, _, key, d) = e
+            h.remove_edge(s, x, key)
+        else:
+            (s, _, d) = e
+            h.remove_edge(s, x)
+        h.add_edge(s, copy, **d)
+    origin = {n: n for n in g.nodes}
+    origin[copy] = x
+    return (h, origin)

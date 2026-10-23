@@ -3,7 +3,7 @@ import functools
 import networkx as nx
 
 from dihash.local_hash import local_sc_hash, LocalHashVariant
-from dihash.ordered_hash import ordered_sc_global_hash, _port_successors
+from dihash.ordered_hash import ordered_sc_global_hash, ordered_sc_local_hash, _port_successors
 from dihash.util import encode, hash_sha256
 from dihash.global_hash import global_hash
 
@@ -39,6 +39,11 @@ class OrderedGlobalMH(MerkleHashVariant):
     pass
 
 class OrderedLocalMH(MerkleHashVariant):
+    """
+    This indicates that the edges of the graph are ordered, and that ordered local hashing should be used within an
+    SCC: two nodes receive the same hash if and only if their ordered unfoldings are isomorphic when every edge is
+    marked by whether it stays inside its SCC. This implementation runs in poly time (DFA minimization).
+    """
     pass
 
 def _hash_scc(g, cond, root_scc, scc_hashes, node_hashes, string_hash_fun, comp_hash, variant: MerkleHashVariant):
@@ -67,7 +72,7 @@ def _hash_scc(g, cond, root_scc, scc_hashes, node_hashes, string_hash_fun, comp_
 
         for s in scc_members:
             non_scc_succs = frozenset(g.successors(s)) - scc_members
-            if isinstance(variant, OrderedGlobalMH):
+            if isinstance(variant, (OrderedGlobalMH, OrderedLocalMH)):
                 new_labels = [node_hashes[t] if t in non_scc_succs else "*" for t in _port_successors(g, s)]
             else:
                 if isinstance(variant, LocalMH) and variant.local_hash_variant == LocalHashVariant.BISIMULATION:
@@ -116,9 +121,7 @@ def merkle_hash(g: nx.DiGraph, variant: MerkleHashVariant, nodes_to_hash=None, p
     elif isinstance(variant, OrderedGlobalMH):
         component_hash = functools.partial(ordered_sc_global_hash, hash_nodes=True, string_hash_fun=string_hash_fun)
     elif isinstance(variant, OrderedLocalMH):
-        # It should be possible to implement an OrderedLocalMHVariant using DFA partition refinement. With the order of the
-        # edges, this algorithm should be even faster than LocalMHVariant
-        raise NotImplementedError("At the moment ordered local Merkle-hashing is not implemented. It should be possible to implement this efficiently using DFA partition refinement.")
+        component_hash = functools.partial(ordered_sc_local_hash, string_hash_fun=string_hash_fun)
     else:
         raise NotImplementedError(f"Unknown variant {variant}")
 
