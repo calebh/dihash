@@ -1,0 +1,57 @@
+\documentclass[12pt]{article}
+\begin{document}
+
+\section{Proof of Correctness of Table Filling Algorithm}
+
+Let $\delta(x)$ give the set of neighbors of $x$ in $G$.
+
+\subsection{Proof of Construction of Minimal Digraph}
+
+Suppose that the theorem that the table filling algorithm
+produces a minimal digraph is false. That is, there is at
+least one pair of states $(p, q)$ such that:
+
+\begin{enumerate}
+    \item States $p$ and $q$ are distinguishable, in the sense
+    that there is some string $w$ that is in exactly one of
+    $L_G(p)$ and $L_G(q)$.
+    \item The table filling algorithm does not find $p$ and
+    $q$ to be distinguished.
+\end{enumerate}
+
+Call this pair a bad pair.
+
+If there are bad pairs, then there
+must be some that are the shortest among all these strings that
+distinguish bad pairs. Let $(p,q)$ be one such bad pair, and let
+$w=a_1 a_2 ... a_n$ be a string as short as any that distinguishes
+$p$ from $q$. Then $w$ is in exactly one of $L_G(p)$ and $L_G(q)$.
+
+Consider the case where $w=a_1$. Then the table filling algorithm
+would have distinguished $p$ from $q$ during the initialization of
+the table in the table filling algorithm.
+
+Otherwise let $w'=a_2 ... a_n$ and consider the following subcases:
+\begin{itemize}
+    \item If for all $r \in \delta(p)$ and $s \in \delta(q)$,
+    $w' \notin L_G(r)$ and $w' \notin L_G(s)$, then $w \notin L_G(p)$
+    and $w \notin L_G(q)$. This contradicts the assumption that $w$
+    is in exactly one of $L_G(p)$ and $L_G(q)$.
+    \item If there exists an $r \in \delta(p)$ and $s \in \delta(q)$ such that
+    $w' \in L_G(r)$ and $w' \notin L_G(s)$, then the string $w'$ is
+    a distinguishing string shorter than $w$, which contradicts the
+    assumption that $w$ is the shortest string as short as any which
+    distinguishes a bad pair.
+    \item If there exists an $r \in \delta(p)$ and $s \in \delta(q)$ such that
+    $w' \notin L_G(r)$ and $w' \in L_G(s)$, then the string $w'$ is
+    a distinguishing string shorter than $w$, which contradicts the
+    assumption that $w$ is the shortest string as short as any which
+    distinguishes a bad pair.
+    \item If for all $r \in \delta(p)$ and $s \in \delta(q)$, $w' \in L_G(r)$
+    and $w' \in L_G(s)$, then $w \in L_G(p)$ and $w \in L_G(q)$. This
+    contradicts the assumption that $w$ is in exactly one of $L_G(p)$ and
+    $L_G(q)$.
+\end{itemize}
+
+\end{document}
+
