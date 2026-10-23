@@ -23,6 +23,9 @@
 \usepackage{adjustbox}
 \usepackage{textcomp}
 \usepackage{hyperref}
+\usepackage{tcolorbox}
+\usepackage{apxproof}
+\newtheoremrep{theorem}{Theorem}
 
 \newtheorem{observation}{Observation}
 
@@ -41,6 +44,18 @@
     keywordstyle=\color{blue},
     stringstyle=\color{red},
     upquote=true
+}
+
+\newtcolorbox{stoppingcondition}[1][]{
+  colback=cyan!10!white,
+  colframe=cyan!75!black,
+  fonttitle=\bfseries\large,
+  title=#1,
+  boxrule=1.5pt,
+  left=12pt,
+  right=12pt,
+  top=10pt,
+  bottom=10pt
 }
 
 \begin{document}
@@ -204,7 +219,7 @@ The recursive Merkle-style algorithm will utilize the analysis of cycles within 
 
 \section{Global Graph Hashing}
 
-\begin{algorithm}
+\begin{algorithm}[b]
     \caption{Global Directed Graph Hash}\label{digraphhash}
     \begin{algorithmic}[1]
     \Function{$\mathcal{H_G}$}{G=(V,E,L)}
@@ -221,10 +236,12 @@ In global graph hashing, we would like our computed hash values to be unique mod
 
 Note that since we use generic graph canonization and orbit detection algorithms, our approach does not run in polynomial time. Indeed, graph hashing can trivially be use used to decide graph isomorphism, and as a consequence is \textbf{GI-Hard}. Since graph isomorphism is not thought to have a polynomial time algorithm, this means graph hashing likely does not have a polynomial time implementation.
 
-\begin{theorem}[Proof of Correctness]
+%\begin{theorem}[Proof of Correctness]
+\begin{theoremrep}[Global Hash Proof of Correctness]
 \label{thm:digraphhashcorrect}
 Assuming that the string hashing function $\mathcal{H}$ is injective, $\mathcal{H_G}(G_1)=\mathcal{H_G}(G_2)$ if and only if $G_1 \cong G_2$.
-\end{theorem}
+%\end{theorem}
+\end{theoremrep}
 
 \begin{proof}
 ($\Rightarrow$)If $\mathcal{H_G}(G_1)=\mathcal{H_G}(G_2)$, then the canonized adjacency list/vertex label lists are identical. If these representations of $G_1$ and $G_2$ are identical, then $G_1$ and $G_2$ have identical canonical form $G_3$. This means that $G_1 \cong G_3$ and $G_2 \cong G_3$, which implies that $G_1 \cong G_2$ by transitivity.
@@ -234,7 +251,11 @@ Assuming that the string hashing function $\mathcal{H}$ is injective, $\mathcal{
 ($\Leftarrow)$ Let $G_3$ be the output graph of canonizing $G_1$, and $G_4$ be the output of canonizing graph $G_2$. Since $G_1 \cong G_2$, we conclude that $G_3=G_4$ since isomorphic graphs canonize to the same graph. This implies that the sorted adjacency lists and ordered vertex label lists are equivalent, so the string representation is equivalent. Therefore the string hash output are equivalent as well, which shows that $\mathcal{H_G}(G_1)=\mathcal{H_G}(G_2)$. \qed
 \end{proof}
 
-\begin{algorithm}
+\begin{inlineproof}
+Available in appendix
+\end{inlineproof}
+
+\begin{algorithm}[t]
     \caption{Global Directed Graph Node Hash}\label{alg:digraph-node-hash}
     \begin{algorithmic}[1]
     \Function{$\mathcal{H_N}$}{v, G}
@@ -248,10 +269,10 @@ Assuming that the string hashing function $\mathcal{H}$ is injective, $\mathcal{
 
 The algorithm for hashing nodes in a graph builds on the algorithm for hashing graphs. First, the graph is canonized and the hash of the entire canonical graph is computed using Algorithm \ref{digraphhash}. Then we compute the orbit index of the input vertex, which is defined to be the canonical index of the equivalence class representative element, where the equivalence relation in this case is the vertex orbit. The orbit index and the graph hash are then combined and passed through a string hashing function. Algorithm \ref{alg:digraph-node-hash} gives an implementation of this approach.
 
-\begin{theorem}[Proof of Correctness]
+\begin{theoremrep}[Global Node Hash Proof of Correctness]
 \label{thm:digraphnodehashcorrect}
 Nodes should hash to the same value if and only if they come from isomoprhic graphs and they are identical modulo vertex orbits. To be precise, $\mathcal{H_N}(v_1, G_1)=\mathcal{H_N}(v_2, G_2)$ if and only if $G_1 \cong G_2$, $\exists \phi . v_2 \in \text{Orb}(\phi(v_1), G_2)$, and $\exists \phi . v_1 \in \text{Orb}(\phi^{-1}(v_2), G_1)$ where $\phi : V_1 \rightarrow V_2$ is an isomorphism between $G_1$ and $G_2$.
-\end{theorem}
+\end{theoremrep}
 
 \begin{proof}
 ($\Rightarrow$) If $\mathcal{H_N}(v_1, G_1)=\mathcal{H_N}(v_2, G_2)$, then the orbit index of $v_1$ in $\mathcal{H_N}(v_1, G_1)$ is equal to the orbit index of $v_2$ in $\mathcal{H_N}(v_2, G_2)$, and $\mathcal{H_G}(G_1)=\mathcal{H_G}(G_2)$ by the injectivity of string hashing. Then by Theorem \ref{thm:digraphhashcorrect}, $G_1 \cong G_2$.
@@ -270,11 +291,15 @@ Since the orbit indices are equal and $\mathcal{H_G}(G_1)=\mathcal{H_G}(G_2)$, t
 \qed
 \end{proof}
 
+\begin{inlineproof}
+  Available in appendix
+\end{inlineproof}
+
 \section{Local Graph Hashing}
 
-In comparison to the global hashing strategy which depends on the global structure of the graph, the local hashing strategy depends only on properties we can \textit{observer} by traversing the digraph along its edges. To make this concept precise, we say that the hash of two nodes in a digraph should be equal if and only if their tree expansions are isomorphic. A tree expansion is formed by selecting a starting node, placing it at the root of the tree, then adding neighboring nodes as children, and expanding recursively. This forms a potentially infinite tree induced by the structure of the underlying digraph.
+In comparison to the global hashing strategy which depends on the global structure of the graph, the local hashing strategy depends only on properties we can \textit{observe} by traversing the digraph forward along its edges. To make this concept precise, we say that the hash of two nodes in a digraph should be equal if and only if their tree expansions are isomorphic. A tree expansion is formed by selecting a starting node, placing it at the root of the tree, then adding neighboring nodes as children, and expanding recursively. This forms a (potentially infinite) tree induced by the structure of the underlying digraph.
 
-Our strategy for local graph hashing builds uses a variation of an algorithm to compute color refinement. In color refinement, nodes are repeatedly colored and propogated over multiple iterations until a stable coloring is achieved. To be more precise, the initial coloring $\lambda_0$ of the nodes is defined to be the hash of the node's labels:
+Our strategy for local graph hashing uses a variation of an algorithm to compute color refinement. In color refinement, nodes are repeatedly colored and propogated over multiple iterations until a stable coloring is achieved. To be more precise, the initial coloring $\lambda_0$ of the nodes is defined to be the hash of the node's labels:
 
 \begin{equation}
   \lambda_0(u) = \mathcal{H}(L(u))
@@ -292,19 +317,26 @@ Note here that our formulation of color refinement differs from the classic colo
   \lambda_{i+1}(u) = \mathcal{H}(\textproc{to\_str}((\lambda_i(u), \{\{\lambda_{i}(v) \mid (u, v) \in E\}\})))
 \end{equation}
 
-The two variations of color refinement give identical computational results. However, in our variation it is clear that the color of a node in round $i$ is exactly the hash of the tree expansion with a maximum depth of $i$ layers. Note here that our finite tree is being built up bottom-up, with a new layer added to the tree every iteration. Due to the bottom-up construction, the hashing process maximally shares computation, making this a dynamic programming approach.
+The two variations of color refinement give identical computational results. However, in our variation it is clear that the color of a node in round $i$ is exactly the hash of the tree expansion with a maximum depth of $i+1$ layers. Note here that our finite tree is being built up bottom-up, with a new layer added to the tree every iteration. Due to the bottom-up construction, the hashing process maximally shares computation, making this a dynamic programming algorithm.
 
 We now define the following stabilization condition which will tell us when to stop computing new colors:
 
+\begin{stoppingcondition}
 \textbf{Global Stabilization Condition}: Stabilization is achieved in round $i$ if for all nodes $u$, $v$ in $G$, $\lambda_{i+1}(u)=\lambda_{i+1}(v)$ if and only if $\lambda_i(u)=\lambda_i(v)$.
+\end{stoppingcondition}
+
 
 Our first step of local graph hashing, then, is to take the input graph and compute the stable colors of each node, stopping when the global stabilization condition is achieved. With this in hand, we then construct a quotient graph induced by the stable colors, merging any nodes together with identical color. Note here that the quotient graph produced is a multi-digraph, so that we preserve the tree expansion of all nodes.
 
 We now define the following stabilization condition which will tell us when to stop computing new colors on the next step of our algorithm:
 
+\begin{stoppingcondition}
 \textbf{Local Stabilization Condition}: A node $n$ is stable in round $i$ if for all nodes $u$, $v$ in the reachable subgraph from $n$, $\lambda_{i+1}(u)=\lambda_{i+1}(v)$ if and only if $\lambda_i(u)=\lambda_i(v)$.
+\end{stoppingcondition}
 
 We then define the canonical label of a node $n$ to be the coloring of $n$ in the round in which local stabilization in the quotient graph is achieved for $n$. The canonical label can be used to order the nodes of the quotient graph. For some input node $n$ that we are hashing, we then say that the hash of $n$ is equal to the hash of the adjacency list of the subgraph reachable subgraph from $n$, sorted in canonical order via the canonical labels.
+
+To summarize our approach, we begin by merging any nodes which are identical modulo tree expansion by using graph coloring with the global stabilization condition. We then construct a quotient graph, merging any of these identical nodes. We then compute a new graph coloring for each node, this time using the local stabilization condition. Since these colors are unique, they can be canonically ordered. The canonical ordering can then be used to construct a canonical adjacency list, which can then be hashed using an ordinary string hashing function.
 
 \clearpage
 
@@ -797,4 +829,8 @@ In a separate 2018 paper, Arshad et al. \cite{Arshad2018-ij} presented a graph h
 % ---- OR ------- Uncomment this section to use bibtex
 \bibliographystyle{spmpsci} % We choose the "plain" reference style
 \bibliography{refs} % Entries are in the refs.bib file
+
+
+\appendix
+
 \end{document}
