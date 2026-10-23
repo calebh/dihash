@@ -2,6 +2,8 @@ import hashlib
 import networkx as nx
 import pynauty
 import math
+from .util import invert_list, to_str, hash_sha256
+
 
 # Convert a NetworkX graph to a nauty graph
 # Input should be a NetworkX digraph with node labels represented as strings, stored in the 'label'
@@ -36,22 +38,6 @@ def nauty_graph(g):
 def canonize(idx_to_node, nauty_g):
     canon = pynauty.canon_label(nauty_g)
     return [idx_to_node[i] for i in canon]
-
-def escape(s):
-    # Replace backslashes with double backslash and quotes with escaped quotes
-    return s.replace('\\', '\\\\').replace('"', '\\"')
-
-def to_str(data):
-    if isinstance(data, list):
-        return "[{}]".format(",".join([to_str(elem) for elem in data]))
-    elif isinstance(data, str):
-        return '"{}"'.format(escape(data))
-    elif isinstance(data, tuple):
-        return "({})".format(",".join([to_str(elem) for elem in data]))
-    elif isinstance(data, int):
-        return str(data)
-    else:
-        raise TypeError("Unable to call to_str on " + str(data))
 
 # Returns a list of lists of nodes, each list is an orbit
 def orbits(idx_to_node, nauty_g):
@@ -194,12 +180,6 @@ def quotient_fixpoint(g):
 def invert_dict(d):
     return {v: k for (k, v) in d.items()}
 
-def invert_list(lst):
-    ret = {}
-    for (i, elem) in enumerate(lst):
-        ret[elem] = i
-    return ret
-
 # Sort a set of orbits by the minimum canonical index
 def sort_orbits(canonization_mapping, orbits):
     def min_canon_node(nodes):
@@ -215,8 +195,7 @@ def canonical_orbits_mapping(sorted_orbits):
             ret[n] = i
     return ret
 
-def hash_sha256(s):
-    return hashlib.sha256(s.encode('utf-8')).hexdigest()
+
 
 # (g_hash, node_hashes) = dihash.hash_graph(g, hash_nodes=True, apply_quotient=False, string_hash_fun=hash_sha256)
 #
