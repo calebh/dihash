@@ -210,24 +210,6 @@ One common theme throughout this paper is reliance on conversion of graphs to \t
 
 We should additionally take care to distinguish between the hash of an entire graph vs the hash of a specific node within a graph. Our general strategy for computing the hash of a specific node is to combine the overall graph hash with the node's position in canonical order. Care must be taken to ensure that our index accounts for any symmetry present in the graph (ie, two nodes may be identical modulo automorphism).
 
-%As we will see in the remainder of this paper, extending hashing to directed graphs gives a suprisingly broad range of options in algorithm design. To illustrate the design space, consider the case of hashing molecular structures (in the chemistry sense) for an informational database. In this case, the hash of the molecular directed graph depends on the \textit{global} structure of the digraph, and a correct algorithm should produce equal hashes if and only if two graphs are isomorphic.
-
-%As a second example, consider the use case of a content-address web browser application that retrieves pages from a distributed hash table. In this case, the hash of a particular page in the web graph should only depend on the \textit{local} observations that can be made on a particular page and in the transitive closure. In other words, the hash of two web pages should be equal if and only if it is impossible to observationally distinguish between the two by navigating the web graph. This formulation of the graph hashing problem is directly related to the concept of bisimulation and coinductive representations of directed graphs.
-
-%In this paper we will explore the extremes of this design space. For hashing digraphs in a global sense, we will make use of graph canonization algorithms and vertex orbit partitioning. We will then extend this approach to create a recursive variant that recurses over the acyclic condensation graph. We will then examine the other extreme by investigating \textit{directed vertex languages}, a variation of formal languages similar to finite automata. Unless otherwise stated, the graphs we are examining in this paper are node labeled directed graphs where nodes with duplicate labels are allowed.
-
-
-%Hashing directed graphs adds an additional layer of complexity not present in trees. Directed graphs can have arbitrary cycles, which prevents the use of na\"ive recursion. We work around this issue via two different prongs. First, we make use of graph canonization algorithms, which can be used to give a unique order to the nodes. This order can be used to output an adjacency list, which can then be hashed with an ordinary string hashing function. Second, we use the structure of the graph condensation, which is an induced directed acyclic graph and therefore amenable to recursion.
-
-%Our contributions in this paper can therefore be described as follows:
-
-%\begin{itemize}
-%    \item We give an algorithm for hashing an entire directed graph using graph canonization.
-%    \item We give an algorithm for hashing specific nodes within a digraph. This approach takes into account any symmetry present within the graph.
-%    \item We give quadratic time algorithms for hashing based on depth-first search in the special case where outgoing node edges are strictly ordered.
-%    \item We outline a recursive approach for hashing cyclic directed graphs, drawing inspiration from Merkle-tree hashing. Although this approach cannot be used to fingerprint graphs in a global sense, we will make a bisimulation argument from the perspective of an observer traversing a graph that this approach is sufficient for many use cases.
-%\end{itemize}
-
 \section{Background}
 
 \begin{figure*}[!b]
@@ -471,7 +453,7 @@ of the unfolding finite Merkle-tree up to layer $i$.}
 
 In comparison to the global hashing strategy which depends on the global structure of the graph, the local hashing strategy depends only on properties we can \textit{observe} by traversing the digraph forward along its edges. To make this concept precise, we say that the hash of two nodes in a digraph should be equal if and only if their \textit{unfoldings} are isomorphic. An unfolding is the formed by selecting a starting node, placing it at the root of the tree, then adding successor nodes as children, and expanding recursively. This forms a (potentially infinite) tree induced by the structure of the underlying digraph. Figure \ref{fig:unfolding} shows an example of an unfolding for a directed graph.
 
-Our strategy for local graph hashing uses a variation of an algorithm to compute color refinement. In color refinement, nodes are repeatedly colored and propagated over multiple iterations until a stable coloring is achieved. To be more precise, the initial coloring $\lambda_0$ of the nodes is defined to be the hash of the node's labels:
+Our strategy for local graph hashing uses a variation of a color refinement algorithm. In color refinement, nodes are repeatedly colored and propagated over multiple iterations until a stable coloring is achieved. To be more precise, the initial coloring $\lambda_0$ of the nodes is defined to be the hash of the node's labels:
 
 \begin{equation}
   \lambda_0(u) = \mathcal{H}(L(u))
@@ -529,7 +511,7 @@ For each node $n$ in the quotient graph, there will be some step $i$ in which th
             \If{$n \notin \text{locally\_stable}$}
               \If{\textproc{partition\_unchanged}(reach[n], $\lambda$, $\lambda_{next}$)}
                 \State locally\_stable $\gets \text{locally\_stable} \cup \{n\}$
-                \State final\_hash[n] $\gets$ \textproc{serialize}($Q$, $n$, reach[n], colors)
+                \State final\_hash[n] $\gets$ \textproc{serialize}($Q$, $n$, reach[n], $\lambda$)
               \EndIf
             \EndIf
           \EndFor
@@ -653,8 +635,6 @@ the other, so the two bottom nodes no longer lie in the same orbit.}
 \end{figure*}
 
 For many real world applications of graph hashing, the labels of outgoing edges are strictly ordered.  We can take advantage of this extra structure on the edges to create simpler hashing algorithms. The algorithms in this section were directly inspired by the more general Scott graph canonization algorithm given by Bloyet, Marteau and Fr\'enod \cite{scott}. The basic idea for our approach is that due to the ordering of the edges, we can give an order to the nodes based on when they are visited in a graph traversal algorithm (in this case depth-first search).
-
-%We can take advantage of this extra structure on the edges to create a node hashing algorithm that runs in polynomial time and neatly encapsulates the idea that the hash of a node should depend only the reachable subgraph structure. Algorithm \ref{alg:node-outgoing-edges} gives an overview of this approach based on the traversal order of a depth-first search. Note that the algorithms given in this section are directly inspired by the more general Scott graph canonization algorithm given by Bloyet, Marteau and Fr\'enod \cite{scott}.
 
 \begin{algorithm}[H]
     \caption{Node Hash - Outgoing Ordered Edges}
@@ -840,7 +820,6 @@ contact.html
 
 \caption{Visualization of procedure for hashing a three page HTML website. Note that in Row 2, the values \#8ab43f and \#f2d91c refer to hashes computed recursively - in this case the hash of pages on external websites.}
 
-%Visualization of web page link structure: (Row 1) Original HTML with URLs, (Row 2) Tokenized version with internal links as \{n\} and external links as hash codes, (Row 3) Directed graph showing internal link structure with node labels corresponding to tokenized identifiers.}
 \end{figure}
 
 From the algorithms given so far, it may not be obvious how to implement these graph theoretic procedures for real world data. Here we will discuss how to do so by taking the example of a static hyperlinked web page system stored in a content addressed distributed hash table (DHT).
@@ -874,9 +853,9 @@ In a 2014 paper, Arshad et al. \cite{Arshad2014-cc} presented an algorithm for h
 
 In a separate 2018 paper, Arshad et al. \cite{Arshad2018-ij} presented a graph hashing algorithm where the hash of a node depends on the XORing together the hashes of the labels of all of that node's descendants. The hash of the entire graph is then computed by hashing each node concatenated with the accumulated graph hash. This approach is problematic in two different ways. While the node hash heuristic may be admissible in many cases, it is easy to construct two non-isomorphic graphs containing nodes with equal hashes, and therefore also equal graph hashes. Indeed, consider a $k$-clique and a $k$-cycle graph containing nodes with equivalent labels. These two graphs are not isomorphic, but each node has $k-1$ descendants, each of which are identically labelled. For this particular example, Arshad's algorithm will output equal hashes.
 
-%Another problematic aspect of their approach lies with the dependence on DFS order. Two isomorphic graphs may have different graph hashes depending on the DFS order.
-
 \section{Experimental Results}
+
+% TODO: Experimental results section
 
 % SIAM recommends using BibTeX
 % if using BibTeX
