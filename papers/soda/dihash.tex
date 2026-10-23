@@ -97,6 +97,12 @@
 \newcommand{\HB}{\mathcal{H}_{B}}
 \newcommand{\HO}{\mathcal{H}_{O}}
 \newcommand{\HM}{\mathcal{H}_{M}}
+\newcommand{\HMg}{\mathcal{H}_{M}^{\mathrm{glob}}}
+\newcommand{\HMl}{\mathcal{H}_{M}^{\mathrm{loc}}}
+\newcommand{\eqg}{\approx_{\mathrm{glob}}}
+\newcommand{\eql}{\approx_{\mathrm{loc}}}
+\newcommand{\hgt}{\mathrm{ht}}
+\newcommand{\UnfA}{\Unf^{\mathrm{scc}}}
 \newcommand{\enc}{\mathrm{enc}}
 \newcommand{\canon}{\mathrm{canon}}
 \newcommand{\Unf}{\mathcal{T}}
@@ -129,7 +135,7 @@ Unauthorized reproduction of this article is prohibited}}
 %Copyright retained by principal author's organization}}
 
 \begin{abstract}
-  We present methods, with correctness proofs, for hashing node-labeled directed graphs and the individual nodes within them. We distinguish between hashing based on the \emph{global} structure of a graph, where equal hashes correspond to isomorphism and automorphism orbits, and hashing based on \emph{local} observations obtained by traversing the graph along its edges, where equal hashes correspond to isomorphic (possibly infinite) unfoldings or, in a variant, to bisimilarity. For graphs whose outgoing edges are ordered we give linear-time node hashes and a quadratic-time canonization of strongly connected graphs, and we combine these ingredients into a Merkle-style hash that recurses over the condensation of a graph, for which we characterize exactly which nodes receive equal hashes. We also show that hashing nodes by the language of their walks is PSPACE-hard. Structural hashing of trees is ubiquitous in blockchains, version control, and content-addressed storage; by contrast, hashing of cyclic directed graphs has received comparatively little systematic treatment. A reference implementation is validated against brute-force equivalence checks, and we report its running time on random digraphs.
+  We present methods, with correctness proofs, for hashing node-labeled directed graphs and the individual nodes within them. We distinguish between hashing based on the \emph{global} structure of a graph, where equal hashes correspond to isomorphism and automorphism orbits, and hashing based on \emph{local} observations obtained by traversing the graph along its edges, where equal hashes correspond to isomorphic (possibly infinite) unfoldings or, in a variant, to bisimilarity. For graphs whose outgoing edges are ordered we give linear-time node hashes and a quadratic-time canonization of strongly connected graphs, and we combine these ingredients into Merkle-style hashes that recurse over the condensation of a graph, in a global variant and a polynomial-time local variant, characterizing exactly which nodes receive equal hashes under each. We also show that hashing nodes by the language of their walks is PSPACE-hard. Structural hashing of trees is ubiquitous in blockchains, version control, and content-addressed storage; by contrast, hashing of cyclic directed graphs has received comparatively little systematic treatment. A reference implementation is validated against brute-force equivalence checks, and we report its running time on random digraphs.
 \end{abstract}
 
 \section{Introduction}\label{sec:introduction}
@@ -156,12 +162,12 @@ Extending hashing to node-labeled directed graphs is non-trivial due to the pres
   \item \textbf{Global Hashing} (Section \ref{sec:global-graph-hashing}) --- for use cases where the \textit{global} structure of the digraph is of importance. Two graphs hash equally if and only if they are isomorphic, and two nodes hash equally if and only if some isomorphism of their graphs maps one onto the other; in particular, nodes in the same automorphism orbit hash equally.
   \item \textbf{Local Hashing} (Section \ref{sec:local-graph-hashing}) --- for use cases where observers can only observe \textit{local} information by traversing from a node to a neighbor on an outgoing edge. Two nodes hash equally if and only if the (potentially infinite) trees obtained by unfolding the graph from them are isomorphic. We also give a variant for bisimilarity, and show that hashing by the language of walks is PSPACE-hard. Local hashing has many commonalities with bisimulation and co-inductive representations of finite directed graphs \cite{bisimulation_book,coinductive_graphs}.
   \item \textbf{Ordered Outgoing Edges} (Section \ref{sec:outgoing-ordered-edge-graphs}) --- in many practical applications the outgoing edges from a node are ordered. We use this additional structure to obtain linear-time node hashes and a quadratic-time canonization of strongly connected graphs.
-  \item \textbf{Merkle Graph Hashing} (Section \ref{sec:merkle-graph-hashing}) --- for use cases where graphs are hashed recursively, or are built up over time. We hash strongly connected components individually, then recurse over the acyclic condensation graph. We characterize precisely which nodes receive equal hashes: the resulting equivalence lies strictly between rooted isomorphism and unfolding equivalence.
+  \item \textbf{Merkle Graph Hashing} (Section \ref{sec:merkle-graph-hashing}) --- for use cases where graphs are hashed recursively, or are built up over time. We hash strongly connected components individually, either globally (up to rooted isomorphism) or locally (up to unfolding isomorphism), then recurse over the acyclic condensation graph. We characterize precisely which nodes receive equal hashes in each variant. Both equivalences lie strictly between rooted isomorphism and unfolding isomorphism, and the local variant runs in polynomial time even for unordered graphs.
 \end{itemize}
 
 One common theme throughout this paper is reliance on conversion of graphs to \textit{canonical form}. If two graphs (or nodes within them) can be converted to a canonical form, we can serialize the canonical form and pass it through an ordinary string hashing function. We distinguish carefully between the hash of an entire graph and the hash of a specific node within a graph. Our general strategy for computing the hash of a specific node is to combine the overall graph hash with the node's position in canonical order, taking care that this position accounts for any symmetry present in the graph (two nodes may be identical modulo automorphism).
 
-\paragraph{Contributions.} Each hashing scheme comes with an exact characterization of hash equality (Theorems \ref{thm:digraphhashcorrect}, \ref{thm:digraphnodehashcorrect}, \ref{thm:localhashcorrect}, \ref{thm:bisimhash}, \ref{thm:orderedhash}, \ref{thm:scc-ordered} and \ref{thm:merkle}), stated relative to an idealized string hash (Section~\ref{sec:hash-model}). We identify and prove the \emph{local stabilization} property that makes color-refinement colors usable as a canonical order (Lemma~\ref{lem:local-injective}), prove PSPACE-hardness of hashing walk languages (Proposition~\ref{prop:pspace}), and position the Merkle scheme relative to the other equivalences (Proposition~\ref{prop:merkle-position}). A reference implementation is validated against brute-force checks and benchmarked in Section~\ref{sec:experiments}.
+\paragraph{Contributions.} Each hashing scheme comes with an exact characterization of hash equality (Theorems \ref{thm:digraphhashcorrect}, \ref{thm:digraphnodehashcorrect}, \ref{thm:localhashcorrect}, \ref{thm:bisimhash}, \ref{thm:orderedhash}, \ref{thm:scc-ordered}, \ref{thm:local-component} and \ref{thm:merkle}), stated relative to an idealized string hash (Section~\ref{sec:hash-model}). We identify and prove the \emph{local stabilization} property that makes color-refinement colors usable as a canonical order (Lemma~\ref{lem:local-injective}), prove PSPACE-hardness of hashing walk languages (Proposition~\ref{prop:pspace}), characterize the local Merkle equivalence by SCC-annotated unfoldings (Proposition~\ref{prop:annotated}), and position both Merkle schemes relative to the other equivalences (Proposition~\ref{prop:merkle-position}). A reference implementation is validated against brute-force checks and benchmarked in Section~\ref{sec:experiments}.
 
 \section{Preliminaries}
 \label{sec:preliminaries}
@@ -234,8 +240,6 @@ By construction $\rho_G$ is an isomorphism $G\to\canon(G)$. It is determined onl
   \label{fig:condensation}
 \end{figure}
 
-\footnotetext{\url{https://commons.wikimedia.org/wiki/File:Graph_Condensation.svg}}
-
 \subsection{Strongly connected components.}
 A \textit{strongly connected component} (SCC) of a digraph is a maximal set of vertices such that there is a path between any two of them. The \textit{condensation graph} is formed by contracting each SCC into a single node; it is acyclic, and all SCCs together with the condensation can be computed in linear time \cite{tarjan1972depth}. The \emph{height} of an SCC is the number of edges on a longest path starting from it in the condensation. Figure \ref{fig:condensation} shows an example.
 
@@ -266,6 +270,8 @@ Condition (ii) says that a failure of the ``only if'' direction exhibits an expl
 \end{algorithm}
 
 In global graph hashing, we would like our computed hash values to be unique modulo graph isomorphism: $\HG(G_1)=\HG(G_2)$ if and only if $G_1 \iso G_2$. We canonize the input digraph and construct an adjacency list sorted in canonical order. The node labels (in canonical order) and the canonical adjacency list are then serialized and hashed using a string hashing function $\mathcal{H}$. Algorithm \ref{digraphhash} gives an implementation of this approach. Note that the pair (labels, adj\_list) is exactly an encoding of $\canon(G)$: the number of vertices is the length of the label list, so isolated vertices are accounted for.
+
+\footnotetext{\url{https://commons.wikimedia.org/wiki/File:Graph_Condensation.svg}}
 
 \begin{theorem}[Correctness of the global graph hash]
 \label{thm:digraphhashcorrect}
@@ -655,7 +661,7 @@ Refine with sequences in place of multisets, $\lambda_{i+1}(u)=\mathcal{H}(\enc(
 As in Lemmas~\ref{lem:colors-trunc}--\ref{lem:quotient}, the stable classes are exactly the ordered-unfolding classes, the quotient is well defined and preserves ordered unfoldings, and distinct vertices of $Q$ have distinct ordered unfoldings. If $\Unf(G_1,u)\iso\Unf(G_2,v)$ as ordered trees, then the simultaneous traversal of $Q_1$ from $[u]$ and $Q_2$ from $[v]$ along equal ports reaches vertices with isomorphic ordered unfoldings. By minimality this defines a bijection between the reachable sets, which is an ordered isomorphism, so Theorem~\ref{thm:orderedhash} applies. The converse is as in Theorem~\ref{thm:localhashcorrect}.
 \end{proof}
 
-\paragraph{Strongly connected graphs.} For the special case of a strongly connected ordered graph, the node hashes of Algorithm~\ref{alg:node-outgoing-edges} yield both a canonical form and the orbit partition in polynomial time. This is the case needed by the Merkle-style hashing of Section~\ref{sec:merkle-graph-hashing}, where strongly connected components are hashed individually.
+\paragraph{Strongly connected graphs.} For the special case of a strongly connected ordered graph, the node hashes of Algorithm~\ref{alg:node-outgoing-edges} yield both a canonical form and the orbit partition in polynomial time. This is the case needed by the global variant of the Merkle-style hashing of Section~\ref{sec:merkle-graph-hashing}, where strongly connected components are hashed individually. (For the local variant, Section~\ref{sec:merkle-graph-hashing} serializes the quotient of Proposition~\ref{prop:ordered-local} once per component instead of running a search from every node.)
 
 \begin{algorithm}[H]
     \caption{Canonization and Orbit Partitioning for Strongly Connected Ordered Graphs}
@@ -691,12 +697,17 @@ Let $G_1,G_2$ be strongly connected ordered digraphs with $n$ nodes and $m$ edge
 
 For applications where graphs are built up over time, a recursive approach similar to Merkle-tree hashing is highly beneficial. We now construct such an algorithm, which recurses over the condensation graph. The condensation is acyclic, so the recursion is well founded.
 
-To compute the hash of each node, we process the strongly connected components in reverse topological order, so that every edge leaving a component points to nodes that have already been hashed. Each node of the component is relabeled by combining its label with the hashes of its external targets: a multiset of hashes for unordered graphs; for ordered graphs, the out-sequence in which every internal target is replaced by a placeholder $\star$, so that the positions of internal and external links are both recorded. Finally the relabeled component, restricted to its internal edges, is hashed with the global node hash (Algorithm~\ref{alg:digraph-node-hash}) or, for ordered graphs, with Algorithm~\ref{alg:scc-outgoing-edges}. Algorithm \ref{alg:merklegraphhash} gives the pseudo-code; each component is processed once.
+To compute the hash of each node, we process the strongly connected components in reverse topological order, so that every edge leaving a component points to nodes that have already been hashed. Each node of the component is relabeled by combining its label with the hashes of its external targets: a multiset of hashes for unordered graphs; for ordered graphs, the out-sequence in which every internal target is replaced by a placeholder $\star$, so that the positions of internal and external links are both recorded. Finally the relabeled component, restricted to its internal edges, is hashed with a \emph{component hash}. We consider two choices.
+\begin{itemize}
+  \item In the \emph{global variant} $\HMg$, the component hash is the global node hash (Algorithm~\ref{alg:digraph-node-hash}) or, for ordered graphs, the node hash of Algorithm~\ref{alg:scc-outgoing-edges}. It distinguishes nodes up to rooted isomorphism of their relabeled components.
+  \item In the \emph{local variant} $\HMl$, the component hash is the local component hash of Algorithm~\ref{alg:local-component-hash} below. It distinguishes nodes only up to isomorphism of their unfoldings inside the relabeled components, and it runs in polynomial time also for unordered graphs.
+\end{itemize}
+Algorithm \ref{alg:merklegraphhash} gives the pseudo-code; each component is processed once.
 
 \begin{algorithm}
     \caption{Merkle Graph Node Hashing}\label{alg:merklegraphhash}
     \begin{algorithmic}[1]
-    \Function{$\HM$}{$G=(V,E,L)$}
+    \Function{$\HM$}{$G=(V,E,L)$, \textproc{comp\_hash}}
         \State $h \gets \textproc{empty\_dict}()$
         \For{\textbf{each} SCC $S$ in reverse topological order} \Comment{Tarjan's algorithm; sinks first}
           \For{$x \in S$}
@@ -708,50 +719,124 @@ To compute the hash of each node, we process the strongly connected components i
             \State $L'(x) \gets \mathcal{H}(\enc((L(x), X(x))))$
           \EndFor
           \State $G' \gets (S,\ E\cap (S\times S),\ L')$ \Comment{ordered case: keep internal targets in port order}
-          \For{$x \in S$}
-            \State $h[x] \gets \HN(G', x)$ \Comment{ordered case: node hash of Algorithm~\ref{alg:scc-outgoing-edges}}
-          \EndFor
+          \State $h \gets h \cup \textproc{comp\_hash}(G')$ \Comment{hashes of all $x\in S$; see the two variants above}
         \EndFor
         \State \Return $h$
     \EndFunction
     \end{algorithmic}
 \end{algorithm}
 
-Which nodes receive equal hashes? Within a component the hash is global (it respects automorphisms, including incoming edges inside the component), while across components it behaves like a Merkle tree: it compares external targets only through their hashes and ignores whether two targets are shared. We make this precise. For a node $u$ let $S(u)$ denote its SCC.
+\subsection{A local component hash.}
+In a strongly connected graph every node reaches every other node. The local hash of Section~\ref{sec:local-graph-hashing} therefore simplifies: all vertices of the quotient become locally stable in the same round, and the reachable set of every vertex is the whole quotient, so the quotient is serialized once instead of once per node. Algorithm~\ref{alg:local-component-hash} handles unordered graphs and, with the sequence refinement of Proposition~\ref{prop:ordered-local}, ordered graphs. Here \textproc{global\_stable\_colors} refines as in Section~\ref{sec:local-graph-hashing} and returns the colors of the first round in which the partition of all vertices is stable.
 
-\begin{defn}[Merkle equivalence]
-\label{def:merkle-eq}
-For nodes $u$ of $G_1$ and $v$ of $G_2$, define $u\approx_M v$ by well-founded recursion on the heights of $S(u)$ and $S(v)$: $u\approx_M v$ if and only if there is a bijection $\phi:S(u)\to S(v)$ with $\phi(u)=v$ such that, for every $x\in S(u)$,
-\begin{enumerate}[label=(\roman*)]
-  \item $L_1(x)=L_2(\phi(x))$, and $\phi$ is an isomorphism of the subgraphs induced on $S(u)$ and $S(v)$;
-  \item there is a bijection between the external successors of $x$ and those of $\phi(x)$ that relates only $\approx_M$-equivalent nodes.
-\end{enumerate}
-In the ordered variant, (i) and (ii) are replaced by: $L_1(x)=L_2(\phi(x))$, $d(x)=d(\phi(x))$, and for every port $k$, either both $s_k(x)\in S(u)$ and $s_k(\phi(x))=\phi(s_k(x))$, or both targets are external and $s_k(x)\approx_M s_k(\phi(x))$.
-\end{defn}
+\begin{algorithm}[t]
+    \caption{Local Component Hash}\label{alg:local-component-hash}
+    \begin{algorithmic}[1]
+    \Function{\textproc{local\_comp\_hash}}{$S$} \Comment{$S$ strongly connected}
+        \State $C \gets$ \textproc{global\_stable\_colors}($S$) \Comment{\eqref{eq:coloring-step}; ordered: sequences as in Proposition~\ref{prop:ordered-local}}
+        \State $Q=(V_Q,\mu_Q,L_Q) \gets S / C$ \Comment{Definition~\ref{def:quotient}; ordered: quotient of Proposition~\ref{prop:ordered-local}}
+        \State $\lambda \gets$ \textproc{global\_stable\_colors}($Q$) \Comment{fresh refinement on $Q$, as in Algorithm~\ref{alg:local-node-hash}}
+        \State order $\gets$ \textproc{sorted}($V_Q$, key$=\lambda$) \Comment{no ties, by Lemma~\ref{lem:comp-quotient}}
+        \State index $\gets$ $\{X \mapsto i \mid (i, X) \in \textproc{enumerate}(\text{order})\}$
+        \State labels $\gets$ $[L_Q(X)$ \textbf{for} $X$ \textbf{in} order$]$
+        \State edges $\gets$ \textproc{sorted}($[(\text{index}[X], \text{index}[Y], \mu_Q(X,Y)) \mid \mu_Q(X,Y) > 0]$)
+        \Statex \hfill \Comment{ordered: $[(\text{index}[Y] \mid Y \in s(X))$ \textbf{for} $X$ \textbf{in} order$]$}
+        \State $g \gets \mathcal{H}(\enc((\text{labels}, \text{edges})))$
+        \State \Return $\{x \mapsto \mathcal{H}(\enc((\text{index}[C(x)], g))) \mid x \in V_S\}$
+    \EndFunction
+    \end{algorithmic}
+\end{algorithm}
 
-The recursion is well founded because external successors lie in SCCs of strictly smaller height. By induction on height, $\approx_M$ is an equivalence relation.
+\begin{lemma}
+\label{lem:comp-quotient}
+Assume $\mathcal{H}$ is injective, let $S$ be strongly connected, and let $Q$ be its quotient (unordered or ordered). Then $Q$ is strongly connected, the colors $\lambda$ computed in Algorithm~\ref{alg:local-component-hash} are pairwise distinct on $V_Q$, and $Q$ has no automorphism other than the identity.
+\end{lemma}
+\begin{proof}
+Let $(x,y)$ be an edge of $S$. Choosing $x$ as the representative in Definition~\ref{def:quotient} shows that $\mu_Q(C(x),C(y))\ge\mu(x,y)>0$. Hence the projection maps walks of $S$ to walks of $Q$, and since it is surjective, $Q$ is strongly connected. Thus $\Reach_Q(X)=V_Q$ for every vertex $X$, so the refinement on $Q$ stops exactly in the round $i_X$ of Section~\ref{sec:local-graph-hashing}, and Lemma~\ref{lem:local-injective} shows that $\lambda$ is injective on $V_Q$. An automorphism of $Q$ preserves unfoldings, and distinct vertices of $Q$ have non-isomorphic unfoldings by Lemma~\ref{lem:quotient}, so it is the identity. In the ordered case the same arguments apply to the quotient of Proposition~\ref{prop:ordered-local}.
+\end{proof}
 
-\begin{theorem}[Correctness of the Merkle hash]
-\label{thm:merkle}
-$\HM$ realizes $\approx_M$ (in both variants): assuming $\mathcal{H}$ is injective, $\HM(G_1)[u]=\HM(G_2)[v]$ if and only if $u\approx_M v$.
+In particular, no orbit computation is needed in the local variant: the canonical index of a vertex of $Q$ identifies it uniquely.
+
+\begin{theorem}[Correctness of the local component hash]
+\label{thm:local-component}
+Let $S_1,S_2$ be strongly connected (unordered or ordered) digraphs, let $x_1\in V_{S_1}$ and $x_2\in V_{S_2}$, and write $h_S=\textproc{local\_comp\_hash}(S)$. Assuming $\mathcal{H}$ is injective, $h_{S_1}(x_1)=h_{S_2}(x_2)$ if and only if $\Unf(S_1,x_1)\iso\Unf(S_2,x_2)$ (as ordered trees in the ordered case). Algorithm~\ref{alg:local-component-hash} runs in $O(k(n+m)\log n)$ time plus the cost of hashing, where $n$ and $m$ are the numbers of vertices and edges of $S$ and $k\le 2n$ is the total number of refinement rounds.
 \end{theorem}
 \begin{proof}
-By induction on the maximum of the heights of $S(u)$ and $S(v)$. By the induction hypothesis (and trivially at height $0$, where there are no external successors), for $x\in S(u)$ and $y\in S(v)$ the multisets (respectively, $\star$-masked sequences) $X(x)$ and $X(y)$ are equal if and only if the external successors of $x$ and $y$ can be matched by $\approx_M$ (respectively, port by port). Hence $L'(x)=L'(y)$ if and only if $L(x)=L(y)$ and condition (ii) holds. Now apply Theorem~\ref{thm:digraphnodehashcorrect} (respectively, Theorem~\ref{thm:scc-ordered}(c)) to the relabeled components: the node hashes are equal if and only if there is an $L'$-preserving isomorphism of the relabeled components mapping $u$ to $v$. In the ordered case the isomorphism must also preserve the order of internal targets, and together with the $\star$-masks this means preserving each port. This is exactly Definition~\ref{def:merkle-eq}.
+Let $Q_1,Q_2$ be the quotients, $A=C_1(x_1)$ and $B=C_2(x_2)$.
+
+($\Leftarrow$) By Lemma~\ref{lem:quotient}, $\Unf(Q_1,A)\iso\Unf(S_1,x_1)\iso\Unf(S_2,x_2)\iso\Unf(Q_2,B)$. As in the proof of Theorem~\ref{thm:localhashcorrect} (respectively, Proposition~\ref{prop:ordered-local}) there is a rooted isomorphism $\psi$ between the sub-multigraphs induced on $\Reach(A)$ and $\Reach(B)$ with $\psi(A)=B$. By Lemma~\ref{lem:comp-quotient} these are all of $Q_1$ and $Q_2$, so $\psi$ is an isomorphism $Q_1\to Q_2$. By Lemma~\ref{lem:local-intrinsic}, $\psi$ preserves the colors of every round, so both refinements stop in the same round and $\text{index}[\psi(X)]=\text{index}[X]$ for every $X$. Hence the label lists, the edge lists, the component hashes $g$ and the indices of $A$ and $B$ coincide.
+
+($\Rightarrow$) By injectivity, $\text{index}[A]=\text{index}[B]$ and the label and edge lists coincide. Mapping the $k$-th vertex of $Q_1$ to the $k$-th vertex of $Q_2$ is then an isomorphism $Q_1\to Q_2$ (it preserves labels and multiplicities, respectively out-sequences) that maps $A$ to $B$. Hence $\Unf(Q_1,A)\iso\Unf(Q_2,B)$, and $\Unf(S_1,x_1)\iso\Unf(S_2,x_2)$ by Lemma~\ref{lem:quotient}.
+
+For the running time, each refinement round costs $O((n+m)\log n)$, each of the two refinements needs at most $n$ rounds by Lemma~\ref{thm:stability}, and the serialization costs $O((n+m)\log n)$.
+\end{proof}
+
+The proof uses the colors of line~4 only through two properties: they are injective on $V_Q$, and isomorphisms between quotients preserve them. Both also hold for the coarsest stable coloring computed by canonical color refinement \cite{berkholz2017tight}, which supports directed and edge-colored graphs (ports can be encoded as edge colors) and runs in $O((n+m)\log n)$ time. Together with partition refinement for line~2 \cite{cardon1982partitioning,paige1987three,valmari2008partial}, this gives an $O((n+m)\log n)$ bound for Algorithm~\ref{alg:local-component-hash}, plus the cost of hashing.
+
+\subsection{Which nodes receive equal hashes?}
+Within a component, the global variant respects the full structure, including automorphisms and incoming edges inside the component, while the local variant only sees what can be observed by following edges. Across components both behave like a Merkle tree: they compare external targets only through their hashes and ignore whether two targets are shared. We make this precise with a single definition that covers both variants. Fix labeled digraphs $G_1$ and $G_2$ (possibly equal), and let $W=V_1\sqcup V_2$. For $u\in W$ let $S(u)$ be the SCC of $u$ in its own graph, and let $\hgt(u)$ be the height of $S(u)$.
+
+\begin{defn}[Merkle equivalences]
+\label{def:merkle-eq}
+Let $\sim$ be either rooted isomorphism or isomorphism of unfoldings (for ordered graphs: rooted ordered isomorphism or isomorphism of ordered unfoldings). We define a relation $\approx$ on $W$ by well-founded recursion on $\max(\hgt(u),\hgt(v))$. Suppose that $\approx$ has been defined on the nodes of height less than $h$. For a node $x$ of height at most $h$, all external successors of $x$ have height less than $h$. Let $X^{\approx}(x)$ be the multiset of their $\approx$-classes; for ordered graphs, let it be the sequence whose $k$-th entry is the $\approx$-class of $s_k(x)$ if $s_k(x)\notin S(x)$, and $\star$ otherwise. Let $C^{\approx}(x)$ be the subgraph induced on $S(x)$ (for ordered graphs, keeping the internal targets of each node in port order), with labels $L^{\approx}(y)=(L(y),X^{\approx}(y))$. For $u,v$ with $\max(\hgt(u),\hgt(v))=h$, set
+\[
+u\approx v \iff (C^{\approx}(u),u)\sim(C^{\approx}(v),v).
+\]
+We write $\eqg$ and $\eql$ for the relations obtained when $\sim$ is rooted isomorphism and isomorphism of unfoldings, respectively.
+\end{defn}
+
+The recursion is well founded because external successors lie in SCCs of strictly smaller height. By induction on $h$, both relations are equivalence relations that relate only nodes of equal height. Indeed, if $u\approx v$ then every node of $S(u)$ corresponds to a node of $S(v)$ with the same label $L^{\approx}$ and vice versa (for unfoldings, because every node of a strongly connected graph occurs in its unfolding). So the two components have the same classes of external successors, and hence the same height. Spelled out, $u\eqg v$ if and only if there is a bijection $\phi:S(u)\to S(v)$ with $\phi(u)=v$ that is a label-preserving isomorphism of the induced subgraphs and, for every $x\in S(u)$, matches the external successors of $x$ bijectively with $\eqg$-equivalent external successors of $\phi(x)$. For ordered graphs the matching is port by port, with internal ports mapped by $\phi$.
+
+\begin{theorem}[Correctness of the Merkle hashes]
+\label{thm:merkle}
+Assuming $\mathcal{H}$ is injective, $\HMg$ realizes $\eqg$ and $\HMl$ realizes $\eql$, for unordered and for ordered graphs. That is, for each variant, $\HM(G_1)[u]=\HM(G_2)[v]$ if and only if $u\approx v$ for the corresponding relation.
+\end{theorem}
+\begin{proof}
+By induction on $h=\max(\hgt(u),\hgt(v))$. By the induction hypothesis (vacuous when $h=0$), two nodes of height less than $h$ have equal hashes if and only if they are $\approx$-equivalent. So $[y]_{\approx}\mapsto h[y]$ is a well-defined injective map on these classes. Hence, for nodes $x,x'$ of height at most $h$, $X(x)=X(x')$ if and only if $X^{\approx}(x)=X^{\approx}(x')$, and by injectivity $L'(x)=L'(x')$ if and only if $L^{\approx}(x)=L^{\approx}(x')$. Relabeling by an injective map preserves and reflects both rooted isomorphism and isomorphism of unfoldings. Therefore the relabeled components $G'$ of Algorithm~\ref{alg:merklegraphhash} containing $u$ and $v$ satisfy $(G'(u),u)\sim(G'(v),v)$ if and only if $(C^{\approx}(u),u)\sim(C^{\approx}(v),v)$. In the ordered case, $L'$ records the $\star$-masked sequence and $G'$ keeps internal targets in port order, so together they determine every port, exactly as $C^{\approx}$ does. Finally, the component hash realizes $\sim$ on strongly connected graphs. For the global variant this is Theorem~\ref{thm:digraphnodehashcorrect}, or Theorem~\ref{thm:scc-ordered}(c) for ordered graphs. For the local variant it is Theorem~\ref{thm:local-component}.
+\end{proof}
+
+The local equivalence has a direct description in terms of unfoldings. The \emph{SCC-annotated unfolding} $\UnfA(G,u)$ is the unfolding $\Unf(G,u)$ (ordered by port for ordered graphs) in which every tree edge, corresponding to a step from $x_{k-1}$ to $x_k$, is marked \emph{internal} if $x_k\in S(x_{k-1})$ and \emph{external} otherwise. Isomorphisms of annotated unfoldings must preserve the marks.
+
+\begin{prop}
+\label{prop:annotated}
+For nodes $u$ of $G_1$ and $v$ of $G_2$, $u\eql v$ if and only if $\UnfA(G_1,u)\iso\UnfA(G_2,v)$. The same holds for ordered graphs.
+\end{prop}
+\begin{proof}
+Marks depend only on the endpoints of each step, so the subtree of $\UnfA(G,u)$ below a walk ending at $y$ is $\UnfA(G,y)$. The walks from $u$ that use only internal steps stay in $S(u)$. They form a subtree, the \emph{internal part}, which is the unfolding at $u$ of the subgraph induced on $S(u)$. A tree node of the internal part ending at $x$ has one internal child for each internal edge of $x$ and one external child for each external edge. We proceed by induction on $\max(\hgt(u),\hgt(v))$.
+
+($\Rightarrow$) Let $\tau$ be an isomorphism of the unfoldings of $C^{\approx}(u)$ and $C^{\approx}(v)$, i.e.\ of the internal parts, preserving $L^{\approx}$. For a tree node $w$ ending at $x$ with $\tau(w)$ ending at $x'$, we have $L(x)=L(x')$ and $X^{\approx}(x)=X^{\approx}(x')$. So there is a bijection (port by port for ordered graphs) between the external successors of $x$ and those of $x'$ relating only $\eql$-equivalent nodes, whose annotated unfoldings are isomorphic by the induction hypothesis. Extending $\tau$ at every external child by these isomorphisms gives an isomorphism $\UnfA(G_1,u)\to\UnfA(G_2,v)$.
+
+($\Leftarrow$) An isomorphism $\sigma$ of the annotated unfoldings maps internal children to internal children, so it restricts to an isomorphism $\tau$ of the internal parts preserving $L$. For a tree node $w$ ending at $x$ with $\sigma(w)$ ending at $x'$, $\sigma$ maps the external children of $w$ bijectively (port by port) onto those of $\sigma(w)$, with isomorphic annotated subtrees. By the induction hypothesis the corresponding external successors are $\eql$-equivalent, so $X^{\approx}(x)=X^{\approx}(x')$. Thus $\tau$ preserves $L^{\approx}$, and $u\eql v$.
 \end{proof}
 
 \begin{prop}
 \label{prop:merkle-position}
-For nodes $u$ of $G_1$ and $v$ of $G_2$: if $(G_1[\Reach(u)],u)\iso(G_2[\Reach(v)],v)$ then $u\approx_M v$, and if $u\approx_M v$ then $\Unf(G_1,u)\iso\Unf(G_2,v)$. Neither converse holds. The same statements hold in the ordered setting.
+For nodes $u$ of $G_1$ and $v$ of $G_2$,
+\[
+(G_1[\Reach(u)],u)\iso(G_2[\Reach(v)],v) \;\Rightarrow\; u\eqg v \;\Rightarrow\; u\eql v \;\Rightarrow\; \Unf(G_1,u)\iso\Unf(G_2,v),
+\]
+and none of the converse implications holds. The same statements hold in the ordered setting.
 \end{prop}
 \begin{proof}
-A rooted isomorphism of reachable subgraphs maps SCCs to SCCs, so it witnesses Definition~\ref{def:merkle-eq} at every level. For the second implication, proceed by induction on height. A walk from $u$ stays in $S(u)$ for a while and may then leave it along an external edge $x\to y$. Map the part inside $S(u)$ step by step with $\phi$, and at the exit edge use the bijection of condition (ii) to pair $y$ with some $y'\approx_M y$, whose unfoldings are isomorphic by induction. This assembles an isomorphism of the unfoldings.
+A rooted isomorphism of reachable subgraphs maps SCCs to SCCs, so it witnesses Definition~\ref{def:merkle-eq} for $\eqg$ at every level. For the second implication, proceed by induction on height. If $\phi$ is a rooted isomorphism witnessing $u\eqg v$, then $\phi$ preserves the labels $L^{\approx}$ defined with $\eql$ as well. This holds because, by the induction hypothesis, a matching of external successors by $\eqg$-equivalent nodes is also a matching by $\eql$-equivalent nodes. A rooted isomorphism induces an isomorphism of unfoldings, so $u\eql v$. The third implication follows from Proposition~\ref{prop:annotated} by forgetting the marks.
 
-For strictness of the first implication, let $x\to p$, $x\to q$, $p\to s$ and $q\to s$ (with $p,q$ equally labeled), and compare with the same graph in which $s$ is replaced by two copies $s_1,s_2$ with $p\to s_1$ and $q\to s_2$. The nodes $x$ are $\approx_M$-equivalent, since all SCCs are singletons and the external multisets agree, but the reachable subgraphs have $4$ and $5$ nodes. For strictness of the second, a node with a self-loop and a node on a $2$-cycle (all labels equal) have isomorphic unfoldings but are not $\approx_M$-equivalent, since their SCCs have different sizes.
+For strictness, all nodes in the following examples carry the same label.
+\begin{itemize}
+  \item \emph{First implication.} Let $x\to p$, $x\to q$, $p\to s$ and $q\to s$, and compare with the same graph in which $s$ is replaced by two copies $s_1,s_2$ with $p\to s_1$ and $q\to s_2$. The nodes $x$ are $\eqg$-equivalent, since all SCCs are singletons and the external multisets agree, but the reachable subgraphs have $4$ and $5$ nodes.
+  \item \emph{Second implication.} A node with a self-loop and a node on a $2$-cycle are $\eql$-equivalent, since both internal unfoldings are infinite paths without external edges. They are not $\eqg$-equivalent, since their SCCs have different sizes.
+  \item \emph{Third implication.} A node $u$ with a self-loop, and a node $v$ whose only edge leads to a node $w$ with a self-loop, have isomorphic unfoldings (infinite paths). They are not $\eql$-equivalent, because the first step from $u$ is internal and the first step from $v$ is external.
+\end{itemize}
+In the ordered setting the same examples apply. A further example inside a single strongly connected graph is $s(a)=(b,a)$, $s(b)=(a,a)$. Here $a\eql b$, since all nodes have the same label and out-degree, but $a$ and $b$ lie in different orbits, since an automorphism exchanging them would map $s(a)=(b,a)$ to $(a,b)\ne s(b)$.
 \end{proof}
 
-Thus the Merkle hash deliberately forgets whether subgraphs below a component are shared, exactly as Merkle trees and Merkle DAGs do in git and IPFS, while retaining full global structure inside each cycle.
+\begin{remark}[Why the internal/external marks remain]
+\label{rem:compositional}
+In both variants, a node $x$ that lies on no cycle is hashed as $F(L(x),\text{successor hashes})$ for a function $F$ built from $\mathcal{H}$. No scheme of this kind can realize plain unfolding isomorphism. In the third example above, unfolding isomorphism would require $h(v)=h(w)$, while $h(v)=F(L,\mset{h(w)})$. So computing $h(w)$ would produce a fixed point of $y\mapsto F(L,\mset{y})$, which is infeasible if $\mathcal{H}$ behaves like a random function. The marks are thus the price of Merkle-style compositionality. Plain unfolding isomorphism is realized by the hashes of Section~\ref{sec:local-graph-hashing} and Proposition~\ref{prop:ordered-local}, but these are not computed compositionally over the condensation.
+\end{remark}
 
-\paragraph{Complexity and incrementality.} Computing the SCCs takes $O(n+m)$ time, and each component is hashed once. The total cost is $O(n+m)$ plus $\sum_S c(S)$, where $c(S)$ is the cost of Algorithm~\ref{alg:digraph-node-hash} on $S$ (GI-hard in general) or of Algorithm~\ref{alg:scc-outgoing-edges}, $O(|S|(|S|+m_S))$, in the ordered case. As with Merkle trees, changing a node changes only the hashes of nodes from which it is reachable. Adding a new node whose edges point only to existing nodes creates a new singleton SCC and leaves all existing hashes unchanged.
+Thus both Merkle hashes deliberately forget whether subgraphs below a component are shared, exactly as Merkle trees and Merkle DAGs do in git and IPFS. The global variant retains the full structure inside each cycle; it suits applications that must distinguish, for example, a single self-referencing node from a cycle of identical nodes. The local variant retains only what can be observed by following edges, together with whether each edge leaves its component. It is much faster (Section~\ref{sec:experiments}), it merges nodes that no traversal can tell apart, and it is the variant used in Section~\ref{sec:application}.
+
+\paragraph{Complexity and incrementality.} Computing the SCCs takes $O(n+m)$ time, and each component is relabeled and hashed once. The total cost is $O((n+m)\log n)$ for the relabeling plus $\sum_S c(S)$, where $c(S)$ is the cost of the component hash on $S$, plus the cost of hashing. For the global variant, $c(S)$ is the cost of Algorithm~\ref{alg:digraph-node-hash} on $S$ (GI-hard in general) or, for ordered graphs, $O(|S|(|S|+m_S))$ for Algorithm~\ref{alg:scc-outgoing-edges}. For the local variant, $c(S)=O(k_S(|S|+m_S)\log|S|)$ by Theorem~\ref{thm:local-component}, where $k_S\le 2|S|$ is the number of refinement rounds, and $c(S)=O((|S|+m_S)\log|S|)$ with partition refinement. The local variant is therefore polynomial also for unordered graphs, and near-linear when few refinement rounds are needed. As with Merkle trees, changing a node changes only the hashes of nodes from which it is reachable. Adding a new node whose edges point only to existing nodes creates a new singleton SCC and leaves all existing hashes unchanged.
 
 \section{Application Sketch}
 \label{sec:application}
@@ -898,31 +983,31 @@ From the algorithms given so far, it may not be obvious how to implement these g
 
 In this sketch, we assume that web pages are static HTML files that link to each other and to external pages, and that external pages are themselves published in the same content-addressed way. (An external page that links back into our site would belong to the same SCC and be hashed together with it.) The pages form an ordered digraph in which each page is a node, the links are edges, and the out-edges of a node are ordered by their position in the HTML file. Figure \ref{fig:webpage-example} gives a concrete example of the process described here.
 
-We first compute the SCCs of the link graph and process them sinks first, as in Algorithm~\ref{alg:merklegraphhash}. Within a page, every link to another page of the same SCC is replaced by its internal port number, and every link leaving the SCC is replaced by the recursively computed hash of its target. The resulting text is the relabeled node label $L'$ of the ordered variant. We then compute the canonical labeling, canonical form and orbit partition of the SCC in $O(n(n+m))$ time using Algorithm \ref{alg:scc-outgoing-edges}, and insert the following items into the distributed hash table:
+We first compute the SCCs of the link graph and process them sinks first, as in Algorithm~\ref{alg:merklegraphhash}. Within a page, every link to another page of the same SCC is replaced by its internal port number, and every link leaving the SCC is replaced by the recursively computed hash of its target. The resulting text is the relabeled node label $L'$ of the ordered variant. We use the local variant of Section~\ref{sec:merkle-graph-hashing}. For each SCC, Algorithm~\ref{alg:local-component-hash} computes the ordered quotient, which merges pages that cannot be told apart by following links, together with its canonical order. We then insert the following items into the distributed hash table:
 
 \begin{itemize}
   \item The strongly connected component as a whole: \begin{itemize}
-    \item \textbf{Value}: the canonical form, i.e.\ the list of relabeled page contents in canonical order together with each page's internal out-sequence in canonical indices.
+    \item \textbf{Value}: the canonical form of the quotient, i.e.\ the relabeled page contents in canonical order together with each page's internal out-sequence in canonical indices.
     \item \textbf{Key}: the string hash $\mathcal{H}$ of the value.
   \end{itemize}
-  \item For each page, a reference to a specific node in the strongly connected component: \begin{itemize}
-    \item \textbf{Value}: the orbit index of the page, together with the key of its SCC.
+  \item For each page, a reference to a specific node of the quotient: \begin{itemize}
+    \item \textbf{Value}: the canonical index of the page's class in the quotient, together with the key of its SCC.
     \item \textbf{Key}: the string hash $\mathcal{H}$ of the value. This is the page's hash.
   \end{itemize}
 \end{itemize}
 
-By Theorem~\ref{thm:merkle}, two pages receive the same key exactly when they are $\approx_M$-equivalent. In particular, pages in the same orbit of an SCC share a key. This is harmless, since such pages are indistinguishable by any navigation.
+By Theorem~\ref{thm:merkle} and Proposition~\ref{prop:annotated}, two pages receive the same key exactly when their SCC-annotated ordered unfoldings are isomorphic. In other words, no sequence of clicks can tell them apart, except by observing which links leave their SCC. In particular, pages in the same orbit share a key, and so do duplicated pages. This is intended: the store is content-addressed, and such pages are indistinguishable by navigation. No orbit computation is needed, because quotients of strongly connected graphs have no non-trivial automorphisms (Lemma~\ref{lem:comp-quotient}). The whole site is hashed in near-linear time in practice (Section~\ref{sec:experiments}). If instead the exact page structure of every SCC must be preserved, the global variant can be used: Algorithm~\ref{alg:scc-outgoing-edges} replaces the quotient by the full SCC with its orbit partition, and only pages in the same orbit share a key.
 
-Suppose that a user wants to navigate our website and has obtained the hash of one specific page. The browser retrieves the orbit index and SCC key from the DHT, then retrieves the SCC itself, which allows the SCC digraph to be reconstructed. The orbit index points to a specific node of the canonical form, whose contents the browser displays. If the user clicks a link within the same SCC, the browser follows the corresponding internal edge. For links that leave the SCC, the embedded hash is a page key, and the browser repeats the process from the beginning. As with any Merkle structure, editing a page changes the keys of that page's SCC and of all pages from which it can be reached, and of no others.
+Suppose that a user wants to navigate our website and has obtained the hash of one specific page. The browser retrieves the index and SCC key from the DHT, then retrieves the canonical form of the quotient, from which the quotient digraph can be reconstructed. The index points to a specific node of the quotient, whose contents the browser displays. If the user clicks a link within the same SCC, the browser follows the corresponding edge of the quotient. Since the quotient preserves ordered unfoldings (Proposition~\ref{prop:ordered-local}), the user sees exactly the sequence of pages they would see on the original site. For links that leave the SCC, the embedded hash is a page key, and the browser repeats the process from the beginning. As with any Merkle structure, editing a page changes the keys of that page's SCC and of all pages from which it can be reached, and of no others.
 
 \section{Related Work}
 \label{sec:related}
 
-\paragraph{Merkle hashing of cyclic definitions.} The core idea of the digraph Merkle hashing algorithm was independently discovered by the developers of the Unison programming language \cite{unison}, who hash the abstract syntax trees of mutually recursive definitions. Each function and datatype is a node in a digraph, with its AST as the node label, and each cycle of mutually recursive definitions is hashed as a unit. To our knowledge their scheme does not treat non-trivial automorphism orbits inside a cycle, which arise, for example, from two structurally identical mutually recursive definitions that differ only in name. Such orbits appear to be rare in practice, but a complete treatment requires the orbit index of Algorithm~\ref{alg:digraph-node-hash}. Hash-consing of cyclic structures and unique representations of regular trees \cite{mauborgne2000incremental}, as well as hashing of terms modulo $\alpha$-equivalence \cite{maziarz2021hashing}, address closely related problems in programming language implementation.
+\paragraph{Merkle hashing of cyclic definitions.} The core idea of the digraph Merkle hashing algorithm was independently discovered by the developers of the Unison programming language \cite{unison}, who hash the abstract syntax trees of mutually recursive definitions. Each function and datatype is a node in a digraph, with its AST as the node label, and each cycle of mutually recursive definitions is hashed as a unit. To our knowledge their scheme does not treat non-trivial automorphism orbits inside a cycle, which arise, for example, from two structurally identical mutually recursive definitions that differ only in name. Such orbits appear to be rare in practice, but a complete treatment requires either the orbit index of Algorithm~\ref{alg:digraph-node-hash} or the local variant of Section~\ref{sec:merkle-graph-hashing}, in which non-trivial orbits never arise (Lemma~\ref{lem:comp-quotient}). Hash-consing of cyclic structures and unique representations of regular trees \cite{mauborgne2000incremental}, as well as hashing of terms modulo $\alpha$-equivalence \cite{maziarz2021hashing}, address closely related problems in programming language implementation.
 
 \paragraph{Color refinement and Weisfeiler--Leman.} The Weisfeiler--Lehman graph hash \cite{Shervashidze2011-dt} iteratively hashes and aggregates the neighborhoods of each node of an undirected graph. Isomorphic graphs are guaranteed to receive equal hashes, but the converse fails: 1-dimensional Weisfeiler--Leman refinement \cite{weisfeiler1968reduction} cannot distinguish, for example, two disjoint triangles from a $6$-cycle, or any two regular graphs of the same order and degree. In the kernel literature the number of iterations $h$ is a parameter that controls the depth of the subtree features. When refinement is used to test or hash equivalence, as here, no parameter is needed, because the partition stabilizes within $n-1$ rounds (Lemma~\ref{thm:stability}). Efficient implementations of color refinement run in $O((n+m)\log n)$ time \cite{cardon1982partitioning,berkholz2017tight}. The algorithm of Section \ref{sec:local-graph-hashing} is a directed, canonical variant of the Weisfeiler--Lehman hash. The equivalence it computes is the view equivalence of anonymous networks \cite{yamashita1996anonymous} and the fibration equivalence of Boldi and Vigna \cite{boldi2002fibrations}, and for undirected graphs it corresponds to isomorphism of universal covers \cite{norris1995universal}.
 
-\paragraph{Bisimulation and automata.} Bisimilarity is computed by relational coarsest partition algorithms \cite{kanellakis1990ccs,paige1987three}, and state equivalence of deterministic automata by Hopcroft-style minimization \cite{hopcraft,hopcraft-redescribe,valmari2008partial}. Sections~\ref{sec:local-graph-hashing} and \ref{sec:outgoing-ordered-edge-graphs} use these as the first stage of canonical hashing.
+\paragraph{Bisimulation and automata.} Bisimilarity is computed by relational coarsest partition algorithms \cite{kanellakis1990ccs,paige1987three}, and state equivalence of deterministic automata by Hopcroft-style minimization \cite{hopcraft,hopcraft-redescribe,valmari2008partial}. Sections~\ref{sec:local-graph-hashing}--\ref{sec:merkle-graph-hashing} use these as the first stage of canonical hashing.
 
 \paragraph{Canonization.} Canonical labeling tools \cite{nauty,mckay2014practical,bliss,saucy} and Babai's quasipolynomial-time isomorphism test and canonization \cite{babai2016quasipolynomial,babai2019canonical} underlie Section~\ref{sec:global-graph-hashing}.
 
@@ -933,7 +1018,7 @@ In a separate 2018 paper, Arshad et al. \cite{Arshad2018-ij} presented a graph h
 \section{Experimental Results}
 \label{sec:experiments}
 
-We implemented all algorithms of this paper in Python 3.11 as an exact reference implementation, using SHA-256 over a length-prefixed injective encoding. Global canonization uses a simple exhaustive individualization-refinement search, adequate for small graphs. Running times were measured on a single core of an Intel Xeon processor at 2.8\,GHz. The implementation is intended to validate the theorems, not to compete with optimized tools.
+We implemented all algorithms of this paper in Python 3.11 as an exact reference implementation, using SHA-256 over a length-prefixed injective encoding. Global canonization uses a simple exhaustive individualization-refinement search, adequate for small graphs. Running times were measured on a single core of an Intel Xeon processor at 2.1\,GHz. The implementation is intended to validate the theorems, not to compete with optimized tools.
 
 \paragraph{Validation.} We generated 1000 pairs of random labeled digraphs with 1--6 nodes each (edge probability $0.15$, $0.3$ or $0.5$, self-loops allowed, one or two labels). In half of the pairs the second graph is a random relabeling of the first. For every pair of nodes we compared hash equality with an independent brute-force decision of the corresponding equivalence:
 \begin{itemize}
@@ -942,7 +1027,7 @@ We implemented all algorithms of this paper in Python 3.11 as an exact reference
   \item bisimilarity, by a greatest-fixpoint computation;
   \item rooted ordered isomorphism, by simultaneous traversal.
 \end{itemize}
-For $\approx_M$ we used a direct implementation of Definition~\ref{def:merkle-eq}. We also tested the ordered orbit partition of Theorem~\ref{thm:scc-ordered} against brute-force search on every SCC. Table~\ref{tab:validation} summarizes the results. No disagreement was found. The same harness confirms the counterexamples of Examples~\ref{ex:bisim} and~\ref{ex:ordered} for the naive variants, and the orbit structure claimed in Figure~\ref{fig:orbitexample}.
+For $\eqg$ we used a direct implementation of Definition~\ref{def:merkle-eq}. For the local variant we ran a second batch of 3000 unordered and 3000 ordered pairs (1--6 nodes, edge probability $0.15$, $0.3$ or $0.45$, a random relabeling in $30\%$ of the pairs, and, in ordered graphs, occasional repeated links to the same target). There we compared the local component hash with unfolding isomorphism on every pair of SCCs, and the local Merkle hash with isomorphism of SCC-annotated unfoldings (truncated at depth $2(n_1+n_2)+2$); we also checked the implications of Proposition~\ref{prop:merkle-position} and its separating examples. We also tested the ordered orbit partition of Theorem~\ref{thm:scc-ordered} against brute-force search on every SCC. Table~\ref{tab:validation} summarizes the results. No disagreement was found. The same harness confirms the counterexamples of Examples~\ref{ex:bisim} and~\ref{ex:ordered} for the naive variants, and the orbit structure claimed in Figure~\ref{fig:orbitexample}.
 
 \begin{table}[t]
 \centering
@@ -959,35 +1044,55 @@ Bisimulation hash (Thm.~\ref{thm:bisimhash}) & 12{,}947 \\
 Ordered node hash (Thm.~\ref{thm:orderedhash}) & 12{,}720 \\
 Ordered local hash (Prop.~\ref{prop:ordered-local}) & 12{,}720 \\
 Ordered SCC orbits (Thm.~\ref{thm:scc-ordered}) & 2{,}487 SCCs \\
-Merkle hash, both variants (Thm.~\ref{thm:merkle}) & 26{,}794 \\
+Merkle hash, global variant (Thm.~\ref{thm:merkle}) & 26{,}794 \\
+Local component hash (Thm.~\ref{thm:local-component}) & 78{,}594 \\
+Merkle hash, local variant (Thm.~\ref{thm:merkle}, Prop.~\ref{prop:annotated}) & 78{,}594 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\paragraph{Scaling.} Table~\ref{tab:scaling} reports median running times over three random ordered digraphs per size, with two labels and $2n$ randomly drawn edges (duplicates discarded; average out-degree just under $2$). These graphs have a giant strongly connected component containing 60--65\% of the nodes. Global stabilization was detected after 5--6 refinement rounds at all sizes. The time to hash all nodes grows roughly by a factor of four each time $n$ doubles, i.e.\ quadratically. This matches the output-sensitive term $\sum_x |\Reach(x)|$ discussed in Section~\ref{sec:local-graph-hashing}: most nodes reach the giant component. The cubic worst case is not attained because few rounds are needed. The Merkle hash is cheaper than hashing every node with $\HO$ because the DFS-based work is confined to each SCC, with external targets summarized by their hashes.
+\paragraph{Scaling.} Table~\ref{tab:scaling} reports median running times over three random ordered digraphs per size, with two labels and $2n$ randomly drawn edges (duplicates discarded; average out-degree just under $2$). These graphs have a giant strongly connected component containing 60--65\% of the nodes. Global stabilization was detected after 5--6 refinement rounds at all sizes. For all schemes except the local Merkle variant, the time to hash all nodes grows roughly by a factor of four each time $n$ doubles, i.e.\ quadratically. For $\HL$, $\HB$ and $\HO$ this matches the output-sensitive term $\sum_x |\Reach(x)|$ discussed in Section~\ref{sec:local-graph-hashing}: most nodes reach the giant component. The cubic worst case is not attained because few rounds are needed. The global Merkle variant $\HMg$ is cheaper than hashing every node with $\HO$, because the depth-first searches are confined to each SCC, but it is still quadratic in the size of the giant component.
+
+The local Merkle variant $\HMl$ is one to two orders of magnitude faster, and its running time roughly doubles when $n$ doubles. Each component quotient is serialized once, and only a few refinement rounds are needed. On the same kind of graphs with $n=64{,}000$ nodes (largest SCC about $40{,}500$ nodes) it takes about $5.2$\,s (ordered) and $5.4$\,s (unordered).
 
 \begin{table}[t]
 \centering
-\caption{Median time in seconds to hash all nodes of a random ordered digraph with $n$ nodes and $2n$ edges (Python prototype).}
+\caption{Median time in seconds to hash all nodes of a random ordered digraph with $n$ nodes and $2n$ edges (Python prototype). The last two columns use the local Merkle variant, treating the graph as ordered and as unordered, respectively.}
 \label{tab:scaling}
-\begin{tabular}{@{}rrrrrrr@{}}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{@{}rrrrrrrrr@{}}
 \toprule
-$n$ & largest SCC & $\HL$ & $\HB$ & $\HO$ & ordered local & $\HM$ (ordered) \\
+$n$ & largest SCC & $\HL$ & $\HB$ & $\HO$ & ordered local & $\HMg$ (ord.) & $\HMl$ (ord.) & $\HMl$ (unord.) \\
 \midrule
-250  & 151  & 0.26  & 0.21  & 0.11 & 0.11 & 0.08 \\
-500  & 314  & 1.07  & 0.94  & 0.51 & 0.41 & 0.36 \\
-1000 & 646  & 4.43  & 3.90  & 2.00 & 1.84 & 1.27 \\
-2000 & 1272 & 19.80 & 16.73 & 7.99 & 6.90 & 5.45 \\
+250  & 151  & 0.27  & 0.23  & 0.10 & 0.10 & 0.07 & 0.009 & 0.010 \\
+500  & 314  & 0.92  & 0.97  & 0.39 & 0.40 & 0.26 & 0.020 & 0.021 \\
+1000 & 646  & 3.84  & 3.44  & 1.83 & 1.63 & 1.20 & 0.042 & 0.046 \\
+2000 & 1272 & 17.80 & 14.69 & 6.62 & 5.89 & 4.43 & 0.084 & 0.091 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\paragraph{Granularity.} To illustrate how the equivalences compare, we hashed 400 random unlabeled digraphs with 12 nodes and 18 randomly drawn edges (duplicates discarded) and counted the distinct hash values per graph. On average the graphs have 12 nodes and 11.82 orbits (global node hash). They have 9.81 $\approx_M$ classes (Merkle hash), 9.13 unfolding classes (local hash), and 7.76 bisimulation classes. This is consistent with the implications rooted isomorphism $\Rightarrow$ $\approx_M$ $\Rightarrow$ unfolding isomorphism $\Rightarrow$ bisimilarity (Proposition~\ref{prop:merkle-position} and Section~\ref{sec:local-graph-hashing}). The gaps show that the choice of equivalence matters in practice even on small random graphs.
+\paragraph{Granularity.} To illustrate how the equivalences compare, we hashed 400 random unlabeled digraphs with 12 nodes and 18 randomly drawn edges (duplicates discarded) and counted the distinct hash values per graph. On average the graphs have 12 nodes and the following numbers of classes:
+\begin{itemize}
+  \item 11.82 orbits (global node hash);
+  \item 9.81 $\eqg$ classes (global Merkle hash);
+  \item 9.66 $\eql$ classes (local Merkle hash);
+  \item 9.13 unfolding classes (local hash);
+  \item 7.76 bisimulation classes.
+\end{itemize}
+This is consistent with the implications rooted isomorphism $\Rightarrow$ $\eqg$ $\Rightarrow$ $\eql$ $\Rightarrow$ unfolding isomorphism $\Rightarrow$ bisimilarity (Proposition~\ref{prop:merkle-position} and Section~\ref{sec:local-graph-hashing}). The gaps show that the choice of equivalence matters in practice even on small random graphs.
 
 \section{Conclusion}
 \label{sec:conclusion}
 
-We have given hashing schemes for node-labeled digraphs whose hash equality corresponds exactly, up to collisions of the underlying string hash, to isomorphism, rooted isomorphism, unfolding isomorphism, bisimilarity, and a Merkle-style equivalence, together with fast variants for graphs with ordered outgoing edges. Natural directions for future work include an $O((n+m)\log n)$ implementation of the local stage via partition refinement, output-sensitive or incremental computation of local hashes, polynomial canonization of general ordered digraphs, and evaluation on real data such as version-control object graphs and web crawls.
+We have given hashing schemes for node-labeled digraphs whose hash equality corresponds exactly, up to collisions of the underlying string hash, to isomorphism, rooted isomorphism, unfolding isomorphism, bisimilarity, and two Merkle-style equivalences, together with fast variants for graphs with ordered outgoing edges. The local Merkle variant combines the incrementality of Merkle hashing with polynomial running time, and it is near-linear in our experiments. Natural directions for future work include an $O((n+m)\log n)$ implementation of the local stage via partition refinement, output-sensitive or incremental computation of local hashes, polynomial canonization of general ordered digraphs, and evaluation on real data such as computer program call graphs and web crawls.
+
+\section*{Acknowledgements}
+
+Early versions of this paper were posted on arXiv in 2020, and some preliminary results were presented at the 51st Southeastern International Conference on Combinatorics, Graph Theory, and Computing (SEICCGTC). These results were not published in the proceedings and were not peer reviewed. If you are looking for an earlier version of the paper, see the arXiv page at \href{https://arxiv.org/abs/2002.06653}{arXiv:2002.06653}.
+
+Per SIAM's policy on AI disclosure, we disclose that we utilized Claude Opus 5.5 to transform proof sketches to full proofs in Section \ref{sec:local-graph-hashing} and Section \ref{sec:merkle-graph-hashing}. Opus 5.5 was utilized to simplify a human written proof to the one seen in Theorem \ref{thm:digraphnodehashcorrect}. Opus 5.5 was used to tidy up other sections of the paper and as simulated peer review. The core algorithms presented and the code implementations have been under development by the author of this paper since 2015, and this paper is a product of many years of human effort.
 
 % SIAM recommends using BibTeX
 \bibliographystyle{siamplain}

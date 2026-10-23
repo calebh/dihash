@@ -11,13 +11,13 @@ def escape(s):
     # Replace backslashes with double backslash and quotes with escaped quotes
     return s.replace('\\', '\\\\').replace('"', '\\"')
 
-def to_str(data):
+def encode(data):
     if isinstance(data, list):
-        return "[{}]".format(",".join([to_str(elem) for elem in data]))
+        return f"[{','.join(encode(elem) for elem in data)}]"
     elif isinstance(data, str):
-        return '"{}"'.format(escape(data))
+        return f'"{escape(data)}"'
     elif isinstance(data, tuple):
-        return "({})".format(",".join([to_str(elem) for elem in data]))
+        return f"({','.join(encode(elem) for elem in data)})"
     elif isinstance(data, int):
         return str(data)
     else:
@@ -25,3 +25,7 @@ def to_str(data):
 
 def hash_sha256(s):
     return hashlib.sha256(s.encode('utf-8')).hexdigest()
+
+
+def invert_dict(d):
+    return {v: k for (k, v) in d.items()}

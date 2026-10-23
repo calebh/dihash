@@ -46,7 +46,7 @@ def benchmark(start_trial, max_trial, compute_graph_size, output_file, timeout=1
                 while iter_dict['completed'] < num_trials_per_run:
                     g = generate_graph(trial_i, compute_graph_size)
                     start = time.time()
-                    dihash.hash_graph(g, hash_nodes=hash_nodes, apply_quotient=apply_quotient)
+                    dihash.global_hash(g, hash_nodes=hash_nodes, apply_quotient=apply_quotient)
                     end = time.time()
                     iter_dict['completed'] += 1
                     ret_duration.append(end - start)
@@ -123,7 +123,7 @@ def benchmark_time_distribution(num_nodes, num_trials, compute_graph_size, outpu
     def run_hash(ret_duration):
         g = generate_graph(num_nodes, compute_graph_size)
         start = time.time()
-        dihash.hash_graph(g, hash_nodes=False, apply_quotient=False)
+        dihash.global_hash(g, hash_nodes=False, apply_quotient=False)
         end = time.time()
         ret_duration.append(end - start)
 

@@ -120,11 +120,11 @@ def test_hash_graph():
 
     expected_quotient.add_edge(0, 0)
 
-    (hash_1, node_hashes_1) = dihash.hash_graph(g1, apply_quotient=False)
+    (hash_1, node_hashes_1) = dihash.global_hash(g1, apply_quotient=False)
     assert(node_hashes_1[0] == node_hashes_1[1])
     assert(node_hashes_1[0] == node_hashes_1[2])
 
-    (hash_2, node_hashes_2) = dihash.hash_graph(g2, apply_quotient=False)
+    (hash_2, node_hashes_2) = dihash.global_hash(g2, apply_quotient=False)
 
     assert(node_hashes_2[0] == node_hashes_2[1])
     assert(node_hashes_2[0] == node_hashes_2[2])
@@ -134,11 +134,11 @@ def test_hash_graph():
 
     assert(hash_1 != hash_2)
 
-    (hash_3, node_hashes_3) = dihash.hash_graph(g1, apply_quotient=True)
+    (hash_3, node_hashes_3) = dihash.global_hash(g1, apply_quotient=True)
     assert(node_hashes_3[0] == node_hashes_3[1])
     assert(node_hashes_3[0] == node_hashes_3[2])
 
-    (hash_4, node_hashes_4) = dihash.hash_graph(g2, apply_quotient=True)
+    (hash_4, node_hashes_4) = dihash.global_hash(g2, apply_quotient=True)
     assert(node_hashes_4[0] == node_hashes_4[1])
     assert(node_hashes_4[0] == node_hashes_4[2])
     assert(node_hashes_4[0] == node_hashes_4[3])
@@ -149,7 +149,7 @@ def test_hash_graph():
 
     assert(hash_3 == hash_4)
 
-    (hash_5, node_hashes_5) = dihash.hash_graph(expected_quotient, apply_quotient=False)
+    (hash_5, node_hashes_5) = dihash.global_hash(expected_quotient, apply_quotient=False)
 
     assert(node_hashes_3[0] == node_hashes_5[0])
     assert(hash_3 == hash_5)

@@ -32,7 +32,7 @@ unrolling from the root is exactly T(n).
 """
 
 import networkx as nx
-from .util import hash_sha256, to_str
+from .util import hash_sha256, encode
 
 # --------------------------------------------------------------------------
 # Shared refinement machinery (works for DiGraph and MultiDiGraph: child
@@ -43,7 +43,7 @@ def _refine_round(G, colors, label_digest, string_hash_fun, memo):
     new_colors = {}
     for n in G.nodes:
         children = sorted(colors[t] for _, t in G.out_edges(n))
-        signature = to_str((label_digest[n], children))
+        signature = encode((label_digest[n], children))
         digest = memo.get(signature)
         if digest is None:
             digest = string_hash_fun(signature)
@@ -117,7 +117,7 @@ def _serialize_reachable(Q: nx.MultiDiGraph, root, reach, round_colors, string_h
     root_idx = index[root]
     adj_list = sorted([(index[s], index[t]) for (s, t, _) in Q.edges if s in reach and t in reach])
     labels = [Q.nodes[x]["label"] for x in order]
-    return string_hash_fun(to_str((root_idx, labels, adj_list)))
+    return string_hash_fun(encode((root_idx, labels, adj_list)))
 
 def _canonical_quotient_hashes(Q, string_hash_fun):
     nodes = list(Q.nodes)
@@ -145,7 +145,7 @@ def _canonical_quotient_hashes(Q, string_hash_fun):
 # Public entry point
 # --------------------------------------------------------------------------
 
-def canonical_tree_hashes(G, string_hash_fun=hash_sha256):
+def local_hash(G, string_hash_fun=hash_sha256):
     """Hash every node of a directed graph by its tree expansion.
 
     Guarantee (modulo hash collisions): two nodes -- in the same graph or in
