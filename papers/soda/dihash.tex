@@ -572,11 +572,6 @@ Hardness: we reduce from equivalence of NFAs in which all states are final, whic
 
 A tempting modification of Algorithm~\ref{alg:local-node-hash} is to keep the multiset refinement and merely collapse the quotient $G/C$ to an ordinary digraph. \emph{This is incorrect}, because multiset refinement separates bisimilar nodes that differ only in the number of equivalent successors; after collapsing, such nodes become distinct quotient vertices with identical colors, and sorting by color is no longer canonical.
 
-\begin{exmp}
-\label{ex:bisim}
-Let $u\to a_1$, $u\to b$, $b\to a_2$, $a_1\to x$, $a_2\to x$ and $a_2\to x'$, where $x$ and $x'$ are sinks with the same label and $a_1,a_2$ have the same label. Then $a_1$ and $a_2$ are bisimilar. Multiset refinement separates them ($\mset{X}$ versus $\mset{X,X}$), and in the collapsed quotient they have equal colors forever. Sorting $\Reach(u)$ then depends on how the tie between $a_1$ and $a_2$ is broken, and the two tie-breaks produce different adjacency lists (the edge from $u$ points to one or the other), so the hash is not well defined.
-\end{exmp}
-
 The correct modification replaces the multisets in \eqref{eq:coloring-step} by \emph{sets} in \emph{both} refinement stages: $\lambda^{\mathrm{set}}_{i+1}(u)=\mathcal{H}(\enc((L(u),\{\lambda^{\mathrm{set}}_i(v)\mid v\in\Succ(u)\})))$. The global stage then computes bisimilarity, as in relational coarsest partition algorithms \cite{kanellakis1990ccs,paige1987three}. The quotient is the ordinary digraph with an edge $A\to B$ if and only if some (equivalently, every) $u\in A$ has a successor in $B$, and \textproc{serialize} emits a simple adjacency list. Call the resulting hash $\HB$.
 
 \begin{theorem}
@@ -699,7 +694,7 @@ Let $G_1,G_2$ be strongly connected ordered digraphs with $n$ nodes and $m$ edge
 
 For applications where graphs are built up over time, a recursive approach similar to Merkle-tree hashing is highly beneficial. We now construct such an algorithm, which recurses over the condensation graph. The condensation is acyclic, so the recursion is well founded.
 
-To compute the hash of each node, we process the strongly connected components in reverse topological order, so that every edge leaving a component points to nodes that have already been hashed. Each node of the component is relabeled by combining its label with the hashes of its external targets: a multiset of hashes for unordered graphs; for ordered graphs, the out-sequence in which every internal target is replaced by a placeholder $\star$, so that the positions of internal and external links are both recorded. Finally the relabeled component, restricted to its internal edges, is hashed with a \emph{component hash}. We consider two choices.
+To compute the hash of each node, we process the strongly connected components in reverse topological order, so that every edge leaving a component points to nodes that have already been hashed. Each node of the component is relabeled by combining its label with the hashes of its external targets: a multiset of hashes for unordered graphs; for ordered graphs, the out-sequence in which every internal target is replaced by a placeholder $\star$, so that the positions of internal and external links are both recorded. The new label $L'(x)=(L(x),X(x))$ is kept as a pair rather than hashed. The canonical form of a component therefore contains every label and every external hash verbatim, so the component, including its outgoing links, can be reconstructed from the value that is hashed (Section~\ref{sec:application} uses this). The labels $L'$ are structured values rather than strings. This is harmless, because the algorithms of Sections~\ref{sec:global-graph-hashing}--\ref{sec:outgoing-ordered-edge-graphs} use labels only through equality, sorting and the injective serialization $\enc$; we encode $\star$ as a value that differs from every hash. Finally the relabeled component, restricted to its internal edges, is hashed with a \emph{component hash}. We consider two choices.
 \begin{itemize}
   \item In the \emph{global variant} $\HMg$, the component hash is the global node hash (Algorithm~\ref{alg:digraph-node-hash}) or, for ordered graphs, the node hash of Algorithm~\ref{alg:scc-outgoing-edges}. It distinguishes nodes up to rooted isomorphism of their relabeled components.
   \item In the \emph{local variant} $\HMl$, the component hash is the local component hash of Algorithm~\ref{alg:local-component-hash} below. It distinguishes nodes only up to isomorphism of their unfoldings inside the relabeled components, and it runs in polynomial time also for unordered graphs.
@@ -718,7 +713,7 @@ Algorithm \ref{alg:merklegraphhash} gives the pseudo-code; each component is pro
             \Else
               \State $X(x) \gets [\,(h[y]~\textbf{if}~y\notin S~\text{else}~\star)~\textbf{for}~y~\textbf{in}~s(x)\,]$
             \EndIf
-            \State $L'(x) \gets \mathcal{H}(\enc((L(x), X(x))))$
+            \State $L'(x) \gets (L(x), X(x))$ \Comment{not hashed}
           \EndFor
           \State $G' \gets (S,\ E\cap (S\times S),\ L')$ \Comment{ordered case: keep internal targets in port order}
           \State $h \gets h \cup \textproc{comp\_hash}(G')$ \Comment{hashes of all $x\in S$; see the two variants above}
@@ -734,7 +729,7 @@ In a strongly connected graph every node reaches every other node. The local has
 \begin{algorithm}[t]
     \caption{Local Component Hash}\label{alg:local-component-hash}
     \begin{algorithmic}[1]
-    \Function{\textproc{local\_comp\_hash}}{$S$} \Comment{$S$ strongly connected}
+    \Function{\textproc{local\_comp\_hash}}{$S=(V_S,E_S,L_S)$} \Comment{$S$ strongly connected}
         \State $C \gets$ \textproc{global\_stable\_colors}($S$) \Comment{\eqref{eq:coloring-step}; ordered: sequences as in Proposition~\ref{prop:ordered-local}}
         \State $Q=(V_Q,\mu_Q,L_Q) \gets S / C$ \Comment{Definition~\ref{def:quotient}; ordered: quotient of Proposition~\ref{prop:ordered-local}}
         \State $\lambda \gets$ \textproc{global\_stable\_colors}($Q$) \Comment{fresh refinement on $Q$, as in Algorithm~\ref{alg:local-node-hash}}
@@ -794,7 +789,7 @@ The recursion is well founded because external successors lie in SCCs of strictl
 Assuming $\mathcal{H}$ is injective, $\HMg$ realizes $\eqg$ and $\HMl$ realizes $\eql$, for unordered and for ordered graphs. That is, for each variant, $\HM(G_1)[u]=\HM(G_2)[v]$ if and only if $u\approx v$ for the corresponding relation.
 \end{theorem}
 \begin{proof}
-By induction on $h=\max(\hgt(u),\hgt(v))$. By the induction hypothesis (vacuous when $h=0$), two nodes of height less than $h$ have equal hashes if and only if they are $\approx$-equivalent. So $[y]_{\approx}\mapsto h[y]$ is a well-defined injective map on these classes. Hence, for nodes $x,x'$ of height at most $h$, $X(x)=X(x')$ if and only if $X^{\approx}(x)=X^{\approx}(x')$, and by injectivity $L'(x)=L'(x')$ if and only if $L^{\approx}(x)=L^{\approx}(x')$. Relabeling by an injective map preserves and reflects both rooted isomorphism and isomorphism of unfoldings. Therefore the relabeled components $G'$ of Algorithm~\ref{alg:merklegraphhash} containing $u$ and $v$ satisfy $(G'(u),u)\sim(G'(v),v)$ if and only if $(C^{\approx}(u),u)\sim(C^{\approx}(v),v)$. In the ordered case, $L'$ records the $\star$-masked sequence and $G'$ keeps internal targets in port order, so together they determine every port, exactly as $C^{\approx}$ does. Finally, the component hash realizes $\sim$ on strongly connected graphs. For the global variant this is Theorem~\ref{thm:digraphnodehashcorrect}, or Theorem~\ref{thm:scc-ordered}(c) for ordered graphs. For the local variant it is Theorem~\ref{thm:local-component}.
+By induction on $h=\max(\hgt(u),\hgt(v))$. By the induction hypothesis (vacuous when $h=0$), two nodes of height less than $h$ have equal hashes if and only if they are $\approx$-equivalent. So $[y]_{\approx}\mapsto h[y]$ is a well-defined injective map on these classes. Hence, for nodes $x,x'$ of height at most $h$, $X(x)=X(x')$ if and only if $X^{\approx}(x)=X^{\approx}(x')$, and since $L'(x)=(L(x),X(x))$, $L'(x)=L'(x')$ if and only if $L^{\approx}(x)=L^{\approx}(x')$. Relabeling by an injective map preserves and reflects both rooted isomorphism and isomorphism of unfoldings. Therefore the relabeled components $G'$ of Algorithm~\ref{alg:merklegraphhash} containing $u$ and $v$ satisfy $(G'(u),u)\sim(G'(v),v)$ if and only if $(C^{\approx}(u),u)\sim(C^{\approx}(v),v)$. In the ordered case, $L'$ records the $\star$-masked sequence and $G'$ keeps internal targets in port order, so together they determine every port, exactly as $C^{\approx}$ does. Finally, the component hash realizes $\sim$ on strongly connected graphs. For the global variant this is Theorem~\ref{thm:digraphnodehashcorrect}, or Theorem~\ref{thm:scc-ordered}(c) for ordered graphs. For the local variant it is Theorem~\ref{thm:local-component}.
 \end{proof}
 
 The local equivalence has a direct description in terms of unfoldings. The \emph{SCC-annotated unfolding} $\UnfA(G,u)$ is the unfolding $\Unf(G,u)$ (ordered by port for ordered graphs) in which every tree edge, corresponding to a step from $x_{k-1}$ to $x_k$, is marked \emph{internal} if $x_k\in \Scc(x_{k-1})$ and \emph{external} otherwise. Isomorphisms of annotated unfoldings must preserve the marks.
@@ -899,8 +894,8 @@ contact.html
 
 \vspace{0.15cm}
 
-% Row 2: Tokenized/Hashed HTML snippets
-\textbf{Row 2: Replace intra-SCC links with their internal port numbers, and inter-SCC links with recursively computed hashes}
+% Row 2: Labels with holes and out-sequences
+\textbf{Row 2: Labels $L(x)$, with a hole \texttt{\{\}} in place of every link target, and out-sequences $s(x)$}
 
 \vspace{0.15cm}
 
@@ -910,50 +905,53 @@ index.html
 \begin{lstlisting}[language=HTML]
 <body>
  <h1>Welcome</h1>
- <a href="{0}">
+ <a href="{}">
   About Us
  </a>
- <a href="#8ab43f">
+ <a href="{}">
   External Resource
  </a>
 </body>
 \end{lstlisting}
+{\footnotesize\raggedright $s=($\texttt{about.html}, \texttt{http://e.com}$)$\par}
 &
 about.html
 \begin{lstlisting}[language=HTML]
 <body>
  <h1>About Us</h1>
- <a href="{0}">
+ <a href="{}">
   Home
  </a>
- <a href="{1}">
+ <a href="{}">
   Contact
  </a>
- <a href="#f2d91c">
+ <a href="{}">
   Partner Site
  </a>
 </body>
 \end{lstlisting}
+{\footnotesize\raggedright $s=($\texttt{index.html}, \texttt{contact.html}, \texttt{http://p.com}$)$\par}
 &
 contact.html
 \begin{lstlisting}[language=HTML]
 <body>
  <h1>Contact Us</h1>
- <a href="{0}">
+ <a href="{}">
   About
  </a>
- <a href="#8ab43f">
+ <a href="{}">
   External Resource
  </a>
 </body>
 \end{lstlisting}
+{\footnotesize\raggedright $s=($\texttt{about.html}, \texttt{http://e.com}$)$\par}
 \end{tabular}
 \end{adjustbox}
 
 \vspace{0.15cm}
 
-% Row 3: Graph representation
-\textbf{Row 3: Construct strongly connected ordered digraph (labels taken from previous row)}
+% Row 3: Relabeled component
+\textbf{Row 3: Relabeled component $G'$ of Algorithm~\ref{alg:merklegraphhash}, with labels $L'(x)=(L(x),X(x))$}
 
 \vspace{0.15cm}
 
@@ -965,11 +963,11 @@ contact.html
 ]
 
 % Nodes
-\node[state] (index) {\\ \texttt{<body>} \\ \texttt{ <h1>Welcome</h1>} \\ \texttt{ <a href="\{0\}">} \\ \texttt{ ~About Us} \\ \texttt{ </a>} \\ \texttt{ <a href="\#8ab43f">} \\ \texttt{ ~External Resource} \\ \texttt{ </a>} \\ \texttt{</body>} \\ \\};
-\node[state] (about) [right of=index] { \\ \texttt{<body>} \\ \texttt{ <h1>About Us</h1>} \\ \texttt{ <a href="\{0\}">} \\ \texttt{ ~Home} \\ \texttt{ </a>} \\ \texttt{ <a href="\{1\}">} \\ \texttt{ ~Contact} \\ \texttt{ </a>} \\ \texttt{ <a href="\#f2d91c">} \\ \texttt{ ~Partner Site} \\ \texttt{ </a>} \\ \texttt{</body>}};
-\node[state] (contact) [right of= about] {\\ \texttt{<body>} \\ \texttt{ <h1>Contact Us</h1>} \\ \texttt{ <a href="\{0\}">} \\ \texttt{ ~About} \\ \texttt{ </a>} \\ \texttt{ <a href="\#8ab43f">} \\ \texttt{ ~External Resource} \\ \texttt{ </a>} \\ \texttt{</body>} \\ \\};
+\node[state] (index) {\\ \texttt{<body>} \\ \texttt{ <h1>Welcome</h1>} \\ \texttt{ <a href="\{\}">} \\ \texttt{ ~About Us} \\ \texttt{ </a>} \\ \texttt{ <a href="\{\}">} \\ \texttt{ ~External Resource} \\ \texttt{ </a>} \\ \texttt{</body>} \\ $X=(\star,\ \texttt{\#8ab43f})$ \\};
+\node[state] (about) [right of=index] { \\ \texttt{<body>} \\ \texttt{ <h1>About Us</h1>} \\ \texttt{ <a href="\{\}">} \\ \texttt{ ~Home} \\ \texttt{ </a>} \\ \texttt{ <a href="\{\}">} \\ \texttt{ ~Contact} \\ \texttt{ </a>} \\ \texttt{ <a href="\{\}">} \\ \texttt{ ~Partner Site} \\ \texttt{ </a>} \\ \texttt{</body>} \\ $X=(\star,\ \star,\ \texttt{\#f2d91c})$};
+\node[state] (contact) [right of= about] {\\ \texttt{<body>} \\ \texttt{ <h1>Contact Us</h1>} \\ \texttt{ <a href="\{\}">} \\ \texttt{ ~About} \\ \texttt{ </a>} \\ \texttt{ <a href="\{\}">} \\ \texttt{ ~External Resource} \\ \texttt{ </a>} \\ \texttt{</body>} \\ $X=(\star,\ \texttt{\#8ab43f})$ \\};
 
-% Edges (internal links only), labelled by internal port number
+% Edges: the internal links, numbered in port order among the internal links of their source
 \draw[->] (index) to[bend left=20] node[above, draw=none] {0} (about);
 \draw[->] (about) to[bend left=20] node[below, draw=none] {0} (index);
 \draw[->] (about) to[bend left=20] node[above, draw=none] {1} (contact);
@@ -977,7 +975,7 @@ contact.html
 
 \end{tikzpicture}
 
-\caption{Hashing a three page website that forms a single SCC. In Row 2, \texttt{\{k\}} marks a page's $k$-th intra-SCC link (the placeholder $\star$ of Algorithm~\ref{alg:merklegraphhash}), and \#8ab43f, \#f2d91c are recursively computed hashes of external pages.}
+\caption{Hashing a three page website that forms a single SCC. In Row 3, $X(x)$ has one entry per hole: $\star$ for a link inside the SCC, and the recursively computed hash of the target for a link leaving it (\#8ab43f and \#f2d91c are hashes of external pages). The edges are the internal links, numbered in port order, so the $j$-th $\star$ of a page is its internal link numbered $j-1$. Filling the holes from $X(x)$ and the edges recovers every link.}
 \label{fig:webpage-example}
 \end{figure*}
 
@@ -985,22 +983,22 @@ From the algorithms given so far, it may not be obvious how to implement these g
 
 In this sketch, we assume that web pages are static HTML files that link to each other and to external pages, and that external pages are themselves published in the same content-addressed way. (An external page that links back into our site would belong to the same SCC and be hashed together with it.) The pages form an ordered digraph in which each page is a node, the links are edges, and the out-edges of a node are ordered by their position in the HTML file. Figure \ref{fig:webpage-example} gives a concrete example of the process described here.
 
-We first compute the SCCs of the link graph and process them sinks first, as in Algorithm~\ref{alg:merklegraphhash}. Within a page, every link to another page of the same SCC is replaced by its internal port number, and every link leaving the SCC is replaced by the recursively computed hash of its target. The resulting text is the relabeled node label $L'$ of the ordered variant. We use the local variant of Section~\ref{sec:merkle-graph-hashing}. For each SCC, Algorithm~\ref{alg:local-component-hash} computes the ordered quotient, which merges pages that cannot be told apart by following links, together with its canonical order. We then insert the following items into the distributed hash table:
+The label $L(x)$ of a page is its HTML text with every link target replaced by a hole, and its out-sequence $s(x)$ lists the link targets in the order in which they appear (Row 2 of Figure~\ref{fig:webpage-example}). We compute the SCCs of the link graph and process them sinks first, as in Algorithm~\ref{alg:merklegraphhash}. Each page is relabeled with $L'(x)=(L(x),X(x))$. Here $X(x)$ has one entry per hole: $\star$ for a link to a page of the same SCC, and the recursively computed hash of the target for a link leaving the SCC (Row 3). Because $L'(x)$ is not hashed, the page text and its external links appear verbatim in it, and its internal links are the edges of $G'$ in port order. We use the local variant of Section~\ref{sec:merkle-graph-hashing}. For each SCC, Algorithm~\ref{alg:local-component-hash} computes the ordered quotient, which merges pages that cannot be told apart by following links, together with its canonical order. We then insert the following items into the distributed hash table:
 
 \begin{itemize}
   \item The strongly connected component as a whole: \begin{itemize}
-    \item \textbf{Value}: the canonical form of the quotient, i.e.\ the relabeled page contents in canonical order together with each page's internal out-sequence in canonical indices.
-    \item \textbf{Key}: the string hash $\mathcal{H}$ of the value.
+    \item \textbf{Value}: the pair (labels, edges) of Algorithm~\ref{alg:local-component-hash}, i.e.\ the labels $L'$ of the quotient in canonical order, together with the internal out-sequence of each quotient node in canonical indices.
+    \item \textbf{Key}: the string hash $\mathcal{H}$ of the value, which is exactly the component hash $g$ of Algorithm~\ref{alg:local-component-hash}.
   \end{itemize}
-  \item For each page, a reference to a specific node of the quotient: \begin{itemize}
-    \item \textbf{Value}: the canonical index of the page's class in the quotient, together with the key of its SCC.
-    \item \textbf{Key}: the string hash $\mathcal{H}$ of the value. This is the page's hash.
+  \item For each page $x$, a reference to a specific node of the quotient: \begin{itemize}
+    \item \textbf{Value}: the pair $(\text{index}[C(x)], g)$ of the page's canonical index and the key of its SCC.
+    \item \textbf{Key}: the string hash $\mathcal{H}$ of the value, which is exactly the Merkle hash $h[x]$ of the page.
   \end{itemize}
 \end{itemize}
 
 By Theorem~\ref{thm:merkle} and Proposition~\ref{prop:annotated}, two pages receive the same key exactly when their SCC-annotated ordered unfoldings are isomorphic. In other words, no sequence of clicks can tell them apart, except by observing which links leave their SCC. In particular, pages in the same orbit share a key, and so do duplicated pages. This is intended: the store is content-addressed, and such pages are indistinguishable by navigation. No orbit computation is needed, because quotients of strongly connected graphs have no non-trivial automorphisms (Lemma~\ref{lem:comp-quotient}). The whole site is hashed in near-linear time in practice (Section~\ref{sec:experiments}). If instead the exact page structure of every SCC must be preserved, the global variant can be used: Algorithm~\ref{alg:scc-outgoing-edges} replaces the quotient by the full SCC with its orbit partition, and only pages in the same orbit share a key.
 
-Suppose that a user wants to navigate our website and has obtained the hash of one specific page. The browser retrieves the index and SCC key from the DHT, then retrieves the canonical form of the quotient, from which the quotient digraph can be reconstructed. The index points to a specific node of the quotient, whose contents the browser displays. If the user clicks a link within the same SCC, the browser follows the corresponding edge of the quotient. Since the quotient preserves ordered unfoldings (Proposition~\ref{prop:ordered-local}), the user sees exactly the sequence of pages they would see on the original site. For links that leave the SCC, the embedded hash is a page key, and the browser repeats the process from the beginning. As with any Merkle structure, editing a page changes the keys of that page's SCC and of all pages from which it can be reached, and of no others.
+Suppose that a user wants to navigate our website and has obtained the hash of one specific page. The browser retrieves the pair $(i,g)$ stored under this hash, and then the value stored under $g$, which describes the whole quotient. To display quotient node $i$, the browser fills the holes of its label $L(x)$ in order. A hole whose entry in $X(x)$ is a hash receives that hash, which is the key of an external page. The $j$-th hole whose entry is $\star$ receives the $j$-th internal edge of node $i$, which is the canonical index of a node of the same quotient. If the user clicks a link within the same SCC, the browser simply displays the corresponding node of the quotient it already holds. Since the quotient preserves ordered unfoldings (Proposition~\ref{prop:ordered-local}), the user sees exactly the sequence of pages they would see on the original site. For links that leave the SCC, the browser repeats the process from the beginning with the embedded key. Everything needed to display and navigate the site is thus contained in the hashed values themselves. As with any Merkle structure, editing a page changes the keys of that page's SCC and of all pages from which it can be reached, and of no others.
 
 \section{Related Work}
 \label{sec:related}
@@ -1029,7 +1027,7 @@ We implemented all algorithms of this paper in Python 3.11 as an exact reference
   \item bisimilarity, by a greatest-fixpoint computation;
   \item rooted ordered isomorphism, by simultaneous traversal.
 \end{itemize}
-For $\eqg$ we used a direct implementation of Definition~\ref{def:merkle-eq}. For the local variant we ran a second batch of 3000 unordered and 3000 ordered pairs (1--6 nodes, edge probability $0.15$, $0.3$ or $0.45$, a random relabeling in $30\%$ of the pairs, and, in ordered graphs, occasional repeated links to the same target). There we compared the local component hash with unfolding isomorphism on every pair of SCCs, and the local Merkle hash with isomorphism of SCC-annotated unfoldings (truncated at depth $2(n_1+n_2)+2$); we also checked the implications of Proposition~\ref{prop:merkle-position} and its separating examples. We also tested the ordered orbit partition of Theorem~\ref{thm:scc-ordered} against brute-force search on every SCC. Table~\ref{tab:validation} summarizes the results. No disagreement was found. The same harness confirms the counterexamples of Examples~\ref{ex:bisim} and~\ref{ex:ordered} for the naive variants, and the orbit structure claimed in Figure~\ref{fig:orbitexample}.
+For $\eqg$ we used a direct implementation of Definition~\ref{def:merkle-eq}. For the local variant we ran a second batch of 3000 unordered and 3000 ordered pairs (1--6 nodes, edge probability $0.15$, $0.3$ or $0.45$, a random relabeling in $30\%$ of the pairs, and, in ordered graphs, occasional repeated links to the same target). There we compared the local component hash with unfolding isomorphism on every pair of SCCs, and the local Merkle hash with isomorphism of SCC-annotated unfoldings (truncated at depth $2(n_1+n_2)+2$); we also checked the implications of Proposition~\ref{prop:merkle-position} and its separating examples. We also tested the ordered orbit partition of Theorem~\ref{thm:scc-ordered} against brute-force search on every SCC. Table~\ref{tab:validation} summarizes the results. No disagreement was found. The same harness confirms the counterexample of Example~\ref{ex:ordered} for the naive variant, and the orbit structure claimed in Figure~\ref{fig:orbitexample}.
 
 \begin{table}[t]
 \centering
