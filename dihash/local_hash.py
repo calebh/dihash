@@ -1,36 +1,3 @@
-"""
-Canonical, graph-independent tree-expansion hashing.
-
-Pipeline
---------
-1. Color refinement on the input graph to *global* stabilization. The
-   converged partition identifies exactly the tree-equal (counting-bisimilar)
-   nodes.
-2. Quotient multi-digraph Q: one node per class, carrying the common label;
-   edges from a class are the edges of any representative, retargeted to
-   classes and kept with multiplicity (well-defined because the converged
-   partition is a counting bisimulation).
-3. On Q, run refinement with per-node reachable-partition stabilization.
-   When node n stabilizes at round k = stab(n), the round-k colors are
-   pairwise distinct on reachable(n): the stabilized partition of a
-   reachable set is a counting bisimulation, and Q is reduced (distinct
-   nodes have distinct tree expansions), so the partition is discrete.
-   Sorting reachable(n) by the round-stab(n) colors therefore yields a
-   strict total order. Crucially the *whole subgraph* is ordered by colors
-   from n's own stabilization round -- NOT by each member's own frozen
-   hash, which can tie across distinct classes.
-4. The final hash of n is the digest of the canonically ordered adjacency
-   serialization of reachable(n) in Q: root index, then per class in order
-   its label digest and sorted (target-index * multiplicity) edge list.
-
-Canonicity: stab(n), every color used, the order, the indices, and hence
-the serialization are all functions of T(n) alone (refinement is autonomous
-on reachable sets; the stabilization round is determined by the tree). So
-the same tree expansion hashes identically in *any* graph. Completeness:
-the serialization injectively encodes the rooted labeled multigraph, whose
-unrolling from the root is exactly T(n).
-"""
-
 import networkx as nx
 from .util import hash_sha256, encode, invert_list
 

@@ -97,10 +97,7 @@ def global_hash(g, hash_nodes=False, string_hash_fun=hash_sha256):
     canon_mapping = invert_list(canonization)
     adj_list_in_canon_order = sorted((canon_mapping[s], canon_mapping[t]) for (s, t) in g.edges)
     labels_in_canon_order = [g.nodes[n]['label'] for n in canonization]
-    if 'label' in g.graph:
-        g_summary = (g.graph['label'], labels_in_canon_order, adj_list_in_canon_order)
-    else:
-        g_summary = (labels_in_canon_order, adj_list_in_canon_order)
+    g_summary = (labels_in_canon_order, adj_list_in_canon_order)
     g_hash = string_hash_fun(encode(g_summary))
     if not hash_nodes:
         return g_hash
