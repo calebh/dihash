@@ -3,16 +3,16 @@ from enum import Enum
 import networkx as nx
 from .util import hash_sha256, encode, invert_list
 
-# --------------------------------------------------------------------------
-# Shared refinement machinery (works for DiGraph and MultiDiGraph: child
-# colors are collected per *edge*, so parallel edges count with multiplicity)
-# --------------------------------------------------------------------------
-
 class LocalHashVariant(Enum):
     UNFOLDING = 0
     BISIMULATION = 1
 
-def _refine_round(G, colors, label_digest, variant: LocalHashVariant, string_hash_fun, memo):
+# --------------------------------------------------------------------------
+# Shared refinement machinery (works for DiGraph and MultiDiGraph: child
+# colors are collected per *edge*, so parallel edges count with multiplicity)
+# --------------------------------------------------------------------------
+def _refine_round(G: nx.DiGraph | nx.MultiDiGraph, colors, label_digest, variant: LocalHashVariant, string_hash_fun):
+    memo = dict()
     new_colors = {}
     for n in G.nodes:
         if variant == LocalHashVariant.BISIMULATION:
@@ -45,10 +45,10 @@ def _partition_unchanged(nodes, old_colors, new_colors):
 def _globally_stable_colors(G, variant: LocalHashVariant, string_hash_fun):
     """Colors at the first round whose refinement changes no class globally."""
     label_digest = {n: string_hash_fun(G.nodes[n]["label"]) for n in G.nodes}
-    colors = dict(label_digest)
+    colors = label_digest
     nodes = list(G.nodes)
     while True:
-        new_colors = _refine_round(G, colors, label_digest, variant, string_hash_fun, {})
+        new_colors = _refine_round(G, colors, label_digest, variant, string_hash_fun)
         if _partition_unchanged(nodes, colors, new_colors):
             return colors
         colors = new_colors
@@ -85,9 +85,7 @@ def _quotient_multidigraph(G, class_of, variant: LocalHashVariant):
 def _serialize_reachable(Q: nx.MultiDiGraph, root, reach, colors, string_hash_fun):
     order = sorted(reach, key=colors.get)
     if len({colors[x] for x in reach}) != len(reach):
-        raise AssertionError(
-            "colors not discrete on a stabilized reachable set of a "
-            "reduced quotient -- this should be impossible")
+        raise AssertionError("Colors not discrete on a stabilized reachable set of a reduced quotient - this should be impossible")
     index = {x: i for i, x in enumerate(order)}
     root_idx = index[root]
     adj_list = sorted((index[s], index[t]) for (s, t, _) in Q.edges if s in reach and t in reach)
@@ -104,7 +102,7 @@ def _canonical_quotient_hashes(Q, variant: LocalHashVariant, string_hash_fun):
     final_hash = {}
     stable = set()
     while len(stable) < len(nodes):
-        new_colors = _refine_round(Q, colors, label_digest, variant, string_hash_fun, {})
+        new_colors = _refine_round(Q, colors, label_digest, variant, string_hash_fun)
         for n in nodes:
             if n in stable:
                 continue
@@ -121,11 +119,11 @@ def _canonical_quotient_hashes(Q, variant: LocalHashVariant, string_hash_fun):
 # --------------------------------------------------------------------------
 
 def local_hash(G, variant=LocalHashVariant.UNFOLDING, string_hash_fun=hash_sha256):
-    """Hash every node of a directed graph by its tree expansion.
-
-    Guarantee (modulo hash collisions): two nodes -- in the same graph or in
-    different graphs -- receive the same hash iff their (possibly infinite)
-    tree expansions are equal.
+    """
+    Hash every node of a directed graph by its tree expansion. When using the unfolding variant, two nodes in the same\
+    graph or in different graphs will receive the same hash if and only if their (possibly infinite) tree expansions\
+    are isomorphic. When using the bisimulation variant, the two nodes will receive the same hash if and only if\
+    they are bisimilar.
     """
     if G.number_of_nodes() == 0:
         return {}
@@ -135,6 +133,18 @@ def local_hash(G, variant=LocalHashVariant.UNFOLDING, string_hash_fun=hash_sha25
     return {n: quotient_hash[class_of[n]] for n in G.nodes}
 
 def local_strongly_connected_hash(sc_graph, variant=LocalHashVariant.UNFOLDING, string_hash_fun=hash_sha256):
+    """
+    Computes the hash of a strongly connected graph, along with the hashes of the nodes in the graph.
+
+    :param sc_graph: A strongly connected directed graph.
+    :param variant: The type of local equivalence to use. Either unfolding or bisimulation variants are supported.
+    :param string_hash_fun: The string hashing function to use. By default use SHA-256
+    :return: A tuple of (sc_hash, sc_node_hashes), were sc_hash gives the hash of the entire graph, and\
+    sc_node_hashes is a dictionary mapping nodes to their hashes.
+    """
+    if not nx.is_strongly_connected(sc_graph):
+        raise AssertionError("Input graph is not strongly connected")
+
     colors = _globally_stable_colors(sc_graph, variant, string_hash_fun=string_hash_fun)
     quotient = _quotient_multidigraph(sc_graph, colors, variant)
     quotient_colors = _globally_stable_colors(quotient, variant, string_hash_fun=string_hash_fun)

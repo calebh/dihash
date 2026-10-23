@@ -81,7 +81,7 @@ def _orbit_indices(canon_mapping, orbits):
 
 def global_hash(g, hash_nodes=False, string_hash_fun=hash_sha256):
     """
-    Computes a global graph hashing using nauty
+    Computes a global graph hash using nauty. This function may run in exponential time.
 
     :param g: A NetworkX digraph. Each node should have a 'label' entry in its node attribute dictionary. The value of\
     this entry should be a string which determines the label of that node. g may optionally have a graph attribute\

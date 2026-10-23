@@ -1,5 +1,4 @@
 import functools
-from enum import Enum
 
 import networkx as nx
 
@@ -12,14 +11,14 @@ class MerkleHashVariant:
     def __init__(self):
         raise ValueError("You should be constructing a particular variant using a child class of MerkleHashVariant")
 
-class GlobalMHVariant(MerkleHashVariant):
+class GlobalMH(MerkleHashVariant):
     """
     This indicates that global graph hashing should be used within an SCC. As such, this implementation may run
     in exponential time.
     """
     pass
 
-class LocalMHVariant(MerkleHashVariant):
+class LocalMH(MerkleHashVariant):
     """
     This indicates that local graph hashing should be used within an SCC, This implementation runs in poly time.
     """
@@ -31,19 +30,15 @@ class LocalMHVariant(MerkleHashVariant):
         """
         self.local_hash_variant = local_hash_variant
 
-class OrderedGlobalMHVariant(MerkleHashVariant):
+class OrderedGlobalMH(MerkleHashVariant):
     """
     This indicates that the edges of the graph are ordered, and as such an ordered aware variant of the algorithm
     should be used. This implementation runs in poly time.
     """
     pass
 
-class OrderedLocalMHVariant(MerkleHashVariant):
+class OrderedLocalMH(MerkleHashVariant):
     pass
-
-class MerkleHashVariant(Enum):
-    GLOBAL = 0
-    LOCAL = 1
 
 def _hash_scc(g, cond, scc, scc_hashes, node_hashes, string_hash_fun, comp_hash, variant: MerkleHashVariant):
     if scc in scc_hashes:
@@ -59,10 +54,10 @@ def _hash_scc(g, cond, scc, scc_hashes, node_hashes, string_hash_fun, comp_hash,
             if t not in node_hashes:
                 t_scc = cond.graph['mapping'][t]
                 _hash_scc(g, cond, t_scc, scc_hashes, node_hashes, string_hash_fun, comp_hash, variant)
-        if isinstance(variant, OrderedGlobalMHVariant):
+        if isinstance(variant, OrderedGlobalMH):
             new_labels = [node_hashes[t] if t in non_scc_succs else "*" for t in _port_successors(g, s)]
         else:
-            if isinstance(variant, LocalMHVariant) and variant.local_hash_variant == LocalHashVariant.BISIMULATION:
+            if isinstance(variant, LocalMH) and variant.local_hash_variant == LocalHashVariant.BISIMULATION:
                 new_labels = sorted({node_hashes[t] for t in non_scc_succs})
             else:
                 new_labels = sorted(node_hashes[t] for t in non_scc_succs)
@@ -73,7 +68,22 @@ def _hash_scc(g, cond, scc, scc_hashes, node_hashes, string_hash_fun, comp_hash,
     scc_hashes[scc] = scc_hash
     node_hashes.update(scc_node_hashes)
 
-def merkle_hash(g, variant: MerkleHashVariant, nodes_to_hash=None, precomputed_hashes=None, string_hash_fun=hash_sha256):
+def merkle_hash(g: nx.DiGraph, variant: MerkleHashVariant, nodes_to_hash=None, precomputed_hashes=None, string_hash_fun=hash_sha256):
+    """
+    Computes a recursive Merkle hash by recursing over the condensation graph.
+
+    :param g: A NetworkX directed graph
+    :param variant: The particular Merkle hash variant to use. See the docstrings for the subclasses of\
+    MerkleHashVariant for more info.
+    :param nodes_to_hash: The nodes that we want to compute the Merkle hash of
+    :param precomputed_hashes: A precomputed dict of node Merkle hashes. This parameter should be a dict mapping\
+    nodes to hashes. This parameter is useful for graphs that are built up over time. In this case we can\
+    simulate a graph built up over time.
+    :param string_hash_fun: The string hashing function to use.
+    :return: A tuple with three elements (scc_hashes, cond, node_hashes). The scc_hashes is a dict of SCCs to their\
+    overall hashes. cond is the condensation graph computed in the Merkle hashes using the\
+    nx.algorithms.components.condensation function. node_hashes maps nodes to their hashes.
+    """
     if precomputed_hashes is None:
         node_hashes = {}
     else:
@@ -86,13 +96,13 @@ def merkle_hash(g, variant: MerkleHashVariant, nodes_to_hash=None, precomputed_h
     else:
         roots = {cond.graph['mapping'][n] for n in nodes_to_hash}
 
-    if isinstance(variant, GlobalMHVariant):
+    if isinstance(variant, GlobalMH):
         component_hash = functools.partial(global_hash, hash_nodes=True, string_hash_fun=string_hash_fun)
-    elif isinstance(variant, LocalMHVariant):
+    elif isinstance(variant, LocalMH):
         component_hash = functools.partial(local_strongly_connected_hash, variant=variant.local_hash_variant, string_hash_fun=string_hash_fun)
-    elif isinstance(variant, OrderedGlobalMHVariant):
+    elif isinstance(variant, OrderedGlobalMH):
         component_hash = functools.partial(ordered_edges_sc_global_hash, hash_nodes=True, string_hash_fun=string_hash_fun)
-    elif isinstance(variant, OrderedLocalMHVariant):
+    elif isinstance(variant, OrderedLocalMH):
         # It should be possible to implement an OrderedLocalMHVariant using DFA partition refinement. With the order of the
         # edges, this algorithm should be even faster than LocalMHVariant
         raise NotImplementedError("At the moment ordered local Merkle-hashing is not implemented. It should be possible to implement this efficiently using DFA partition refinement.")
