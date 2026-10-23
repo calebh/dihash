@@ -1,7 +1,7 @@
 import pynauty
 from .util import invert_list, encode, hash_sha256, invert_dict
 
-def nauty_graph(g):
+def _nauty_graph(g):
     """
     Convert a NetworkX graph to a nauty graph
 
@@ -34,12 +34,14 @@ def nauty_graph(g):
     # Return the node to index conversion function and the nauty graph
     return (node_to_idx, nauty_g)
 
-# Returns a list of nodes, ordered in the canonical order
-def canonize(idx_to_node, nauty_g):
+def _canonize(idx_to_node, nauty_g):
+    """
+    Returns a list of nodes, ordered in the canonical order
+    """
     canon = pynauty.canon_label(nauty_g)
     return [idx_to_node[i] for i in canon]
 
-def orbits(idx_to_node, nauty_g):
+def _orbits(idx_to_node, nauty_g):
     """
     Returns a list of lists of nodes, each list is an orbit
     """
@@ -57,19 +59,19 @@ def orbits(idx_to_node, nauty_g):
     # Now dispose of the orbit identifier, we are only interested in the orbit groupings
     return list(orbits_lookup.values())
 
-def analyze_graph(g, compute_orbits):
+def _analyze_graph(g, compute_orbits):
     """
     Analyze a NetworkX graph, returning a list of nodes in canonical order and a list of orbits
     """
-    (node_to_idx, nauty_g) = nauty_graph(g)
+    (node_to_idx, nauty_g) = _nauty_graph(g)
     idx_to_node = invert_dict(node_to_idx)
     if compute_orbits:
-        orbs = orbits(idx_to_node, nauty_g)
+        orbs = _orbits(idx_to_node, nauty_g)
     else:
         orbs = None
-    return (canonize(idx_to_node, nauty_g), orbs)
+    return (_canonize(idx_to_node, nauty_g), orbs)
 
-def orbit_indices(canon_mapping, orbits):
+def _orbit_indices(canon_mapping, orbits):
     ret = dict()
     for orb in orbits:
         min_idx = min(canon_mapping[n] for n in orb)
@@ -92,19 +94,19 @@ def global_hash(g, hash_nodes=True, string_hash_fun=hash_sha256):
     False, node_hashes is None. If hash_nodes is True, this value is a dictionary mapping nodes to their hash hex
     digests
     """
-    (canonization, orbs) = analyze_graph(g, hash_nodes)
+    (canonization, orbs) = _analyze_graph(g, compute_orbits=hash_nodes)
     canon_mapping = invert_list(canonization)
-    canon_adj_list = sorted([(canon_mapping[s], canon_mapping[t]) for (s, t) in g.edges])
-    canon_labels = [g.nodes[n]['label'] for n in canonization]
+    adj_list_in_canon_order = sorted((canon_mapping[s], canon_mapping[t]) for (s, t) in g.edges)
+    labels_in_canon_order = [g.nodes[n]['label'] for n in canonization]
     if 'label' in g.graph:
-        g_summary = (g.graph['label'], canon_labels, canon_adj_list)
+        g_summary = (g.graph['label'], labels_in_canon_order, adj_list_in_canon_order)
     else:
-        g_summary = (canon_labels, canon_adj_list)
+        g_summary = (labels_in_canon_order, adj_list_in_canon_order)
     g_hash = string_hash_fun(encode(g_summary))
     node_hashes = None
     if hash_nodes:
         node_hashes = dict()
-        orbit_mapping = orbit_indices(canon_mapping, orbs)
+        orbit_mapping = _orbit_indices(canon_mapping, orbs)
         for n in g.nodes:
             node_hashes[n] = string_hash_fun(encode((orbit_mapping[n], g_hash)))
     return (g_hash, node_hashes)

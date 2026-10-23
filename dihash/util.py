@@ -2,10 +2,7 @@ import hashlib
 
 
 def invert_list(lst):
-    ret = {}
-    for (i, elem) in enumerate(lst):
-        ret[elem] = i
-    return ret
+    return {elem: i for (i, elem) in enumerate(lst)}
 
 def escape(s):
     # Replace backslashes with double backslash and quotes with escaped quotes

@@ -2,6 +2,8 @@ import functools
 from enum import Enum
 
 import networkx as nx
+
+from dihash.local_hash import local_strongly_connected_hash
 from dihash.util import encode, hash_sha256
 from dihash.global_hash import global_hash
 
@@ -9,7 +11,7 @@ class MerkleHashVariant(Enum):
     GLOBAL = 0
     LOCAL = 1
 
-def hash_scc(g, cond, scc, scc_hashes, node_hashes, string_hash_fun, component_hash):
+def hash_scc(g, cond, scc, scc_hashes, node_hashes, string_hash_fun, comp_hash):
     if scc in scc_hashes:
         return
 
@@ -26,7 +28,7 @@ def hash_scc(g, cond, scc, scc_hashes, node_hashes, string_hash_fun, component_h
         non_scc_succs_hashes = sorted([node_hashes[t] for t in non_scc_succs])
         scc_graph.nodes[s]['label'] = string_hash_fun(encode((g.nodes[s]['label'], non_scc_succs_hashes)))
 
-    (scc_hash, scc_node_hashes) = component_hash(scc_graph)
+    (scc_hash, scc_node_hashes) = comp_hash(scc_graph)
 
     scc_hashes[scc] = scc_hash
     node_hashes.update(scc_node_hashes)
@@ -48,8 +50,7 @@ def merkle_hash(g, variant: MerkleHashVariant, nodes_to_hash=None, precomputed_h
         case MerkleHashVariant.GLOBAL:
             component_hash = functools.partial(global_hash, hash_nodes=True, string_hash_fun=string_hash_fun)
         case MerkleHashVariant.LOCAL:
-            # TODO: Implement
-            raise NotImplementedError("Not implmented!")
+            component_hash = functools.partial(local_strongly_connected_hash, string_hash_fun=string_hash_fun)
 
     for r in roots:
         hash_scc(g, cond, r, scc_hashes, node_hashes, string_hash_fun, component_hash)

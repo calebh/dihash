@@ -32,7 +32,7 @@ unrolling from the root is exactly T(n).
 """
 
 import networkx as nx
-from .util import hash_sha256, encode
+from .util import hash_sha256, encode, invert_list
 
 # --------------------------------------------------------------------------
 # Shared refinement machinery (works for DiGraph and MultiDiGraph: child
@@ -51,7 +51,6 @@ def _refine_round(G, colors, label_digest, string_hash_fun, memo):
         new_colors[n] = digest
     return new_colors
 
-
 def _partition_unchanged(nodes, old_colors, new_colors):
     """True iff old and new colors induce the same partition on `nodes`.
 
@@ -67,7 +66,6 @@ def _partition_unchanged(nodes, old_colors, new_colors):
             return False
     return True
 
-
 def _globally_stable_colors(G, string_hash_fun):
     """Colors at the first round whose refinement changes no class globally."""
     label_digest = {n: string_hash_fun(G.nodes[n]["label"]) for n in G.nodes}
@@ -76,15 +74,14 @@ def _globally_stable_colors(G, string_hash_fun):
     while True:
         new_colors = _refine_round(G, colors, label_digest, string_hash_fun, {})
         if _partition_unchanged(nodes, colors, new_colors):
-            return new_colors
+            return colors
         colors = new_colors
-
 
 # --------------------------------------------------------------------------
 # Step 2: quotient multi-digraph
 # --------------------------------------------------------------------------
 
-def quotient_multidigraph(G, class_of):
+def _quotient_multidigraph(G, class_of):
     """Quotient of G by the partition `class_of` (node -> class id).
 
     Edges of one representative per class are used; for the converged
@@ -102,20 +99,19 @@ def quotient_multidigraph(G, class_of):
             Q.add_edge(c, class_of[t])
     return Q
 
-
 # --------------------------------------------------------------------------
 # Steps 3-4: canonical ordering and serialization on the reduced quotient
 # --------------------------------------------------------------------------
 
-def _serialize_reachable(Q: nx.MultiDiGraph, root, reach, round_colors, string_hash_fun):
-    order = sorted(reach, key=lambda x: round_colors[x])
-    if len({round_colors[x] for x in reach}) != len(reach):
+def _serialize_reachable(Q: nx.MultiDiGraph, root, reach, colors, string_hash_fun):
+    order = sorted(reach, key=colors.get)
+    if len({colors[x] for x in reach}) != len(reach):
         raise AssertionError(
             "colors not discrete on a stabilized reachable set of a "
             "reduced quotient -- this should be impossible")
     index = {x: i for i, x in enumerate(order)}
     root_idx = index[root]
-    adj_list = sorted([(index[s], index[t]) for (s, t, _) in Q.edges if s in reach and t in reach])
+    adj_list = sorted((index[s], index[t]) for (s, t, _) in Q.edges if s in reach and t in reach)
     labels = [Q.nodes[x]["label"] for x in order]
     return string_hash_fun(encode((root_idx, labels, adj_list)))
 
@@ -155,6 +151,19 @@ def local_hash(G, string_hash_fun=hash_sha256):
     if G.number_of_nodes() == 0:
         return {}
     class_of = _globally_stable_colors(G, string_hash_fun)
-    Q = quotient_multidigraph(G, class_of)
+    Q = _quotient_multidigraph(G, class_of)
     quotient_hash = _canonical_quotient_hashes(Q, string_hash_fun)
     return {n: quotient_hash[class_of[n]] for n in G.nodes}
+
+
+def local_strongly_connected_hash(sc_graph, string_hash_fun=hash_sha256):
+    colors = _globally_stable_colors(sc_graph, string_hash_fun=string_hash_fun)
+    quotient = _quotient_multidigraph(sc_graph, colors)
+    quotient_colors = _globally_stable_colors(quotient, string_hash_fun=string_hash_fun)
+    order = sorted(quotient.nodes, key=quotient_colors.get)
+    index = invert_list(order)
+    labels = [quotient.nodes[x]['label'] for x in order]
+    edges = sorted((index[x], index[y]) for (x, y, _) in quotient.edges)
+    scc_hash = string_hash_fun(encode((labels, edges)))
+    scc_node_hashes = {x: string_hash_fun(encode((index[colors[x]], scc_hash))) for x in scc_hash.nodes}
+    return (scc_hash, scc_node_hashes)
