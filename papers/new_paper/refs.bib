@@ -410,3 +410,46 @@
   pages={125-129},
   keywords={Polynomials;Turing machines;Space technology;Magnetic heads},
   doi={10.1109/SWAT.1972.29}}
+
+@ARTICLE{hopcraft-redescribe,
+  title     = "Re-describing an algorithm by Hopcroft",
+  author    = "Knuutila, Timo",
+  journal   = "Theor. Comput. Sci.",
+  publisher = "Elsevier BV",
+  volume    =  250,
+  number    = "1-2",
+  pages     = "333--363",
+  abstract  = "J. Hopcroft introduced already in 1970 an O(nlogn)-time algorithm
+               for minimizing a finite deterministic automaton of n states.
+               Although the existence of the algorithm is widely known, its
+               theoretical justification, correctness and running time analysis
+               are not. We give here a tutorial reconstruction of Hopcroft's
+               algorithm focusing on a firm theoretical basis, clear correctness
+               proofs and a well-founded computational analysis. Our analysis
+               reveals that if the size of the input alphabet m is not fixed,
+               then Hopcroft's original algorithm does not run in time O(mnlogn)
+               as is commonly believed in the literature. The O(mnlogn) holds,
+               however, for the variation presented later by D. Gries and for a
+               new variant given in this article. We also propose a new
+               efficient routine for refining the equivalence classes
+               constructed in the algorithm and suggest a computationally sound
+               heuristics as an enhancement.",
+  month     =  jan,
+  year      =  2001,
+  language  = "en"
+}
+
+@incollection{hopcraft,
+title = {AN n log n ALGORITHM FOR MINIMIZING STATES IN A FINITE AUTOMATON},
+editor = {Zvi Kohavi and Azaria Paz},
+booktitle = {Theory of Machines and Computations},
+publisher = {Academic Press},
+pages = {189-196},
+year = {1971},
+isbn = {978-0-12-417750-5},
+doi = {https://doi.org/10.1016/B978-0-12-417750-5.50022-1},
+url = {https://www.sciencedirect.com/science/article/pii/B9780124177505500221},
+author = {John Hopcroft},
+abstract = {Publisher Summary
+Most basic texts on finite automata give algorithms for minimizing the number of states in a finite automaton. However, a worst case analysis of these algorithms indicates that they are n2 processes, where n is the number of states. For finite automata with large numbers of states, these algorithms are grossly inefficient. This chapter describes an algorithm for minimizing the states, in which the asymptotic running time in a worst-case analysis grows as n log n. The constant of proportionality depends linearly on the number of input symbols. The same algorithm can be used to determine if two finite automata are equivalent. Extensive use of list processing is employed to reduce the computation time. As the time needed to partition on a block is proportional to the transitions into the block, the total number of steps in the algorithm is bounded by n log n.}
+}

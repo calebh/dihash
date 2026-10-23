@@ -113,10 +113,10 @@ Hashing functions can be extended to trees via a simple extension of Merkle hash
 Extending hashing to node-labeled directed graphs is non-trivial due to the presence of cycles. Indeed, the design space of algorithm design for hashing digraphs is surprisingly broad and depends on use case objectives. In this paper we will focus on the following approaches, which we think are the most useful for practical applications:
 
 \begin{itemize}
-  \item \textbf{Global Hashing} - for use cases where the \textit{global} structure of the digraph is of importance. A correct algorithm here should produce equal hashes if and only if two graphs are isomoprhic. Hashing a chemical/molecular structure is one use case where the global structure is important.
-  \item \textbf{Local Hashing} - for use cases where observers can only observe \textit{local} information by traversing from a node to a neighbor on an outgoing edge. A correct algorithm here should produce equal hashes for a node if and only if the (potentially infinite) tree expansion of exploring outward from the node are isomorphic. Local hashing has many commonalities with bisimulation and is amenable to hashing co-inductive representations of finite directed graphs.
-  \item \textbf{Ordered Outgoing Edges} - in many practical applications the outgoing edges from a node are ordered. We can use this additional structure to improve the runtime performance of our hashing algorithms.
-  \item \textbf{Merkle Graph Hashing} - for use cases where we want graphs to be hashed recursively, or graphs are structures that are built up over time. In this approach we hash strongly connected components individually using either global or local hashing, then use recursion on the acyclic condensation graph induced by the strongly connected components.
+  \item \textbf{Global Hashing} - for use cases where the \textit{global} structure of the digraph is of importance. A correct algorithm here should produce equal hashes if and only if two graphs are isomorphic.
+  \item \textbf{Local Hashing} - for use cases where observers can only observe \textit{local} information by traversing from a node to a neighbor on an outgoing edge. There are several formulations of local hashing, but in this paper we will discuss an algorithm that produces equal hashes if and only if the (potentially infinite) tree expansions from outward exploration are isomorphic. Local hashing has many commonalities with bisimulation and co-inductive representations of finite directed graphs.
+  \item \textbf{Ordered Outgoing Edges} - in many practical applications the outgoing edges from a node are ordered. We can use this additional structure to simplify and improve the runtime performance of our hashing algorithms.
+  \item \textbf{Merkle Graph Hashing} - for use cases where we want graphs to be hashed recursively, or graphs are structures that are built up over time. In this approach we hash strongly connected components individually using either global or local hashing, then recurse over the acyclic condensation graph induced by the strongly connected components.
 \end{itemize}
 
 One common theme throughout this paper is reliance on conversion of graphs to \textit{canonical form}. If two graphs (or nodes within) can be converted to a canonical form, we can serialize the canonical form and pass it through an ordinary string function.
@@ -298,6 +298,7 @@ Since the orbit indices are equal and $\mathcal{H_G}(G_1)=\mathcal{H_G}(G_2)$, t
 \end{inlineproof}
 
 \section{Local Graph Hashing}
+\label{sec:local-graph-hashing}
 
 In comparison to the global hashing strategy which depends on the global structure of the graph, the local hashing strategy depends only on properties we can \textit{observe} by traversing the digraph forward along its edges. To make this concept precise, we say that the hash of two nodes in a digraph should be equal if and only if their tree expansions are isomorphic. A tree expansion is formed by selecting a starting node, placing it at the root of the tree, then adding neighboring nodes as children, and expanding recursively. This forms a (potentially infinite) tree induced by the structure of the underlying digraph.
 
@@ -313,13 +314,9 @@ We then compute colorings over multiple iterations using the following equation 
   \lambda_{i+1}(u) = \mathcal{H}(\textproc{to\_str}((L(u), \{\{\lambda_{i}(v) \mid (u, v) \in E\}\})))
 \end{equation}
 
-Note here that our formulation of color refinement differs from the classic color refinement algorithm which uses the update rule
+The color of a node in round $i$ is exactly the hash of a tree expansion with a maximum depth of $i+1$ layers. Note here that our finite tree is being built bottom-up, with a new layer added to the tree every iteration. Due to the bottom-up construction, the hashing process maximally shares computation, making this a dynamic programming approach.
 
-\begin{equation}
-  \lambda_{i+1}(u) = \mathcal{H}(\textproc{to\_str}((\lambda_i(u), \{\{\lambda_{i}(v) \mid (u, v) \in E\}\})))
-\end{equation}
-
-The two variations of color refinement give identical computational results. However, in our variation it is clear that the color of a node in round $i$ is exactly the hash of the tree expansion with a maximum depth of $i+1$ layers. Note here that our finite tree is being built up bottom-up, with a new layer added to the tree every iteration. Due to the bottom-up construction, the hashing process maximally shares computation, making this a dynamic programming approach.
+Our approach differs from classic color refinement in that we are operating over directed graphs rather than undirected graphs. We note here inspiration and similarities to partition refinement strategies as well, such as Hopcraft's DFA minimization algorithm \cite{hopcraft-redescribe,hopcraft}.
 
 We now define the following stabilization condition which will tell us when to stop computing new colors:
 
@@ -351,7 +348,7 @@ To summarize our approach, we begin by merging any nodes which are identical mod
         \State root\_idx $\gets$ index[root]
         \State adj\_list = \textproc{sorted}([(index[$s$], index[$t$] $\mid (s, t) \in E \land s \in \text{reach} \land t \in \text{reach}$)])
         \State labels $\gets$ [L(x) \textbf{for} $x$ \textbf{in} order]
-        \State \Return $\mathcal{H}$(\textproc{to\_str}(root\_idx, labels, adj\_list))
+        \State \Return $\mathcal{H}$(\textproc{to\_str}((root\_idx, labels, adj\_list)))
     \EndFunction
 
     \Function{$\mathcal{H_L}$}{$G=(V, E, L)$}
@@ -405,18 +402,20 @@ Given some node $u$ from $G_1$ and some node $v$ from $G_2$, $\mathcal{H_L}(G_1)
 Available in appendix
 \end{inlineproof}
 
+\clearpage
+
 \subsection{Alternative Formulations of Local Hashing}
 
-The strategy employed for local hashing depends on properties we can observe by traversing the graph forward along its directed edges. There are several other formulations of local hashing which we will note here:
+The strategy employed for local hashing depends on properties we can observe by traversing the graph forward along its directed edges. Here are two other formulations of local hashing which we will note here:
 
-\begin{itemize}
+\begin{enumerate}
   \item As a \textit{directed vertex language}. In this formulation, the hash of a node is defined as the hash of the (potentially infinite) set of strings that can be formed by visiting labeled nodes:
   
   \begin{equation}
-  \text{Lang}_G(u) = \{L(u)\} \cup \bigcup_{v \in \text{neighbor}(u)} \{L(u) \circ x \mid x \in \text{Lang}_G(v)\}
+  \text{Lang}_G(u) = \{L(u)\} \cup \bigcup_{v \in \text{successor}(u)} \{L(u) \circ x \mid x \in \text{Lang}_G(v)\}
   \end{equation}
 
-  This particular formulation is very similar to that of nondeterminstic finite automata, except that characters are added by visiting nodes (instead of edges), and all states can be terminal states.
+  This particular formulation is very similar to that of nondeterminstic finite automata, except that characters are added by visiting nodes (instead of traversing edges), and all states can be terminal states.
   
   \,
 
@@ -425,11 +424,22 @@ The strategy employed for local hashing depends on properties we can observe by 
   \,
 
   \textbf{Proof Sketch:} We perform a poly-time reduction from the NFA universality problem (UNIV), which is \textbf{PSPACE-complete} \cite{univ}. We say that an NFA is universal if it accepts every string. Given an input NFA, we can perform a poly-time version to an equivalent directed vertex language. We can then construct a universal NFA and encode it in a directed vertex language. If we could compute the hash of a directed vertex language, we could decide the equality between the input NFA and the universal NFA.
-\end{itemize}
+
+  \item As a \textit{bisimulation system}. The approach given in Section \ref{sec:local-graph-hashing} seeks to hash the tree expansion, which is a slight twist on the philosophy of bisimulation. In pure bisimulation hash, we say that nodes $a$ and $b$ are bisimilar if they have the same labels and if the following two conditions are met:
+  \begin{itemize}
+    \item For every outgoing edge $a \rightarrow a'$, there exists a $b \rightarrow b'$ such that $a'$ and $b'$ are bisimilar.
+    \item For every outgoing edge $b \rightarrow b'$, there exists a $a \rightarrow a'$ such that $b'$ and $a'$ are bisimilar.
+  \end{itemize}
+  Note the use of ``there exists'', which implies that bisimulation ignores the arity of outgoing edges that the tree expansion formulation takes into account.
+  
+  \,
+
+  Computing the hash of a system modulo bisimilarity should therefore be a small modification - when computing the quotient graph $G/C$, we instead want to receive a digraph instead of a multi-digraph.
+\end{enumerate}
 
 \section{Outgoing Ordered Edge Graphs}
 
-For many real world applications of graph hashing, the labels of outgoing edges can be strictly ordered.  We can take advantage of this extra structure on the edges to create hashing algorithms that run in polynomial time. Doing so also removes the dependency on the more complicated and exponential time canonization and orbit partitioning algorithms that are required for general digraphs.
+For many real world applications of graph hashing, the labels of outgoing edges can be strictly ordered.  We can take advantage of this extra structure on the edges to create simpler hashing algorithms.
 
 The algorithms in this section are directly inspired by the more general Scott graph canonization algorithm given by Bloyet, Marteau and Fr\'enod \cite{scott}. The basic idea for our approach is that due to the ordering of the edges, we can give an order to the nodes based on when they are visited in a graph traversal algorithm (in this case depth-first search).
 
@@ -504,7 +514,7 @@ To compute the hash of a specific node, we begin by computing the strongly conne
     \begin{algorithmic}[1]
     \Function{$\mathcal{H_{NM}}$}{v,G=(V,E,L)}
         \State $S \gets$ \textproc{Scc}(v,$G$) \Comment{$S$ is the set of vertices in the SCC containing v}
-        \State $L'(u)=\textproc{to\_str}((L(u),\textproc{sort}([\mathcal{H_{NM}}(w,G) \mid u \in S \land w \notin S \land (u,w) \in E])))$ \\ \Comment{Relabel all nodes in the SCC using the recursively computed hashes}
+        \State $L'(u)=\textproc{to\_str}((L(u),\{\{\mathcal{H_{NM}}(w,G) \mid u \in S \land w \notin S \land (u,w) \in E\}\}))$ \\ \Comment{Relabel all nodes in the SCC using the recursively computed hashes}
         \State $(V', E', L'') \gets$ \textproc{Subgraph}(S, $G$)
         \State $G' \gets (V',E',L')$
         \State \Return $\mathcal{H_N}(v, G')$ \Comment{Hash the relabelled SCC containing v}
@@ -679,7 +689,7 @@ If the user clicks a link within the same SCC, the browser simply follows the gr
 
 \section{Related Work}
 
-The core of the digraph Merkle hashing algorithm was independently discovered by the developers of the Unison programming language for use in hashing function abstract syntax trees. However their approach is fundamentally flawed a
+The core of the digraph Merkle hashing algorithm was independently discovered by the developers of the Unison programming language for use in hashing abstract syntax trees. However, their approach does not take into account computation of the orbits of the nodes, and 
 
 
 
