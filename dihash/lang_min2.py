@@ -1,6 +1,9 @@
-from itertools import product
+from itertools import product, permutations
 from functools import cmp_to_key
 import networkx as nx
+
+from dihash import invert_list, hash_sha256, to_str
+
 
 def merge(g: nx.DiGraph, equivalence_classes: list[frozenset]) -> nx.DiGraph:
     # This dictionary maps nodes to their equivalence classes
@@ -124,7 +127,7 @@ def equivalence_classes(g: nx.DiGraph, table: DistinguishingTable, table_t: Dist
         merge_map[n] = [n]
 
     def should_merge(a, b):
-        return table_t.is_eq_language(a, b) or (table_t.is_sub_language(a, b) and table.is_sub_language(a, b))
+        return table.is_eq_language(a, b) or table_t.is_eq_language(a, b) or (table_t.is_sub_language(a, b) and table.is_sub_language(a, b))
 
     for (n, m) in product(g.nodes, g.nodes):
         cls_n = merge_map[n]
@@ -136,6 +139,19 @@ def equivalence_classes(g: nx.DiGraph, table: DistinguishingTable, table_t: Dist
 
     return [frozenset(xs) for xs in merge_map.values()]
 
+def edge_saturate(minimized_graph: nx.DiGraph, table: DistinguishingTable) -> nx.DiGraph:
+    saturated_graph = minimized_graph.copy()
+    added_edges = True
+    while added_edges:
+        added_edges = False
+        for (n, m) in product(minimized_graph.nodes, minimized_graph.nodes):
+            if table.is_marked(n, m) and not table.is_marked(m, n):
+                for (n_parent, _) in minimized_graph.in_edges(n):
+                    if not saturated_graph.has_edge(n_parent, m):
+                        saturated_graph.add_edge(n_parent, m)
+                        added_edges = True
+    return saturated_graph
+
 def reachable_subgraph(g: nx.DiGraph, start_node):
     reachable_nodes = nx.descendants(g, start_node) | {start_node}
     return g.subgraph(reachable_nodes).copy()
@@ -145,7 +161,7 @@ def minimize(g: nx.DiGraph, start_node) -> nx.DiGraph:
     table = minimize_table(g)
     table_t = minimize_table(g.reverse())
     eq_classes = equivalence_classes(g, table, table_t)
-    return (merge(g, eq_classes), table, table_t)
+    return merge(g, eq_classes)
 
 def canonize(g: nx.DiGraph, table: DistinguishingTable):
     def sym_diff_metric(u, v):
@@ -163,13 +179,111 @@ def canonize(g: nx.DiGraph, table: DistinguishingTable):
             raise ValueError(f"The table indicates that the languages for {u} and {v} are equal")
     sym_diff_comparator = make_comparator(sym_diff_metric)
 
-    # TODO: Alter proof so it works without reverse here
-    return sorted(g.nodes, key=cmp_to_key(sym_diff_comparator), reverse=True)
+    return sorted(g.nodes, key=cmp_to_key(sym_diff_comparator))
 
-def hash(g: nx.DiGraph, start_node):
-    (g_prime, table, table_t) = minimize(g, start_node)
-    table_t = minimize_table(g_prime.reverse())
-    print(canonize(g_prime, table_t))
+def hash(g: nx.DiGraph, start_node, string_hash_fun=hash_sha256):
+    g_min = minimize(g, start_node)
+    table = minimize_table(g_min)
+    g_sat = edge_saturate(g_min, table)
+    canonical_order = canonize(g_sat, table)
+
+    canon_mapping = invert_list(canonical_order)
+    canon_adj_list = sorted([(canon_mapping[s], canon_mapping[t]) for (s, t) in g_sat.edges])
+    canon_labels = [g_sat.nodes[n]['label'] for n in canonical_order]
+
+    canon_start_node = None
+    for (i, node_set) in enumerate(canonical_order):
+        if start_node in node_set:
+            canon_start_node = i
+            break
+
+    summary = (canon_start_node, canon_labels, canon_adj_list)
+
+    return string_hash_fun(to_str(summary))
+
+def test_graph1():
+    g = nx.DiGraph()
+    for i in range(6):
+        g.add_node(i)
+    g.add_edge(0, 1)
+    g.add_edge(1, 0)
+    g.add_edge(1, 2)
+    g.add_edge(0, 3)
+    g.add_edge(3, 4)
+    g.add_edge(3, 5)
+
+    g.nodes[0]['label'] = 'a'
+    g.nodes[1]['label'] = 'f'
+    g.nodes[2]['label'] = 'b'
+    g.nodes[3]['label'] = 'b'
+    g.nodes[4]['label'] = 'c'
+    g.nodes[5]['label'] = 'e'
+
+    return g
+
+def permute_graph(g):
+    for perm in permutations(g.nodes):
+        h = nx.DiGraph()
+
+        for i in range(len(g.nodes)):
+            h.add_node(i)
+
+        for i in range(len(g.nodes)):
+            h.nodes[perm[i]]['label'] = g.nodes[i]['label']
+
+        for (u, v) in g.edges:
+            h.add_edge(perm[u], perm[v])
+
+        yield (h, perm)
+
+def test_edge_saturation():
+    g = test_graph1()
+
+    g_min = minimize(g, 0)
+    table = minimize_table(g_min)
+    assert(not g_min.has_edge(frozenset({0}), frozenset({2})))
+
+    g_sat = edge_saturate(g_min, table)
+    assert(g_sat.has_edge(frozenset({0}), frozenset({2})))
+    print("Edge saturation test passed!")
+
+def test_canonization():
+    g = test_graph1()
+
+    g_min = minimize(g, 0)
+    g_table = minimize_table(g_min)
+    g_sat = edge_saturate(g_min, g_table)
+    g_canon = canonize(g_sat, g_table)
+
+    for (h, perm) in permute_graph(g):
+        h_min = minimize(h, perm[0])
+        h_table = minimize_table(h_min)
+        h_sat = edge_saturate(h_min, h_table)
+        h_canon = canonize(h_sat, h_table)
+
+        g_canon_mapped = [frozenset({perm[x] for x in xs}) for xs in g_canon]
+        assert(h_canon == g_canon_mapped)
+
+    print("Canonization test passed!")
+
+def test_hash():
+    g = test_graph1()
+
+    for start_node in g.nodes:
+        g_hash = hash(g, start_node)
+        for (h, perm) in permute_graph(g):
+            h_hash = hash(h, perm[start_node])
+            assert(g_hash == h_hash)
+
+    print("Hash test passed!")
+
+test_edge_saturation()
+test_canonization()
+test_hash()
+
+exit(0)
+
+
 
 g = nx.DiGraph()
 for i in range(6):
