@@ -1,4 +1,5 @@
 import functools
+from itertools import product
 
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -89,23 +90,17 @@ def is_distinguishable(table, a, bs):
 
 def minimize_table(g: nx.DiGraph) -> DistinguishingTable:
     table = DistinguishingTable()
-    metric_table = MetricTable()
 
-    node_pairs = pairs(list(g.nodes))
-
-    for (n, m) in node_pairs:
+    for (n, m) in product(g.nodes, g.nodes):
         n_label = g.nodes[n]['label']
         m_label = g.nodes[m]['label']
         if n_label != m_label:
             table.mark(n, m)
-            metric_table.add_candidate(n, m, [n_label])
-            metric_table.add_candidate(m, n, [m_label])
-    metric_table.commit()
 
     table_updated = True
     while table_updated:
         table_updated = False
-        for (n, m) in node_pairs:
+        for (n, m) in product(g.nodes, g.nodes):
             if not table.is_marked(n, m):
                 for n_neighbor in g.neighbors(n):
                     if is_distinguishable(table, n_neighbor, g.neighbors(m)):
@@ -180,6 +175,26 @@ def canonize(minimized_graph, certificate=False):
     if not certificate:
         canonical_order = [n for (n, _) in canonical_order]
     return canonical_order
+
+g5 = nx.DiGraph()
+g5.add_node(0)
+g5.add_node(1)
+g5.add_node(2)
+g5.add_edge(0,1)
+g5.add_edge(0, 2)
+g5.nodes[0]['label'] = 'a'
+g5.nodes[1]['label'] = 'b'
+g5.nodes[2]['label'] = 'b'
+
+g5.add_node(3)
+g5.add_edge(2, 3)
+g5.nodes[3]['label'] = 'c'
+
+min_g = minimize(g5)
+nx.draw(min_g, labels={n: f"{n}: {min_g.nodes[n]['label']}" for n in min_g.nodes})
+plt.show()
+
+
 
 g = nx.DiGraph()
 

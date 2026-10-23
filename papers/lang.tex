@@ -2,6 +2,7 @@
 
 \usepackage{amsthm}
 
+\newtheorem{theorem}{Theorem}
 \newtheorem{lemma}{Lemma}
 \newtheorem{sublemma}{Lemma}[lemma]
 
@@ -9,55 +10,123 @@
 
 \section{Proof of Correctness of Table Filling Algorithm}
 
-Let $\delta(x)$ give the set of neighbors of $x$ in $G$.
+Let $\delta(x)$ give the set of neighbors of $x$ in $G$. $\oplus$ is the logical xor operation.
 
 \subsection{Proof of Construction of Minimal Digraph}
 
-Suppose that the theorem that the table filling algorithm
-produces a minimal digraph is false. That is, there is at
-least one pair of states $(p, q)$ such that:
+\begin{lemma}
+\label{thm:tbl_correctness1}
+$\forall w \forall p \forall q . w \in L_G(p) \oplus w \in L_G(q) \rightarrow$ The table filling algorithm finds $p$ and $q$
+to be distinguished
+\end{lemma}
+\begin{proof}
+Proof by strong induction on the length of $w$.
 
-\begin{enumerate}
-    \item States $p$ and $q$ are distinguishable, in the sense
-    that there is some string $w$ that is in exactly one of
-    $L_G(p)$ and $L_G(q)$.
-    \item The table filling algorithm does not find $p$ and
-    $q$ to be distinguished.
-\end{enumerate}
-
-Call this pair a bad pair.
-
-If there are bad pairs, then there
-must be some that are the shortest among all these strings that
-distinguish bad pairs. Let $(p,q)$ be one such bad pair, and let
-$w=a_1 a_2 ... a_n$ be a string as short as any that distinguishes
-$p$ from $q$. Then $w$ is in exactly one of $L_G(p)$ and $L_G(q)$.
-
-Consider the case where $w=a_1$. Then the table filling algorithm
+Base case $|w|=1$. Then the table filling algorithm
 would have distinguished $p$ from $q$ during the initialization of
 the table in the table filling algorithm.
 
-Otherwise let $w'=a_2 ... a_n$ and consider the following subcases:
+We now show the inductive step. As hypotheses, we have the following:
+
 \begin{itemize}
-    \item If for all $r \in \delta(p)$ and $s \in \delta(q)$,
-    $w' \notin L_G(r)$ and $w' \notin L_G(s)$, then $w \notin L_G(p)$
-    and $w \notin L_G(q)$. This contradicts the assumption that $w$
-    is in exactly one of $L_G(p)$ and $L_G(q)$.
-    \item If there exists an $r \in \delta(p)$ and $s \in \delta(q)$ such that
-    $w' \in L_G(r)$ and $w' \notin L_G(s)$, then the string $w'$ is
-    a distinguishing string shorter than $w$, which contradicts the
-    assumption that $w$ is the shortest string as short as any which
-    distinguishes a bad pair.
-    \item If there exists an $r \in \delta(p)$ and $s \in \delta(q)$ such that
-    $w' \notin L_G(r)$ and $w' \in L_G(s)$, then the string $w'$ is
-    a distinguishing string shorter than $w$, which contradicts the
-    assumption that $w$ is the shortest string as short as any which
-    distinguishes a bad pair.
-    \item If for all $r \in \delta(p)$ and $s \in \delta(q)$, $w' \in L_G(r)$
-    and $w' \in L_G(s)$, then $w \in L_G(p)$ and $w \in L_G(q)$. This
-    contradicts the assumption that $w$ is in exactly one of $L_G(p)$ and
-    $L_G(q)$.
+    \item $w=a_1 a_2 ... a_n$
+    \item $w \in L_G(p) \oplus w \in L_G(q)$
+    \item $\forall w' \forall p' \forall q' . |w'| < n \rightarrow w' \in L_G(p') \oplus w' \in L_G(q') \rightarrow$ The table filling algorithm finds $p'$ and $q'$
+    to be distinguished.
 \end{itemize}
+
+Our goal is to show that the table filling algorithm finds $p$ and $q$ to be distinguished.
+
+Consider the following cases:
+
+\begin{enumerate}
+    \item The string $w'=a_1$ distinguishes $p$ from $q$. Then we can immediately apply the
+    inductive hypothesis to conclude that the table filling algorithm finds $p$ and $q$
+    to be distinguished.
+    \item The string $w$ distinguishes $p$ from $q$, but the string $w'=a_1$ does not. Then exactly
+    one of the following must be true:
+    \begin{enumerate}
+        \item At least one neighbor $p'$ of $p$ must be distinguished from all neighbors $q'$ of $q$ by $w'=a_2 ... a_n$.
+        Consider the following cases:
+        \begin{enumerate}
+            \item $q$ has no neighbors. Then we will mark and therefore
+            distinguish $p$ from $q$ during the first iteration of the algorithm.
+            \item $q$ has at least one neighbor. Let $q'$ be one of these neighbors.
+            By the inductive hypothesis, the table algorithm finds $p'$ to be
+            distinguished from $q'$.
+    
+            This means that during the iteration of the algorithm, $p'$ and $q'$ will be marked. This allows
+            the table filling algorithm to distinguish $p$ from $q$ in the next iteration of the loop.
+        \end{enumerate}
+
+        \item At least one neighbor $q'$ of $q$ must be distinguished from all neighbors $p'$ of $p$ by $w'=a_2 ... a_n$.
+        We can repeat the same argument given in the previous step without loss of generality.
+    \end{enumerate}
+\end{enumerate}
+
+\end{proof}
+
+\begin{lemma}
+\label{thm:tbl_correctness2}
+$\forall w \forall p \forall q.$ The table filling algorithm finds $p$ and $q$ to be distinguished $\rightarrow w \in L_G(p) \oplus w \in L_G(q)$
+\end{lemma}
+\begin{proof}
+Proof by strong induction on the length of $w$.
+
+Base case $|w|=1$. Then during the initialization of the table, we discovered that
+the label of $p$ is not equal to the label of $q$. This directly shows that the string consisting
+of the label of $p$ is in $L_G(p)$ but not in $L_G(q)$.
+
+We now show the inductive step. As hypotheses, we have the following:
+
+\begin{itemize}
+    \item $w=a_1 a_2 ... a_n$
+    \item The table filling algorithm $p$ and $q$ to be distinguished.
+    \item $\forall w' \forall p' \forall q' . |w'| < n \rightarrow$ The table filling algorithm finds $p'$ and $q'$ to be distinguished $\rightarrow w' \in L_G(p') \oplus w' \in L_G(q')$
+\end{itemize}
+
+Our goal is to show that $w \in L_G(p) \oplus w \in L_G(q)$
+
+Consider the following cases:
+\begin{enumerate}
+    \item The string $w'=a_1$ distinguishes $p$ from $q$. Then we can immediately
+    apply the inductive hypothesis to conclude that $w' \in L_G(p) \oplus w' \in L_G(q)$.
+    This implies that the $w$, which starts with $a_1$, also distinguishes $p$ and $q$.
+    This means that $w \in L_G(p) \oplus w \in L_G(q)$ as desired.
+    \item The string $w$ distinguishes $p$ from $q$, but the string $w'=a_1$ does not.
+    Then the table filling algorithm must have determined that one of the following is true:
+    \begin{enumerate}
+        \item At least one neighbor $p'$ of $p$ must have been marked for
+        all neighbors $q'$ of $q$. Consider the following cases:
+        \begin{enumerate}
+            \item $q$ has no neighbors. Then the string $a_1 a_2 \in L_G(p)$ but $a_1 a_2 \notin L_G(q)$.
+            Since $w$ starts with $a_1 a_2$, then we have $w \in L_G(p)$ and $w \notin L_G(q)$.
+            \item $q$ has at least one neighbor. Let $q'$ be one of these neighbors.
+            This means that the algorithm found $p'$ to be distinguished from $q'$.
+            By the inductive hypothesis, we then have the following:
+            $w' \in L_G(p') \oplus w' \in L_G(q')$ where $w'=a_2 ... a_n$.
+
+            Since $p'$ is a neighbor of $p$ and $q'$ is a neighbor of $q$, this
+            directly shows that $w \in L_G(p) \oplus w \in L_G(q')$.
+        \end{enumerate}
+        \item At least one neighbor $q'$ of $q$ must have been marked for all
+        neighbors $p'$ of $p$. We can repeat the same argument from the previous
+        step without loss of generality.
+    \end{enumerate}
+\end{enumerate}
+
+\end{proof}
+
+\begin{theorem}
+For all strings $w$ and vertices $p$, $q$, the table filling algorithm
+finds $p$ and $q$ to be distinguished if and only if $w$ is in exactly
+one of $L_G(p)$ and $L_G(q)$
+\end{theorem}
+\begin{proof}
+This immediately follows by Lemma \ref{thm:tbl_correctness1} and Lemma \ref{thm:tbl_correctness2}.
+\end{proof}
+
+\clearpage
 
 \subsection{Proof of Uniqueness of Minimum}
 
@@ -65,6 +134,11 @@ We prove this by constructing an isomorphism. Suppose we have a graph
 $G$ minimized to $G'$ and some arbitrary minimal graph $G_{min}$ where
 $L(G')=L(G_{min})$. We then show that $G' \cong G_{min}$. This is achieved
 by demonstrating the existence of a bijection $f : V(G') \rightarrow V(G_{min})$.
+
+First we note that every node in $G'$ or $G_{min}$ must have a different
+language. If this was not the case, then two nodes are indiscernable and
+could be merged together. This would contradict the assumption that
+both these graphs are minimal.
 
 \begin{lemma}
 $f$ is defined everywhere
