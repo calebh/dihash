@@ -164,6 +164,6 @@ def local_strongly_connected_hash(sc_graph, string_hash_fun=hash_sha256):
     index = invert_list(order)
     labels = [quotient.nodes[x]['label'] for x in order]
     edges = sorted((index[x], index[y]) for (x, y, _) in quotient.edges)
-    scc_hash = string_hash_fun(encode((labels, edges)))
-    scc_node_hashes = {x: string_hash_fun(encode((index[colors[x]], scc_hash))) for x in scc_hash.nodes}
-    return (scc_hash, scc_node_hashes)
+    sc_hash = string_hash_fun(encode((labels, edges)))
+    sc_node_hashes = {x: string_hash_fun(encode((index[colors[x]], sc_hash))) for x in sc_graph}
+    return (sc_hash, sc_node_hashes)

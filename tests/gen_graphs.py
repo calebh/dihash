@@ -28,7 +28,7 @@ def generate_graphs_generic(num_nodes, add_graph_fun):
 def generate_graphs(num_nodes):
 	graph_hashes = set()
 	def add_graph_fun(graphs, g):
-		(g_hash, _) = dihash.global_hash(g, hash_nodes=False)
+		g_hash = dihash.global_hash(g, hash_nodes=False)
 		ret = g_hash not in graph_hashes
 		graph_hashes.add(g_hash)
 		return ret

@@ -24,7 +24,7 @@ def hash_scc(g, cond, scc, scc_hashes, node_hashes, string_hash_fun, comp_hash):
         for t in non_scc_succs:
             if t not in node_hashes:
                 t_scc = cond.graph['mapping'][t]
-                hash_scc(g, cond, t_scc, scc_hashes, node_hashes, string_hash_fun)
+                hash_scc(g, cond, t_scc, scc_hashes, node_hashes, string_hash_fun, comp_hash)
         non_scc_succs_hashes = sorted([node_hashes[t] for t in non_scc_succs])
         scc_graph.nodes[s]['label'] = string_hash_fun(encode((g.nodes[s]['label'], non_scc_succs_hashes)))
 

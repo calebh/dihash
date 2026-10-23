@@ -18,11 +18,10 @@ def encode(data):
     elif isinstance(data, int):
         return str(data)
     else:
-        raise TypeError("Unable to call to_str on " + str(data))
+        raise TypeError("Unable to call encode on " + str(data))
 
 def hash_sha256(s):
     return hashlib.sha256(s.encode('utf-8')).hexdigest()
-
 
 def invert_dict(d):
     return {v: k for (k, v) in d.items()}

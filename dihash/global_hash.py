@@ -79,7 +79,7 @@ def _orbit_indices(canon_mapping, orbits):
             ret[n] = min_idx
     return ret
 
-def global_hash(g, hash_nodes=True, string_hash_fun=hash_sha256):
+def global_hash(g, hash_nodes=False, string_hash_fun=hash_sha256):
     """
     Computes a global graph hashing using nauty
 
@@ -90,9 +90,8 @@ def global_hash(g, hash_nodes=True, string_hash_fun=hash_sha256):
     the graph
     :param string_hash_fun: A function which maps strings to a string. The default value, hash_sha256 hashes by using\
     hashlib.sha256 and converting to the result to a hex digest.
-    :return: A tuple (g_hash, node_hashes). g_hash is a hex digest of the hash of the entire graph. If hash_nodes is\
-    False, node_hashes is None. If hash_nodes is True, this value is a dictionary mapping nodes to their hash hex
-    digests
+    :return: The graph hash as a hex digest if hash_nodes is False. Otherwise returns the tuple (g_hash, node_hashes)\
+    if hash_nodes is True. node_hashes is a dictionary mapping nodes to their hash hex digests.
     """
     (canonization, orbs) = _analyze_graph(g, compute_orbits=hash_nodes)
     canon_mapping = invert_list(canonization)
@@ -103,10 +102,11 @@ def global_hash(g, hash_nodes=True, string_hash_fun=hash_sha256):
     else:
         g_summary = (labels_in_canon_order, adj_list_in_canon_order)
     g_hash = string_hash_fun(encode(g_summary))
-    node_hashes = None
-    if hash_nodes:
+    if not hash_nodes:
+        return g_hash
+    else:
         node_hashes = dict()
         orbit_mapping = _orbit_indices(canon_mapping, orbs)
         for n in g.nodes:
             node_hashes[n] = string_hash_fun(encode((orbit_mapping[n], g_hash)))
-    return (g_hash, node_hashes)
+        return (g_hash, node_hashes)
