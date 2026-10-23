@@ -98,13 +98,15 @@ Hashing functions can be extended to trees via a simple extension of Merkle hash
 Extending hashing to node-labeled directed graphs is non-trivial due to the presence of cycles. Indeed, the design space of algorithm design for hashing digraphs is surprisingly broad and depends on use case objectives. In this paper we will focus on the following approaches, which we think are the most useful for practical applications:
 
 \begin{itemize}
-  \item \textbf{Global Hashing} - for use cases where the \textit{global} structure of the digraph is of importance. A correct algorithm here should produce equal hashes if and only if two graphs are isomoprhic. Hashing a molecular structure (in the chemistry sense) is one example use case where the global structure is important.
+  \item \textbf{Global Hashing} - for use cases where the \textit{global} structure of the digraph is of importance. A correct algorithm here should produce equal hashes if and only if two graphs are isomoprhic. Hashing a chemical/molecular structure is one use case where the global structure is important.
   \item \textbf{Local Hashing} - for use cases where observers can only observe \textit{local} information by traversing from a node to a neighbor on an outgoing edge. A correct algorithm here should produce equal hashes for a node if and only if the (potentially infinite) tree expansion of exploring outward from the node are isomorphic. Local hashing has many commonalities with bisimulation and is amenable to hashing co-inductive representations of finite directed graphs.
   \item \textbf{Digraph Merkle Hashing} - for use cases where we want graphs to be hashed recursively, or graphs are structures that are built up over time. In this approach we hash strongly connected components individually using either global or local hashing, then use recursion on the acyclic condensation graph induced by the strongly connected components.
   \item \textbf{Ordered Outgoing Edges} - in many practical applications the outgoing edges from a node are ordered. We can use this additional structure to improve the runtime performance of our hashing algorithms.
 \end{itemize}
 
-One common theme throughout this paper is reliance on conversion of graphs to \textit{canonical form}. If two graphs (or nodes within) can be converted to a canonical form, we can serialize the canonical form and pass it through an ordinary string function. We should additionally take care to distinguish between the hash of an entire graph vs the hash of a specific node within a graph. Our general strategy for computing the hash of a specific node is to combine the overall graph hash with the node's position in canonical order. Care must be taken to ensure that our index accounts for any symmetry present in the graph (ie, two nodes may be identical modulo automorphism).
+One common theme throughout this paper is reliance on conversion of graphs to \textit{canonical form}. If two graphs (or nodes within) can be converted to a canonical form, we can serialize the canonical form and pass it through an ordinary string function.
+
+We should additionally take care to distinguish between the hash of an entire graph vs the hash of a specific node within a graph. Our general strategy for computing the hash of a specific node is to combine the overall graph hash with the node's position in canonical order. Care must be taken to ensure that our index accounts for any symmetry present in the graph (ie, two nodes may be identical modulo automorphism).
 
 %As we will see in the remainder of this paper, extending hashing to directed graphs gives a suprisingly broad range of options in algorithm design. To illustrate the design space, consider the case of hashing molecular structures (in the chemistry sense) for an informational database. In this case, the hash of the molecular directed graph depends on the \textit{global} structure of the digraph, and a correct algorithm should produce equal hashes if and only if two graphs are isomorphic.
 
@@ -191,7 +193,7 @@ A \textit{vertex orbit} is the equivalence class of vertices of a graph under th
 
 \textit{Canonical labeling} is the process of ordering graph vertices such that isomorphic graphs canonize to the same value. Note that canonical labeling algorithms cannot distinguish between different graph automorphisms. Algorithms that can compute canonical labels are widely used in practice for graph isomorphism testing. Some examples of canonical labeling algorithms include nauty \cite{nauty}, bliss \cite{bliss}, and saucy \cite{saucy}.
 
-\begin{figure}[t]
+\begin{figure}
   \centering
   \includegraphics[width=0.5\linewidth]{Fig2.eps}
   \caption{Each yellow node contains a strongly connected component of a graph. When each strongly connected component is contracted into a single node, the yellow condensation graph is formed. Public domain figure courtesy of David Eppstein.\protect\footnotemark}
@@ -202,25 +204,8 @@ The recursive Merkle-style algorithm will utilize the analysis of cycles within 
 
 \section{Global Graph Hashing}
 
-
-\section{Algorithms}
-
-\subsection{Design Space}
-
-It may come as a suprise that there are many different ways of defining the hash of a graph or the hash of the nodes contained within a graph. The definition of a graph hash therefore changes the algorithmic implementation needed to compute the hash values. To explore the design space of node hashing, we need to determine which properties we can \textit{observe} when traversing the graph. Some properties of interest that we may consider in our algorithm design include:
-
-\begin{enumerate}
-  \item When we are visiting a node, can we observe the presence of outgoing edges? Can we observe the presence of incoming edges?
-  \item Can we observe the number of outgoing and/or incoming edges?
-  \item After visiting a node and beginning a traversal, can we determine if we have visited a node previously in the walk? Can we observe the same for edges? Can we determine when we previously visited the node or edge?
-\end{enumerate}
-
-In this paper we will first cover an algorithm for computing hashes when we can observe maximally global properties. In other words, nodes will hash to the same value only for graphs that are exactly isomorphic. We will then explore an algorithm for hashing with a minimal amount of observable properties. This will be accomplished by viewing the hash of a node as the hash of a particular type of language generated by the walks through the graph.
-
-\subsection{Maximally Global Graph Hashing}
-
 \begin{algorithm}
-    \caption{Directed Graph Hash}\label{digraphhash}
+    \caption{Global Directed Graph Hash}\label{digraphhash}
     \begin{algorithmic}[1]
     \Function{$\mathcal{H_G}$}{G=(V,E,L)}
         \State \Comment{V is the set of vertices, E is the set of edges, L is the node labeling function}
@@ -232,15 +217,9 @@ In this paper we will first cover an algorithm for computing hashes when we can 
     \end{algorithmic}
 \end{algorithm}
 
-We now distinguish between creating a hash for a graph and hash for a node in a graph. Hashing a graph should give a unique fingerprint to the graph as a whole, whereas the hash of a node should also needs to ``point to'' a single specific node within the graph.
+In global graph hashing, we would like our computed hash values to be unique modulo graph isomorphism. To be more precise, the hash of a graph $\mathcal{H_G}$ has the property $\mathcal{H_G}(G_1)=\mathcal{H_G}(G_2)$ if and only if $G_1 \cong G_2$. To achieve this correctness properties, we build on top of the well known string hashing functions and canonical labeling algorithms. We begin by canonizing the input digraph and constructing an adjacency list sorted in canonical order. The node labels (in canonical order) and the canonized adjacency list are then encoded as strings and hashed using a string hashing function $\mathcal{H}$. Algorithm \ref{digraphhash} gives an implementation of this approach.
 
-The strongest property we can prove about a graph hashing algorithm is the uniqueness of hash values modulo isomorphism. To be more precise, the hash of a graph $\mathcal{H_G}$ has the property $\mathcal{H_G}(G_1)=\mathcal{H_G}(G_2)$ if and only if $G_1 \cong G_2$. Extending this idea to nodes, $\mathcal{H_N}(v_1, G_1)=\mathcal{H_N}(v_2, G_2)$ if and only if $G_1 \cong G_2$, $\exists \phi . v_2 \in \text{Orb}(\phi(v_1), G_2)$, and $\exists \phi . v_1 \in \text{Orb}(\phi^{-1}(v_2), G_1)$ where $\phi : V_1 \rightarrow V_2$ is an isomorphism from $G_1$ to $G_2$. In other words, nodes should hash to the same value if they come from isomorphic graphs, and they are identical modulo vertex orbits.
-
-To achieve these correctness properties, we build on top of the well known string hashing functions and canonical labeling algorithms. We begin by canonizing the input digraph and constructing an adjacency list sorted in canonical order. The node labels (in canonical order) and the canonized adjacency list are then encoded as strings and hashed using a string hashing function $\mathcal{H}$. Algorithm \ref{digraphhash} gives an implementation of this approach.
-
-\footnotetext{\url{https://commons.wikimedia.org/wiki/File:Graph_Condensation.svg}}
-
-To achieve these properties, we build off the string hashing functions and canonical labeling algorithms. Hashing an entire graph is straightforward and begins by canonizing the entire digraph. The adjacency list (sorted using the canonical order) and the vertex labels (ordered using the canonical order) are represented as strings and hashed using a string hashing function $\mathcal{H}$. Algorithm \ref{digraphhash} gives an implementation of this approach. Note that the return value of the canonize function is a mapping from the vertices of the input to the canonical order.
+Note that since we use generic graph canonization and orbit detection algorithms, our approach does not run in polynomial time. Indeed, graph hashing can trivially be use used to decide graph isomorphism, and as a consequence is \textbf{GI-Hard}. Since graph isomorphism is not thought to have a polynomial time algorithm, this means graph hashing likely does not have a polynomial time implementation.
 
 \begin{theorem}[Proof of Correctness]
 \label{thm:digraphhashcorrect}
@@ -252,13 +231,11 @@ Assuming that the string hashing function $\mathcal{H}$ is injective, $\mathcal{
 
 %Of course real string hashing functions are not injective by the pigeonhole principle, however in practice nobody has yet found collisions for algorithms such as SHA512. Therefore for this approach we treat string hashing algorithms as injective. The identity function or an asymmetric encryption algorithm are examples of truly injective string transformation functions, so those could be used as alternatives if desired.
 
-($\Leftarrow)$ Let $G_3$ be the output graph of canonizing $G_1$, and $G_4$ be the output of canonizing graph $G_2$. Since $G_1 \cong G_2$, we conclude that $G_3=G_4$ since isomorphic graphs canonize to the same graph. This implies that the sorted adjacency lists and ordered vertex label lists are equivalent, so the string representation is equivalent. Therefore the string hash output are equivalent as well, which shows that $\mathcal{H_G}(G_1)=\mathcal{H_G}(G_2)$.
-
-\qed
+($\Leftarrow)$ Let $G_3$ be the output graph of canonizing $G_1$, and $G_4$ be the output of canonizing graph $G_2$. Since $G_1 \cong G_2$, we conclude that $G_3=G_4$ since isomorphic graphs canonize to the same graph. This implies that the sorted adjacency lists and ordered vertex label lists are equivalent, so the string representation is equivalent. Therefore the string hash output are equivalent as well, which shows that $\mathcal{H_G}(G_1)=\mathcal{H_G}(G_2)$. \qed
 \end{proof}
 
 \begin{algorithm}
-    \caption{Directed Graph Node Hash}\label{alg:digraph-node-hash}
+    \caption{Global Directed Graph Node Hash}\label{alg:digraph-node-hash}
     \begin{algorithmic}[1]
     \Function{$\mathcal{H_N}$}{v, G}
         \State $\rho \gets$ \textproc{canonize}(G)
@@ -269,11 +246,11 @@ Assuming that the string hashing function $\mathcal{H}$ is injective, $\mathcal{
     \end{algorithmic}
 \end{algorithm}
 
-The algorithm for hashing nodes in a graph builds on the algorithm for hashing graphs. First, the graph is canonized and the hash of the entire canonical graph is computed using Algorithm \ref{digraphhash}. Then we compute the orbit index of the input vertex, which is defined to be the canonical index of the equivalence class representative element, where the equivalence relation in this case is the vertex orbit. The orbit index and the graph hash are then combined and passed through a string hashing function.
+The algorithm for hashing nodes in a graph builds on the algorithm for hashing graphs. First, the graph is canonized and the hash of the entire canonical graph is computed using Algorithm \ref{digraphhash}. Then we compute the orbit index of the input vertex, which is defined to be the canonical index of the equivalence class representative element, where the equivalence relation in this case is the vertex orbit. The orbit index and the graph hash are then combined and passed through a string hashing function. Algorithm \ref{alg:digraph-node-hash} gives an implementation of this approach.
 
 \begin{theorem}[Proof of Correctness]
 \label{thm:digraphnodehashcorrect}
-$\mathcal{H_N}(v_1, G_1)=\mathcal{H_N}(v_2, G_2)$ if and only if $G_1 \cong G_2$, $\exists \phi . v_2 \in \text{Orb}(\phi(v_1), G_2)$, and $\exists \phi . v_1 \in \text{Orb}(\phi^{-1}(v_2), G_1)$ where $\phi : V_1 \rightarrow V_2$ is an isomorphism between $G_1$ and $G_2$.
+Nodes should hash to the same value if and only if they come from isomoprhic graphs and they are identical modulo vertex orbits. To be precise, $\mathcal{H_N}(v_1, G_1)=\mathcal{H_N}(v_2, G_2)$ if and only if $G_1 \cong G_2$, $\exists \phi . v_2 \in \text{Orb}(\phi(v_1), G_2)$, and $\exists \phi . v_1 \in \text{Orb}(\phi^{-1}(v_2), G_1)$ where $\phi : V_1 \rightarrow V_2$ is an isomorphism between $G_1$ and $G_2$.
 \end{theorem}
 
 \begin{proof}
@@ -292,6 +269,58 @@ Since the orbit indices are equal and $\mathcal{H_G}(G_1)=\mathcal{H_G}(G_2)$, t
 
 \qed
 \end{proof}
+
+\section{Local Graph Hashing}
+
+In comparison to the global hashing strategy which depends on the global structure of the graph, the local hashing strategy depends only on properties we can \textit{observer} by traversing the digraph along its edges. To make this concept precise, we say that the hash of two nodes in a digraph should be equal if and only if their tree expansions are isomorphic. A tree expansion is formed by selecting a starting node, placing it at the root of the tree, then adding neighboring nodes as children, and expanding recursively. This forms a potentially infinite tree induced by the structure of the underlying digraph.
+
+Our strategy for local graph hashing builds uses a variation of an algorithm to compute color refinement. In color refinement, nodes are repeatedly colored and propogated over multiple iterations until a stable coloring is achieved. To be more precise, the initial coloring $\lambda_0$ of the nodes is defined to be the hash of the node's labels:
+
+\begin{equation}
+  \lambda_0(u) = \mathcal{H}(L(u))
+\end{equation}
+
+We then compute colorings over multiple iterations using the following equation (note that $\{\{...\}\}$ is a multiset):
+
+\begin{equation}
+  \lambda_{i+1}(u) = \mathcal{H}(\textproc{to\_str}((L(u), \{\{\lambda_{i}(v) \mid (u, v) \in E\}\})))
+\end{equation}
+
+Note here that our formulation of color refinement differs from the classic color refinement algorithm which uses the update rule
+
+\begin{equation}
+  \lambda_{i+1}(u) = \mathcal{H}(\textproc{to\_str}((\lambda_i(u), \{\{\lambda_{i}(v) \mid (u, v) \in E\}\})))
+\end{equation}
+
+The two variations of color refinement give identical computational results. However, in our variation it is clear that the color of a node in round $i$ is exactly the hash of the tree expansion with a maximum depth of $i$ layers. Note here that our finite tree is being built up bottom-up, with a new layer added to the tree every iteration. Due to the bottom-up construction, the hashing process maximally shares computation, making this a dynamic programming approach.
+
+We now define the following stabilization condition which will tell us when to stop computing new colors:
+
+\textbf{Global Stabilization Condition}: Stabilization is achieved in round $i$ if for all nodes $u$, $v$ in $G$, $\lambda_{i+1}(u)=\lambda_{i+1}(v)$ if and only if $\lambda_i(u)=\lambda_i(v)$.
+
+Our first step of local graph hashing, then, is to take the input graph and compute the stable colors of each node, stopping when the global stabilization condition is achieved. With this in hand, we then construct a quotient graph induced by the stable colors, merging any nodes together with identical color. Note here that the quotient graph produced is a multi-digraph, so that we preserve the tree expansion of all nodes.
+
+We now define the following stabilization condition which will tell us when to stop computing new colors on the next step of our algorithm:
+
+\textbf{Local Stabilization Condition}: A node $n$ is stable in round $i$ if for all nodes $u$, $v$ in the reachable subgraph from $n$, $\lambda_{i+1}(u)=\lambda_{i+1}(v)$ if and only if $\lambda_i(u)=\lambda_i(v)$.
+
+We then define the canonical label of a node $n$ to be the coloring of $n$ in the round in which local stabilization in the quotient graph is achieved for $n$. The canonical label can be used to order the nodes of the quotient graph. For some input node $n$ that we are hashing, we then say that the hash of $n$ is equal to the hash of the adjacency list of the subgraph reachable subgraph from $n$, sorted in canonical order via the canonical labels.
+
+\clearpage
+
+In contrast to a global hashing approach, a local hashing strategy depends on the properties we can observe by traversing the graph along edges. A local graph hash can be formulated in several ways:
+
+\begin{enumerate}
+  \item As a \textit{directed vertex language}. In this formulation, the hash of a node depends on the (potentially infinite) set of strings that can be formed by visiting labeled nodes. This particular formulation is very similar to that of nondeterminstic finite automata, except that characters are added by visiting nodes (instead of edges), and all states can be terminal states.
+  
+  Our primary note on this formulation of local graph hashing is that computing a hash value is PSPACE-hard. For this reason, we will not elaborate much further on solving this problem as an efficient algorithm is not possible.
+
+  \textbf{Proof Sketch:} We perform a poly-time reduction from the NFA universality problem (UNIV), which is PSPACE-complete \cite{univ}. We say that an NFA is universal if it accepts every string. Given an input NFA, we can perform a poly-time version to an equivalent directed vertex language. We can then construct a universal NFA and encode it in a directed vertex language. If we could compute the hash of a directed vertex language, we could decide the equality between the input NFA and the universal NFA.
+\end{enumerate}
+
+
+\footnotetext{\url{https://commons.wikimedia.org/wiki/File:Graph_Condensation.svg}}
+
 
 \subsection{Outgoing Ordered Edge Graphs}
 
