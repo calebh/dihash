@@ -355,6 +355,74 @@ To compute the hash of a specific node, we begin by computing the strongly conne
 
 \section{Directed Vertex Languages}
 
+Let $A$, $B$, and $C$ be finite sets of strings such that $A \neq B \neq C$. We define a new relation $X < Y \iff \min(X \triangle Y) \in Y \setminus X$ where $\triangle$ is the symmetric difference.
+
+\begin{theorem}
+The relation $<$ is transitive. That is, if $A < B$ and $B < C$, then $A < C$.
+\end{theorem}
+\begin{proof}
+We begin by defining the following two strings $p$ and $q$:
+\[
+  p = \min(A \triangle B) \in B \setminus A
+\]
+\[
+  q = \min(B \triangle C) \in C \setminus B
+\]
+
+\noindent We must show that $\min(A \triangle C) \in C \setminus A$.
+
+\medskip
+
+\noindent We make the following two observations:
+\begin{observation}\label{obs:1}
+For all $n < p$, $n \in A \iff n \in B$.
+\end{observation}
+\begin{observation}\label{obs:2}
+For all $n < q$, $n \in B \iff n \in C$.
+\end{observation}
+
+\noindent We now consider the following cases:
+\begin{itemize}
+  \item \textbf{Case $p < q$}. Applying Observation \ref{obs:2}, we have $p \in B \iff p \in C$.
+  
+  \medskip
+
+  We know $p \in B$ from our hypotheses, so $p \in C$. Combined with $p \notin A$, we get $p \in C \setminus A \subseteq A \triangle C$.
+
+  \medskip
+
+  Let $n$ be any string where $n < p$. By Observation \ref{obs:1}, $n \in A \iff n \in B$, and since $n < p < q$, by Observation \ref{obs:2}, $n \in B \iff n \in C$. Chaining these together, $n \in A \iff n \in C$, so $n \notin A \triangle C$.
+
+  \medskip
+
+  Therefore $\min(A \triangle C) = p \in C \setminus A$.
+
+  \item \textbf{Case $q < p$}. Applying Observation \ref{obs:1}, we have $q \in A \iff q \in B$.
+  
+  \medskip
+
+  We know $q \notin B$ by our hypotheses, so $q \notin A$. Combined with $q \in C$, we get $q \in C \setminus A \subseteq A \triangle C$.
+
+  \medskip
+
+  Let $n$ be any string where $n < q$. By Observation \ref{obs:2}, $n \in B \iff n \in C$, and since $n < q < p$, by Observation \ref{obs:1}, $n \in A \iff n \in B$. Chaining these together, $n \in A \iff n \in C$, so $n \notin A \triangle C$.
+
+  \medskip
+
+  Therefore $\min(A \triangle C) = q \in C \setminus A$.
+
+  \medskip
+
+  \item \textbf{Case p = q}. From our hypotheses, $p \in B \setminus A$ and $q \in C \setminus B$. This means that $p \in B$ and $q \notin B$. However $p=q$, so $p \in B$ and $p \notin B$, which is a contradiction.
+\end{itemize}
+
+\noindent In all possible cases, $\min(A \triangle C) \in C \setminus A$, so $A < C$.
+
+\end{proof}
+
+
+\section{Directed Vertex Languages}
+
 Let $A$, $B$, and $C$ be finite sets of string such that all pairwise
 set differences are nonempty:
 \[
@@ -384,7 +452,7 @@ Assume $A < B$ and $B < C$. Define the following quantities:
 \]
 By the hypotheses, we have $a < b$ and $\beta < \gamma$. We must show that $\alpha < \delta$.
 
-\begin{observation}\label{obs:1}
+\begin{observation}\label{obs:a}
 If $x \in B$ and $x < b$, then $x \in A$.
 \end{observation}
 \begin{proof}
@@ -440,7 +508,7 @@ so $a < b \leq \delta$.
   \item \textbf{Case: $a \in C$.}
     Then $a \in C \setminus B$, so $\beta < \gamma \leq a$.
     Now $\beta \in B$ and $\beta < \gamma \leq a < b$, so by
-    Observation~\ref{obs:1}, $\beta \in A$.
+    Observation~\ref{obs:a}, $\beta \in A$.
     Since $\beta \in B \setminus C$ and $\beta \in A$, we have
     $\beta \in A \setminus C$, so
     \[
