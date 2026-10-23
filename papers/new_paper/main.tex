@@ -79,7 +79,7 @@ This paper presents several algorithms for hashing directed graphs. We distingui
 \section{Introduction}\label{sec:introduction}
 %
 
-Hashing functions are fundamental building blocks in the modern software stack. They have seen widespread use in data storage and retrieval, digital fingerprinting, checksum and cryptographic applications. Traditionally, hash functions take as input bit strings of arbitrary length and return a bit string of a fixed size $\mathcal{H} : \{0,1\}^* \rightarrow \{0,1\}^n$. Good hashing functions should be fast to compute, minimize the chance of duplication of output values, and produce large changes in output for small changes in input. Over the years, many bit string hashing functions have been created, including MD5 \cite{md5}, SHA-2 \cite{sha2}, and SHA-3 \cite{sha3}.
+Hashing functions are fundamental building blocks in the modern software stack that have seen widespread use in data storage and retrieval, digital fingerprinting, checksum and cryptographic applications. Traditionally, hash functions take as input bit strings of arbitrary length and return a bit string of a fixed size $\mathcal{H} : \{0,1\}^* \rightarrow \{0,1\}^n$. Good hashing functions should be fast to compute, minimize the chance of duplication of output values, and produce large changes in output for small changes in input. Over the years, many bit string hashing functions have been created, including MD5 \cite{md5}, SHA-2 \cite{sha2}, and SHA-3 \cite{sha3}.
 
 \begin{algorithm}
 \caption{Recursive Merkle-tree Hashing of Ordered Binary Tree}
@@ -95,11 +95,22 @@ Hashing functions are fundamental building blocks in the modern software stack. 
 
 Hashing functions can be extended to trees via a simple extension of Merkle hashing \cite{merkle1987digital}. In Merkle tree hashing, the hash of a node is computed by hashing the concatenation of the node's label with the recursive hash of the node's children. Algorithm \ref{alg:merklehashing} gives a simple recursive implementation of Merkle tree hashing for ordered binary trees. This particular variation of Merkle hashing has seen use in many applications, including cryptocurrency \cite{bitcoin}, version control systems \cite{git}, and distributed hypertext document storage systems \cite{ipfs}.
 
-As we will see in the remainder of this paper, extending hashing to directed graphs gives a suprisingly broad range of options in algorithm design. To illustrate the design space, consider the case of hashing molecular structures (in the chemistry sense) for an informational database. In this case, the hash of the molecular directed graph depends on the \textit{global} structure of the digraph, and a correct algorithm should produce equal hashes if and only if two graphs are isomorphic.
+Extending hashing to node-labeled directed graphs is non-trivial due to the presence of cycles. Indeed, the design space of algorithm design for hashing digraphs is surprisingly broad and depends on use case objectives. In this paper we will focus on the following approaches, which we think are the most useful for practical applications:
 
-As a second example, consider the use case of a content-address web browser application that retrieves pages from a distributed hash table. In this case, the hash of a particular page in the web graph should only depend on the \textit{local} observations that can be made on a particular page and in the transitive closure. In other words, the hash of two web pages should be equal if and only if it is impossible to observationally distinguish between the two by navigating the web graph. This formulation of the graph hashing problem is derived from the concept of bisimulation and coinductive representations of directed graphs.
+\begin{itemize}
+  \item \textbf{Global Hashing} - for use cases where the \textit{global} structure of the digraph is of importance. A correct algorithm here should produce equal hashes if and only if two graphs are isomoprhic. Hashing a molecular structure (in the chemistry sense) is one example use case where the global structure is important.
+  \item \textbf{Local Hashing} - for use cases where observers can only observe \textit{local} information by traversing from a node to a neighbor on an outgoing edge. A correct algorithm here should produce equal hashes for a node if and only if the (potentially infinite) tree expansion of exploring outward from the node are isomorphic. Local hashing has many commonalities with bisimulation and is amenable to hashing co-inductive representations of finite directed graphs.
+  \item \textbf{Digraph Merkle Hashing} - for use cases where we want graphs to be hashed recursively, or graphs are structures that are built up over time. In this approach we hash strongly connected components individually using either global or local hashing, then use recursion on the acyclic condensation graph induced by the strongly connected components.
+  \item \textbf{Ordered Outgoing Edges} - in many practical applications the outgoing edges from a node are ordered. We can use this additional structure to improve the runtime performance of our hashing algorithms.
+\end{itemize}
 
-In this paper we will explore the extremes of this design space. For hashing digraphs in a global sense, we will make use of graph canonization algorithms and vertex orbit partitioning. We will then extend this approach to create a recursive variant that recurses over the acyclic condensation graph. We will then examine the other extreme by investigating \textit{directed vertex languages}, a variation similar to finite automata. Unless otherwise stated, the graphs we are examining in this paper are node labeled directed graphs where nodes with duplicate labels are allowed.
+One common theme throughout this paper is reliance on conversion of graphs to \textit{canonical form}. If two graphs (or nodes within) can be converted to a canonical form, we can serialize the canonical form and pass it through an ordinary string function. We should additionally take care to distinguish between the hash of an entire graph vs the hash of a specific node within a graph. Our general strategy for computing the hash of a specific node is to combine the overall graph hash with the node's position in canonical order. Care must be taken to ensure that our index accounts for any symmetry present in the graph (ie, two nodes may be identical modulo automorphism).
+
+%As we will see in the remainder of this paper, extending hashing to directed graphs gives a suprisingly broad range of options in algorithm design. To illustrate the design space, consider the case of hashing molecular structures (in the chemistry sense) for an informational database. In this case, the hash of the molecular directed graph depends on the \textit{global} structure of the digraph, and a correct algorithm should produce equal hashes if and only if two graphs are isomorphic.
+
+%As a second example, consider the use case of a content-address web browser application that retrieves pages from a distributed hash table. In this case, the hash of a particular page in the web graph should only depend on the \textit{local} observations that can be made on a particular page and in the transitive closure. In other words, the hash of two web pages should be equal if and only if it is impossible to observationally distinguish between the two by navigating the web graph. This formulation of the graph hashing problem is directly related to the concept of bisimulation and coinductive representations of directed graphs.
+
+%In this paper we will explore the extremes of this design space. For hashing digraphs in a global sense, we will make use of graph canonization algorithms and vertex orbit partitioning. We will then extend this approach to create a recursive variant that recurses over the acyclic condensation graph. We will then examine the other extreme by investigating \textit{directed vertex languages}, a variation of formal languages similar to finite automata. Unless otherwise stated, the graphs we are examining in this paper are node labeled directed graphs where nodes with duplicate labels are allowed.
 
 
 %Hashing directed graphs adds an additional layer of complexity not present in trees. Directed graphs can have arbitrary cycles, which prevents the use of na\"ive recursion. We work around this issue via two different prongs. First, we make use of graph canonization algorithms, which can be used to give a unique order to the nodes. This order can be used to output an adjacency list, which can then be hashed with an ordinary string hashing function. Second, we use the structure of the graph condensation, which is an induced directed acyclic graph and therefore amenable to recursion.
@@ -189,11 +200,24 @@ A \textit{vertex orbit} is the equivalence class of vertices of a graph under th
 
 The recursive Merkle-style algorithm will utilize the analysis of cycles within a directed graph. A \textit{strongly connected component} of a graph is a maximal set of vertices such that there exists a path in the graph between any two vertices within the strongly connected component. A \textit{condensation graph} is formed by contracting strongly connected components into single nodes. We will exploit the acyclicity of the condensation graph to construct our recursive algorithm. Figure \ref{fig:condensation} shows an example of strongly connected components and the induced condensation graph.
 
+\section{Global Graph Hashing}
+
+
 \section{Algorithms}
 
 \subsection{Design Space}
 
-\subsection{Canonization for Graph Hashing}
+It may come as a suprise that there are many different ways of defining the hash of a graph or the hash of the nodes contained within a graph. The definition of a graph hash therefore changes the algorithmic implementation needed to compute the hash values. To explore the design space of node hashing, we need to determine which properties we can \textit{observe} when traversing the graph. Some properties of interest that we may consider in our algorithm design include:
+
+\begin{enumerate}
+  \item When we are visiting a node, can we observe the presence of outgoing edges? Can we observe the presence of incoming edges?
+  \item Can we observe the number of outgoing and/or incoming edges?
+  \item After visiting a node and beginning a traversal, can we determine if we have visited a node previously in the walk? Can we observe the same for edges? Can we determine when we previously visited the node or edge?
+\end{enumerate}
+
+In this paper we will first cover an algorithm for computing hashes when we can observe maximally global properties. In other words, nodes will hash to the same value only for graphs that are exactly isomorphic. We will then explore an algorithm for hashing with a minimal amount of observable properties. This will be accomplished by viewing the hash of a node as the hash of a particular type of language generated by the walks through the graph.
+
+\subsection{Maximally Global Graph Hashing}
 
 \begin{algorithm}
     \caption{Directed Graph Hash}\label{digraphhash}
@@ -281,20 +305,19 @@ The algorithms in this section are directly inspired by the more general Scott g
     \caption{Node Hash - Outgoing Ordered Edges}\label{alg:node-outgoing-edges}
     \begin{enumerate}
         \item For some input node $n$, perform a depth first search starting at $n$ and record the visitation order of the reachable nodes. Relabel each node in the order visited by the DFS.
-        \item Create an adjacency list of this relabeled graph.
+        \item Create an adjacency list of this relabeled graph. Sort this adjacency list.
         \item Create a list of original labels in the visitation order.
-        \item Use string hashing on the (adjacency list, label list) tuple. This gives the hash of $n$.
+        \item Use a string hashing $\mathcal{H}$ on the (adjacency list, label list) tuple. This gives the hash of $n$.
     \end{enumerate}    
 \end{algorithm}
 
-For the case of a strongly connected graph, we can use these hashes to compute both a canonical order and orbit partition in quadratic time. This special case is useful for the Merkle-style graph hashing algorithm given in Section \ref{sec:merkle-graph-hashing} where strongly connected components are used for recursive hashing.
+For the case of a strongly connected graph, we can use these hashes to compute both a canonical order and orbit partition in quadratic time. This special case is useful for the Merkle-style graph hashing algorithm given in Section \ref{sec:merkle-graph-hashing} where strongly connected components are hashed recursively.
 
 \begin{algorithm}[H]
     \caption{Canonization and Orbit Partitioning for Strongly Connected Outgoing Ordered Edge Graphs}\label{alg:scc-outgoing-edges}
     \begin{enumerate}
-        \item For each node $n$, relabel $n$ with the hash computed in Algorithm \ref{alg:node-outgoing-edges}.
-        \item Canonize the graph by sorting these labels.
-        \item Nodes in the same orbit will have identical labels. \textbf{Proof}: It is easy to construct an automorphism between two nodes with identical labels by examining the adjacency list constructed during the DFS.
+        \item For each node $n$, compute the hash using Algorithm \ref{alg:node-outgoing-edges}. Nodes in the same orbit will have identical hash values, which can be used to compute the orbit partition. \textbf{Proof}: It is easy to construct an automorphism by examining the adjacency list constructed during the DFS.
+        \item Take the node with the minimal hash value, and use its DFS ordering as the canonical order for the graph.
         \item At this point we now have a canonical order and orbit partition that can be used in Algorithm \ref{digraphhash} or \ref{alg:digraph-node-hash}.
     \end{enumerate}
 \end{algorithm}
@@ -355,20 +378,87 @@ To compute the hash of a specific node, we begin by computing the strongly conne
     \end{algorithmic}
 \end{algorithm}
 
+\section{Local Vertex Hashing}
+
+In contrast to global graph hashing, local graph hashing computes a vertex hash based on solely local properties that can be observed by walking through the graph. In our formulation, the local hash of a vertex is defined as the hash of the potentially infinite tree formed by traversing the directed graph. This particular formulation is that of bisimulation equivalence and is useful for hashing finite co-inductive formulations of directed graphs.
+
+Our approach begins by computing a quotient graph where nodes that are bisimilar are merged into a single node. This can be computed by a color refinement algorithm. Although most commonly used as a first pass phase in graph isomorphism checks, color refinement actually computes groups of nodes that are bisimilar.
+
+Once a quotient graph modulo bisimilarity is computed of our input graph, we then proceed to compute a canonical order of the input nodes. This can be accomplished by computing the hash of a finite tree expansion for each node. The depth of the finite tree expansion should be set to the minimum depth needed to distinguish any two nodes in the reachable part of the quotient graph. To optimize the computation of the hash, the tree should be built bottom-up. In practice, computing the quotient graph and performing this canonization step can be fused together and calculated simultaneously.
+
+Suppose that we have graph $G$ minimized to $G'$ and some arbitrary minimal $G_min$. We then show the existance of a bijection $f : V(G') \rightarrow V(G_{min})$ when Tree($G$) = Tree($G_{min}$).
+
+\begin{lemma}
+  $f$ is defined everywhere.
+\end{lemma}
+\begin{proof}
+  Consider some vertex $p$ in $G$. Let $T=\text{Tree}_{G'}(p)$. Then $T \in \text{Tree}(G')$. However $\text{Tree}(G')=\text{Tree}(G_{min})$. This means that there must be a vertex $p'$ such that $T=\text{Tree}_{G_{min}}(p')$. We can then map $p \mapsto p'$ in $f$.
+\end{proof}
+
+\begin{lemma}
+  $f$ is well defined
+\end{lemma}
+\begin{proof}
+  $f$ is well defined if $p=q$ implies $f(p)=f(q)$.
+
+  Assume $f$ is not well defined. Then there is some $p$ such that $f(p)=p'$ and $f(p)=p''$ where $p' \neq p''$.
+
+  This means that $\text{Tree}_{G_{min}}(p)=\text{Tree}_{G_{min}}(p'')$ which means that $p$ and $p''$ have equal tree expansions. This contradicts the assumption that $G_{min}$ is minimal.
+\end{proof}
+
+\begin{lemma}
+  $f$ is injective
+\end{lemma}
+\begin{proof}
+  Assume that $f$ is not injective. Then there are some states $p$ and $q$ such that $f(p)=f(q)$.
+
+  Since $\text{Tree}(G)=\text{Tree}(G_{min})$, this implies that $p$ and $q$ have identical tree expansions. However our algorithm verified that $p$ and $q$ had different tree expansions, which is a contradiction.
+\end{proof}
+
+\begin{lemma}
+  $f$ is surjective
+\end{lemma}
+\begin{proof}
+  Assume $f$ is not surjective. Then there is some state $p'$ such that there is no node $p$ such that $f(p)=p'$. This implies that $\text{Tree}(G') \neq \text{Tree}(G_{min})$ which is a contradiction.
+\end{proof}
+
+\begin{lemma}
+  $(u, v)$
+\end{lemma}
+
+
+This idea is essentially that of bisimulation equivalence and is useful for hashing co-inductive formulations of directed graphs.
+
+For our formulation of local vertex hashing, the only property we can observe while traversing the graph are vertex labels. Other properties, such as vertex out-degree are not observable properties for our purposes.
+
+With these ideas in mind, we can write a canonization modulo bisimulation equivalence by using a color refinement algorithm:
+
+\begin{enumerate}
+  \item Given an input graph $G$ and a vertex $v$, remove all nodes in $G$ that are not reachable from $v$.
+  \item 
+\end{enumerate}
+
+Note here that in our formulation, we cannot explicitly observe other properties such as vertex out degree.
+
+
+
+
+We will now explore the design space for hashing a node in a directed graph by 
+
+
 \section{Directed Vertex Languages}
 
 We will now explore the design space for hashing a node in the directed graph
-by computing the hash of a node's \textit{vertex language}. This type of language is
-highly reminiscient of how we can define regular languages using finite automata.
-
-We define the directed vertex language $\mathcal{L}_G(u)$ of some node $u$ in directed graph
+by computing the hash of a node's \textit{vertex language}. We define the directed vertex
+language $L_G(u)$ of some node $u$ in directed graph
 $G$ to be the set of all strings formed by all walks starting from $u$ in $G$. The strings
-in this set are built from the labels of the vertices visited in each walk. This is in contrast
-to a DFA where the characters are added by walking along an edge. More formally,
-the language of a node can be recursively defined as follows:
+in this set are built from the labels of the vertices visited in each walk. This differs from a
+more standard deterministic finite automaton (DFA) where characters are added to a string by
+walking along an edge. More formally, we can describe the language of a node using recursion
+and a union operation:
 
 \begin{equation}
-  \mathcal{L}_G(u) = \{L(u)\} \cup \bigcup_{v \in \text{neighbor}(u)} \{L(u) \circ x \mid x \in \mathcal{L}_G(v)\}
+  L_G(u) = \{\mathcal{L}(u)\} \cup \bigcup_{v \in \text{neighbor}(u)} \{\mathcal{L}(u) \circ x \mid x \in L_G(v)\}
 \end{equation}
 
 We now proceed to construct an algorithm that can compute a hash for this (potentially infinite) set.
@@ -379,6 +469,16 @@ To accomplish this, we will use the following strategy, given some input graph $
   \item We will show that this minimal digraph is unique.
   \item We will canonically order nodes in the minimal digraph using a relation we will define Section \ref{sec:relation}.
   \item With the ordering in hand, we can order the minimal digraph's adjacency list, which can be fed to a typical string hashing function as we have done in previous sections.
+\end{enumerate}
+
+\subsection{Minimization}
+
+Two nodes $u$ and $v$ can be merged if any of the following conditions hold:
+
+\begin{enumerate}
+  \item $L(u) = L(v)$
+  \item $L^T(u) = L^T(v)$
+  \item $L(u) \supseteq L(v)$ and $L^T(u) \supseteq L^T(v)$
 \end{enumerate}
 
 \subsection{Relation}
@@ -448,109 +548,6 @@ For all $n < q$, $n \in B \iff n \in C$.
 \noindent In all possible cases, $\min(A \triangle C) \in C \setminus A$, so $A \prec C$.
 
 \end{proof}
-
-
-\section{Directed Vertex Languages}
-
-Let $A$, $B$, and $C$ be finite sets of string such that all pairwise
-set differences are nonempty:
-\[
-  A \setminus B \neq \emptyset, \quad
-  B \setminus A \neq \emptyset, \quad
-  B \setminus C \neq \emptyset, \quad
-  C \setminus B \neq \emptyset, \quad
-  A \setminus C \neq \emptyset, \quad
-  C \setminus A \neq \emptyset.
-\]
-Define the relation $X < Y$ by $\min(X \setminus Y) < \min(Y \setminus X)$ where two strings are compared using lexiographic ordering.
-
-\begin{theorem}
-The relation $<$ is transitive. That is, if $A < B$ and $B < C$, then $A < C$.
-\end{theorem}
-
-\begin{proof}
-Assume $A < B$ and $B < C$. Define the following quantities:
-\[
-  a = \min(A \setminus B), \quad b = \min(B \setminus A),
-\]
-\[
-  \beta = \min(B \setminus C), \quad \gamma = \min(C \setminus B),
-\]
-\[
-  \alpha = \min(A \setminus C), \quad \delta = \min(C \setminus A).
-\]
-By the hypotheses, we have $a < b$ and $\beta < \gamma$. We must show that $\alpha < \delta$.
-
-\begin{observation}\label{obs:a}
-If $x \in B$ and $x < b$, then $x \in A$.
-\end{observation}
-\begin{proof}
-Indeed, if $x \notin A$, then $x \in B \setminus A$, contradicting $b = \min(B \setminus A)$.
-\end{proof}
-
-%\begin{observation}\label{obs:2}
-%If $x \in C$ and $x < \gamma$, then $x \in B$.
-%\end{observation}
-%\noindent
-%Indeed, if $x \notin B$, then $x \in C \setminus B$, contradicting %$\gamma = \min(C \setminus B)$.
-
-\noindent We now proceed by case analysis:
-
-\noindent\textbf{Case 1: $\delta \notin B$.}
-
-\smallskip
-Since $\delta \in C \setminus A$ and $\delta \notin B$, we have $\delta \in C \setminus B$,
-so $\beta < \gamma \leq \delta$.
-
-\begin{itemize}
-  \item \textbf{Case: $\beta \in A$.}
-    Then $\beta \in A \setminus C$, so
-    \[
-      \alpha \leq \beta < \gamma \leq \delta
-    \]
-
-  \item \textbf{Case: $\beta \notin A$.}
-    Then $\beta \in B \setminus A$, so $a < b \leq \beta$.
-    \begin{itemize}
-      \item \textbf{Case:} $a \notin C$. Then $a \in A \setminus C$, so
-        \[
-          \alpha \leq a < b \leq \beta < \gamma \leq \delta
-        \]
-      \item \textbf{Case:} $a \in C$. Then $a < b \leq \beta < \gamma \leq a$, a contradiction.
-    \end{itemize}
-\end{itemize}
-
-\bigskip
-\noindent\textbf{Case 2: $\delta \in B$.}
-
-\smallskip
-Since $\delta \in C \setminus A$ and $\delta \in B$, we have $\delta \in B \setminus A$,
-so $a < b \leq \delta$.
-
-\begin{itemize}
-  \item \textbf{Case: $a \notin C$.}
-    Then $a \in A \setminus C$, so
-    \[
-      \alpha \leq a < b \leq \delta.
-    \]
-
-  \item \textbf{Case: $a \in C$.}
-    Then $a \in C \setminus B$, so $\beta < \gamma \leq a$.
-    Now $\beta \in B$ and $\beta < \gamma \leq a < b$, so by
-    Observation~\ref{obs:a}, $\beta \in A$.
-    Since $\beta \in B \setminus C$ and $\beta \in A$, we have
-    $\beta \in A \setminus C$, so
-    \[
-      \alpha \leq \beta < b \leq \delta.
-    \]
-\end{itemize}
-
-\medskip
-\noindent In every case, $\alpha < \delta$, i.e.,
-$\min(A \setminus C) < \min(C \setminus A)$, so $A < C$.
-\end{proof}
-
-
 
 
 \section{Application Sketch}
