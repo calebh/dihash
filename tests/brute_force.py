@@ -18,7 +18,7 @@ import networkx as nx
 
 def random_digraph(rng, n, p, alphabet, ordered=False, loops=True, multi=False):
     """Random labeled digraph with nodes 0..n-1. If ordered, every edge gets a distinct (per source) port number,
-    drawn from a sparse range so that sorting by port is actually exercised. If multi (ordered only), the result is a
+    drawn from a sparse range so that sorting by port is actually exercised. If multi, the result is a
     MultiDiGraph in which a node sometimes links to the same target more than once."""
     g = nx.MultiDiGraph() if multi else nx.DiGraph()
     for i in range(n):
@@ -74,7 +74,7 @@ def random_pair(rng, max_nodes=6, ordered=False, probabilities=(0.15, 0.3, 0.45)
 def successors(g, u, ordered):
     if ordered:
         return [v for (_, v, port) in sorted(g.out_edges(u, data='port'), key=lambda edge: edge[2])]
-    return list(g.successors(u))
+    return [v for (_, v) in g.out_edges(u)]  # once per edge: parallel edges of a MultiDiGraph count
 
 
 def scc_map(g):

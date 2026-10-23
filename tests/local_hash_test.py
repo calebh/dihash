@@ -2,7 +2,8 @@ import networkx as nx
 
 from dihash import local_hash
 from dihash.util import hash_sha256
-from dihash.local_hash import _globally_stable_colors, LocalHashVariant
+from dihash.local_hash import LocalHashVariant
+import brute_force as bf
 
 def build(labels, edges):
     G = nx.DiGraph()
@@ -117,10 +118,10 @@ def test8():
     print("8. insertion-order independent: OK")
 
 # ---- 9. Randomized differential check against ground truth ---------------
-# Ground truth for tree equality on a finite graph: colors at the globally
-# stable round of the DISJOINT UNION of the graphs under comparison (sound
-# within one refinement run, as proved).  Canonical hashes computed per
-# graph separately must induce exactly the same equivalence.
+# Ground truth for tree equality: deep truncated unfoldings computed by the
+# independent brute-force oracle (tests/brute_force.py) on the disjoint union
+# of the graphs under comparison.  Canonical hashes computed per graph
+# separately must induce exactly the same equivalence.
 def test9():
     import random
     random.seed(7)
@@ -138,7 +139,7 @@ def test9():
         A = random_graph(random.randint(1, 7), random.randint(1, 3), 0.25)
         B = random_graph(random.randint(1, 7), random.randint(1, 3), 0.25)
         U = nx.union(A, B, rename=("A", "B"))
-        truth = _globally_stable_colors(U, LocalHashVariant.UNFOLDING, hash_sha256)
+        (truth, _) = bf.unfolding_classes(U, U)
         hA, hB = local_hash(A), local_hash(B)
         joint = {**{f"A{n}": hA[n] for n in A}, **{f"B{n}": hB[n] for n in B}}
         for x in U.nodes:

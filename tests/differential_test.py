@@ -15,6 +15,7 @@ from dihash.local_hash import LocalHashVariant, local_hash, local_sc_hash
 from dihash.merkle_hash import merkle_hash, GlobalMH, LocalMH, OrderedGlobalMH, OrderedLocalMH
 from dihash.ordered_hash import (ordered_node_hash, ordered_sc_global_hash, ordered_local_hash, ordered_sc_local_hash,
                                  _canonical_partition)
+from dihash.partition import canonical_count_partition, bisimulation_partition
 
 import brute_force as bf
 
@@ -29,6 +30,9 @@ def pairs(seed, ordered=False, trials=None, max_nodes=None, multi=False):
     rng = random.Random(seed + int(os.environ.get("DIHASH_SEED", 0)))
     for _ in range(trials):
         yield bf.random_pair(rng, max_nodes=max_nodes, ordered=ordered, multi=multi)
+
+
+MULTI = pytest.mark.parametrize("multi", [False, True], ids=["digraph", "multidigraph"])
 
 
 def sccs_of(g):
@@ -67,8 +71,9 @@ def test_global_node_hash_iff_same_orbit():
 # Local hashing (Section 4)
 # ---------------------------------------------------------------------------------------------------------------------
 
-def test_local_hash_iff_unfoldings_isomorphic():
-    for (g1, g2) in pairs(4):
+@MULTI
+def test_local_hash_iff_unfoldings_isomorphic(multi):
+    for (g1, g2) in pairs(4, multi=multi):
         (h1, h2) = (local_hash(g1), local_hash(g2))
         (t1, t2) = bf.unfolding_classes(g1, g2)
         for u in g1:
@@ -76,8 +81,9 @@ def test_local_hash_iff_unfoldings_isomorphic():
                 assert (h1[u] == h2[v]) == (t1[u] == t2[v]), (u, v)
 
 
-def test_local_hash_bisimulation_iff_bisimilar():
-    for (g1, g2) in pairs(5):
+@MULTI
+def test_local_hash_bisimulation_iff_bisimilar(multi):
+    for (g1, g2) in pairs(5, multi=multi):
         h1 = local_hash(g1, variant=LocalHashVariant.BISIMULATION)
         h2 = local_hash(g2, variant=LocalHashVariant.BISIMULATION)
         bisim = bf.bisimulation_classes(g1, g2)
@@ -86,12 +92,64 @@ def test_local_hash_bisimulation_iff_bisimilar():
                 assert (h1[u] == h2[v]) == bisim(u, v), (u, v)
 
 
+def random_automaton(rng, max_states):
+    n = rng.randint(1, max_states)
+    keys = [rng.choice("ab") for _ in range(n)]
+    succ = [[rng.randrange(n) for _ in range(rng.choice([0, 1, 1, 2, 3, 4]))] for _ in range(n)]
+    g = nx.MultiDiGraph()
+    for p in range(n):
+        g.add_node(p, label=keys[p])
+    for p in range(n):
+        for q in succ[p]:
+            g.add_edge(p, q)
+    return (keys, succ, g)
+
+
+def renumbered(rng, keys, succ):
+    n = len(keys)
+    perm = list(range(n))
+    rng.shuffle(perm)  # state p is renamed perm[p]
+    inverse = [0] * n
+    for (p, q) in enumerate(perm):
+        inverse[q] = p
+    return (perm, [keys[inverse[q]] for q in range(n)], [[perm[t] for t in succ[inverse[q]]] for q in range(n)])
+
+
+def test_canonical_count_partition():
+    """Counting refinement: blocks are exactly the unfolding classes (parallel edges count), and the block ids do not
+    depend on how the states are numbered."""
+    rng = random.Random(24)
+    for _ in range(4 * TRIALS):
+        (keys, succ, g) = random_automaton(rng, rng.choice([12, 40]))
+        (block, num_blocks) = canonical_count_partition(keys, succ)
+        (t, _) = bf.unfolding_classes(g, g)
+        for p in g:
+            for q in g:
+                assert (block[p] == block[q]) == (t[p] == t[q])
+        (perm, keys2, succ2) = renumbered(rng, keys, succ)
+        (block2, num_blocks2) = canonical_count_partition(keys2, succ2)
+        assert num_blocks2 == num_blocks and all(block2[perm[p]] == block[p] for p in g)
+
+
+def test_bisimulation_partition():
+    """Paige-Tarjan: blocks are exactly the bisimulation classes."""
+    rng = random.Random(25)
+    for _ in range(4 * TRIALS):
+        (keys, succ, g) = random_automaton(rng, rng.choice([8, 16]))
+        (block, _) = bisimulation_partition(keys, succ)
+        bisim = bf.bisimulation_classes(g, g)
+        for p in g:
+            for q in g:
+                assert (block[p] == block[q]) == bisim(p, q)
+
+
+@MULTI
 @pytest.mark.parametrize("variant", [LocalHashVariant.UNFOLDING, LocalHashVariant.BISIMULATION])
-def test_local_strongly_connected_hash(variant):
+def test_local_strongly_connected_hash(variant, multi):
     """Local component hash (Algorithm "Local Component Hash"): on strongly connected graphs, node hashes are equal iff
     the unfoldings are isomorphic (resp. the nodes are bisimilar); the graph hash is invariant under isomorphism."""
     rng = random.Random(6)
-    for (g1, g2) in pairs(6):
+    for (g1, g2) in pairs(6, multi=multi):
         for s1 in sccs_of(g1):
             for s2 in sccs_of(g2):
                 (gh1, h1) = local_sc_hash(s1, variant=variant)
@@ -121,9 +179,6 @@ def test_local_strongly_connected_hash_rejects_non_scc():
 # ---------------------------------------------------------------------------------------------------------------------
 # Ordered outgoing edges (Section 5)
 # ---------------------------------------------------------------------------------------------------------------------
-
-MULTI = pytest.mark.parametrize("multi", [False, True], ids=["digraph", "multidigraph"])
-
 
 @MULTI
 def test_ordered_node_hash_iff_ordered_rooted_isomorphic(multi):
@@ -260,15 +315,17 @@ def test_ordered_sc_local_hash_is_invariant_under_node_splitting(multi):
         assert all(mh[n] == mg[origin[n]] for n in h.nodes)
 
 
-def test_local_sc_hash_is_invariant_under_node_splitting():
-    for (g, h, origin) in node_splitting_variants(23, ordered=False, rounds=6, strongly_connected=True):
+@MULTI
+def test_local_sc_hash_is_invariant_under_node_splitting(multi):
+    for (g, h, origin) in node_splitting_variants(23, ordered=False, multi=multi, rounds=6, strongly_connected=True):
         for variant in (LocalHashVariant.UNFOLDING, LocalHashVariant.BISIMULATION):
             ((gg, ng), (gh, nh)) = (local_sc_hash(g, variant=variant), local_sc_hash(h, variant=variant))
             assert gg == gh and all(nh[n] == ng[origin[n]] for n in h.nodes)
 
 
-def test_local_hashes_are_invariant_under_node_splitting():
-    for (g, h, origin) in node_splitting_variants(21, ordered=False):
+@MULTI
+def test_local_hashes_are_invariant_under_node_splitting(multi):
+    for (g, h, origin) in node_splitting_variants(21, ordered=False, multi=multi):
         for variant in (LocalHashVariant.UNFOLDING, LocalHashVariant.BISIMULATION):
             (hg, hh) = (local_hash(g, variant=variant), local_hash(h, variant=variant))
             assert all(hh[n] == hg[origin[n]] for n in h.nodes)
@@ -302,9 +359,10 @@ def test_merkle_ordered_global_iff_global_merkle_equivalent(multi):
                 assert (h1[u] == h2[v]) == eq(u, v), (u, v)
 
 
-def test_merkle_local_iff_annotated_unfoldings_isomorphic():
+@MULTI
+def test_merkle_local_iff_annotated_unfoldings_isomorphic(multi):
     """Local Merkle variant: equal hashes iff the SCC-annotated unfoldings are isomorphic (Proposition in Sec. 6)."""
-    for (g1, g2) in pairs(11):
+    for (g1, g2) in pairs(11, multi=multi):
         (_, _, h1) = merkle_hash(g1, LocalMH(LocalHashVariant.UNFOLDING))
         (_, _, h2) = merkle_hash(g2, LocalMH(LocalHashVariant.UNFOLDING))
         (t1, t2) = bf.unfolding_classes(g1, g2, annotate=True)
@@ -313,10 +371,11 @@ def test_merkle_local_iff_annotated_unfoldings_isomorphic():
                 assert (h1[u] == h2[v]) == (t1[u] == t2[v]), (u, v)
 
 
-def test_merkle_local_bisimulation_iff_annotated_bisimilar():
+@MULTI
+def test_merkle_local_bisimulation_iff_annotated_bisimilar(multi):
     """Bisimulation flavour of the local Merkle variant: equal hashes iff the nodes are bisimilar when every edge is
     labeled by whether it stays inside its SCC."""
-    for (g1, g2) in pairs(12):
+    for (g1, g2) in pairs(12, multi=multi):
         (_, _, h1) = merkle_hash(g1, LocalMH(LocalHashVariant.BISIMULATION))
         (_, _, h2) = merkle_hash(g2, LocalMH(LocalHashVariant.BISIMULATION))
         bisim = bf.bisimulation_classes(g1, g2, annotate=True)

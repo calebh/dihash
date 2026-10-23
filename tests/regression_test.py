@@ -210,6 +210,46 @@ def test_ordered_local_hash_of_deep_graphs():
 
 
 # ---------------------------------------------------------------------------------------------------------------------
+# Subquadratic local hashing
+# ---------------------------------------------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("variant", [UNF, BISIM])
+def test_local_hash_of_deep_graphs(variant):
+    """A cycle with one distinguished node needs about n/2 rounds of naive color refinement and has a reachable set of
+    size n at every node; partition refinement and the Merkle construction avoid both quadratic costs."""
+    n = 3000
+    cycle = build({i: ("b" if i == 0 else "a") for i in range(n)}, [(i, (i + 1) % n) for i in range(n)])
+    assert len(set(local_hash(cycle, variant=variant).values())) == n
+    assert len(set(local_sc_hash(cycle, variant=variant)[1].values())) == n
+    path = build(same_labels(range(n)), [(i, i + 1) for i in range(n - 1)])
+    assert len(set(local_hash(path, variant=variant).values())) == n
+    # a chain of 2-cycles: many components. All unfoldings differ, except in the last 2-cycle; all nodes are bisimilar,
+    # since all have the same label and at least one successor
+    chain = build(same_labels(range(2 * n)), [(2 * i, 2 * i + 1) for i in range(n)] + [(2 * i + 1, 2 * i) for i in range(n)]
+                  + [(2 * i, 2 * i + 2) for i in range(n - 1)])
+    h = local_hash(chain, variant=variant)
+    if variant == UNF:
+        assert len(set(h.values())) == 2 * n - 1 and h[2 * n - 2] == h[2 * n - 1]
+    else:
+        assert len(set(h.values())) == 1
+
+
+def test_local_merkle_counts_repeated_external_links():
+    """In a MultiDiGraph, two links to the same node outside the SCC must count twice for the unfolding variant (they
+    used to be counted once), and once for bisimulation."""
+    twice = nx.MultiDiGraph()
+    twice.add_node("u", label="a")
+    twice.add_node("x", label="b")
+    twice.add_edge("u", "x")
+    twice.add_edge("u", "x")
+    once = build({"u": "a", "x": "b"}, [("u", "x")])
+    assert merkle(twice, LocalMH(UNF))["u"] != merkle(once, LocalMH(UNF))["u"]
+    assert merkle(twice, LocalMH(BISIM))["u"] == merkle(once, LocalMH(BISIM))["u"]
+    assert local_hash(twice)["u"] != local_hash(once)["u"]
+    assert local_hash(twice, variant=BISIM)["u"] == local_hash(once, variant=BISIM)["u"]
+
+
+# ---------------------------------------------------------------------------------------------------------------------
 # Examples from the paper
 # ---------------------------------------------------------------------------------------------------------------------
 

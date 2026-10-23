@@ -9,8 +9,8 @@ dihash hashes node-labeled directed graphs, and the individual nodes within them
 | Function | Two nodes receive the same hash if and only if | Running time |
 | --- | --- | --- |
 | `global_hash` | some isomorphism of their graphs maps one node onto the other. Within one graph: the nodes are in the same automorphism orbit | Exponential in the worst case (uses nauty), fast in practice |
-| `local_hash` (unfolding) | the (possibly infinite) trees obtained by unfolding the graph from the two nodes are isomorphic | Polynomial |
-| `local_hash` (bisimulation) | the two nodes are bisimilar | Polynomial |
+| `local_hash` (unfolding) | the (possibly infinite) trees obtained by unfolding the graph from the two nodes are isomorphic | O((n+m) log² n) |
+| `local_hash` (bisimulation) | the two nodes are bisimilar | O((n+m) log² n) |
 | `ordered_node_hash` | the subgraphs reachable from the two nodes are isomorphic, respecting the order of the outgoing edges | Linear |
 | `ordered_local_hash` | the trees obtained by unfolding the graph from the two nodes are isomorphic, respecting the order of the outgoing edges | O(m log² n), using DFA minimization |
 | `merkle_hash` | the nodes are equivalent component by component, see [Merkle Graph Hashing](#merkle-graph-hashing) | Depends on the variant |
@@ -34,7 +34,7 @@ A critical bug has been fixed with the color ordering passed to pynauty. Previou
 # Version 3.0
 dihash 3.0 follows the new version of the paper (source in `papers/soda`) and reorganizes the library around the notions of equivalence above:
 - `hash_graph` has been renamed to `global_hash`. It now returns only the graph hash unless `hash_nodes=True` is passed.
-- New `local_hash` and `local_sc_hash` functions hash nodes by their unfoldings or up to bisimulation, in polynomial time.
+- New `local_hash` and `local_sc_hash` functions hash nodes by their unfoldings or up to bisimulation, in O((n+m) log² n) time for a graph with n nodes and m edges. They use partition refinement and the Merkle construction on the quotient graph (Section 6.3 of the paper), and accept MultiDiGraphs, where parallel edges count with multiplicity for the unfolding variant.
 - New functions for graphs whose outgoing edges are ordered (`ordered_node_hash`, `ordered_sc_global_hash`, `ordered_local_hash` and `ordered_sc_local_hash`). Ordered graphs may be MultiDiGraphs, so that a node can link to the same target more than once.
 - `merkle_hash_graph` has been replaced by `merkle_hash`, which takes a variant argument selecting how each strongly connected component is hashed.
 - The `apply_quotient` option, `hash_graph_node_set`, and the edge-label and multigraph encoding functions have been removed. Graph-level labels (`g.graph['label']`) are no longer used.
@@ -123,7 +123,7 @@ node_hashes = dihash.local_hash(g, variant=LocalHashVariant.UNFOLDING, string_ha
 ```
 
 `local_hash` has the following inputs:
-- g: A NetworkX digraph. Each node should have a 'label' entry in its node attribute dictionary. The value of this entry should be a string which determines the label of that node.
+- g: A NetworkX DiGraph or MultiDiGraph. Each node should have a 'label' entry in its node attribute dictionary. The value of this entry should be a string which determines the label of that node. In a MultiDiGraph, parallel edges count with multiplicity for the unfolding variant.
 - variant: Either `LocalHashVariant.UNFOLDING` or `LocalHashVariant.BISIMULATION`.
   - With `LocalHashVariant.UNFOLDING`, two nodes have the same hash if and only if their unfoldings are isomorphic. The unfolding of a node is the (possibly infinite) tree obtained by starting at the node and repeatedly adding the successors of each node as its children.
   - With `LocalHashVariant.BISIMULATION`, two nodes have the same hash if and only if they are bisimilar. Bisimulation is like unfolding equivalence, except that it ignores how many times equivalent children are repeated.
@@ -132,7 +132,7 @@ node_hashes = dihash.local_hash(g, variant=LocalHashVariant.UNFOLDING, string_ha
 `local_hash` has the following output:
 - node_hashes: A dictionary mapping nodes to their hash hex digests.
 
-Because the hash of a node only depends on what is reachable from it, nodes in different graphs can be compared directly. Unlike `global_hash`, `local_hash` runs in polynomial time.
+Because the hash of a node only depends on what is reachable from it, nodes in different graphs can be compared directly. Unlike `global_hash`, `local_hash` runs in O((n+m) log² n) time for a graph with n nodes and m edges: the equivalence classes are computed by partition refinement, and the quotient graph is then hashed like a Merkle tree over its strongly connected components, so each component is serialized only once.
 
 Example:
 
@@ -182,7 +182,7 @@ False
 True
 ```
 
-For strongly connected graphs there is a faster function that also returns a hash for the whole graph:
+For strongly connected graphs there is also a function that returns a hash for the whole graph:
 
 ```
 (sc_hash, sc_node_hashes) = dihash.local_sc_hash(sc_graph, variant=LocalHashVariant.UNFOLDING, string_hash_fun=hash_sha256)

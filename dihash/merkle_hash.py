@@ -78,7 +78,8 @@ def _hash_scc(g, cond, root_scc, scc_hashes, node_hashes, string_hash_fun, comp_
                 if isinstance(variant, LocalMH) and variant.local_hash_variant == LocalHashVariant.BISIMULATION:
                     new_labels = sorted({node_hashes[t] for t in non_scc_succs})
                 else:
-                    new_labels = sorted(node_hashes[t] for t in non_scc_succs)
+                    # one entry per edge, so that repeated links in a MultiDiGraph count with multiplicity
+                    new_labels = sorted(node_hashes[t] for (_, t) in g.out_edges(s) if t in non_scc_succs)
             scc_graph.nodes[s]['label'] = string_hash_fun(encode((g.nodes[s]['label'], new_labels)))
 
         (scc_hash, scc_node_hashes) = comp_hash(scc_graph)
