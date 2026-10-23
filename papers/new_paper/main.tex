@@ -115,8 +115,8 @@ Extending hashing to node-labeled directed graphs is non-trivial due to the pres
 \begin{itemize}
   \item \textbf{Global Hashing} - for use cases where the \textit{global} structure of the digraph is of importance. A correct algorithm here should produce equal hashes if and only if two graphs are isomoprhic. Hashing a chemical/molecular structure is one use case where the global structure is important.
   \item \textbf{Local Hashing} - for use cases where observers can only observe \textit{local} information by traversing from a node to a neighbor on an outgoing edge. A correct algorithm here should produce equal hashes for a node if and only if the (potentially infinite) tree expansion of exploring outward from the node are isomorphic. Local hashing has many commonalities with bisimulation and is amenable to hashing co-inductive representations of finite directed graphs.
-  \item \textbf{Digraph Merkle Hashing} - for use cases where we want graphs to be hashed recursively, or graphs are structures that are built up over time. In this approach we hash strongly connected components individually using either global or local hashing, then use recursion on the acyclic condensation graph induced by the strongly connected components.
   \item \textbf{Ordered Outgoing Edges} - in many practical applications the outgoing edges from a node are ordered. We can use this additional structure to improve the runtime performance of our hashing algorithms.
+  \item \textbf{Merkle Graph Hashing} - for use cases where we want graphs to be hashed recursively, or graphs are structures that are built up over time. In this approach we hash strongly connected components individually using either global or local hashing, then use recursion on the acyclic condensation graph induced by the strongly connected components.
 \end{itemize}
 
 One common theme throughout this paper is reliance on conversion of graphs to \textit{canonical form}. If two graphs (or nodes within) can be converted to a canonical form, we can serialize the canonical form and pass it through an ordinary string function.
@@ -211,13 +211,15 @@ A \textit{vertex orbit} is the equivalence class of vertices of a graph under th
 \begin{figure}
   \centering
   \includegraphics[width=0.5\linewidth]{Fig2.eps}
-  \caption{Each yellow node contains a strongly connected component of a graph. When each strongly connected component is contracted into a single node, the yellow condensation graph is formed. Public domain figure courtesy of David Eppstein.\protect\footnotemark}
+  \caption{Each yellow node contains a strongly connected component of a graph. When each strongly connected component is contracted into a single node, the yellow condensation graph is formed. Since the condensation graph is acyclic, it can be recursed over. Public domain figure courtesy of David Eppstein.\protect\footnotemark}
   \label{fig:condensation}
 \end{figure}
 
 The recursive Merkle-style algorithm will utilize the analysis of cycles within a directed graph. A \textit{strongly connected component} of a graph is a maximal set of vertices such that there exists a path in the graph between any two vertices within the strongly connected component. A \textit{condensation graph} is formed by contracting strongly connected components into single nodes. We will exploit the acyclicity of the condensation graph to construct our recursive algorithm. Figure \ref{fig:condensation} shows an example of strongly connected components and the induced condensation graph.
 
 \section{Global Graph Hashing}
+
+\footnotetext{\url{https://commons.wikimedia.org/wiki/File:Graph_Condensation.svg}}
 
 \begin{algorithm}[b]
     \caption{Global Digraph Hash}\label{digraphhash}
@@ -317,7 +319,7 @@ Note here that our formulation of color refinement differs from the classic colo
   \lambda_{i+1}(u) = \mathcal{H}(\textproc{to\_str}((\lambda_i(u), \{\{\lambda_{i}(v) \mid (u, v) \in E\}\})))
 \end{equation}
 
-The two variations of color refinement give identical computational results. However, in our variation it is clear that the color of a node in round $i$ is exactly the hash of the tree expansion with a maximum depth of $i+1$ layers. Note here that our finite tree is being built up bottom-up, with a new layer added to the tree every iteration. Due to the bottom-up construction, the hashing process maximally shares computation, making this a dynamic programming algorithm.
+The two variations of color refinement give identical computational results. However, in our variation it is clear that the color of a node in round $i$ is exactly the hash of the tree expansion with a maximum depth of $i+1$ layers. Note here that our finite tree is being built up bottom-up, with a new layer added to the tree every iteration. Due to the bottom-up construction, the hashing process maximally shares computation, making this a dynamic programming approach.
 
 We now define the following stabilization condition which will tell us when to stop computing new colors:
 
@@ -337,11 +339,21 @@ We then proceed to operate on the new quotient graph, and pass it through a fres
 
 For each node $n$ in the quotient graph, there will be some step $i$ in which that node becomes locally stable. On that round we can create a canonical order for the nodes in the reachable subgraph of $n$ by sorting the colors $\lambda_i$ for each node. We can then use this ordering to create a canonical adjacency list, which can then be serialized to a string and passed through a string hashing function. This gives the node hash for vertex $n$.
 
-To summarize our approach, we begin by merging any nodes which are identical modulo tree expansion by using graph coloring with the global stabilization condition. We then construct a quotient graph, merging any of these identical nodes. We then compute a new graph coloring for each node, this time using the local stabilization condition. Since these colors are unique, they can be canonically ordered. The canonical ordering can then be used to construct a canonical adjacency list, which can then be hashed using an ordinary string hashing function. Algorithm \ref{alg:local-node-hash} gives a pseudo-code implementation of this approach.
+To summarize our approach, we begin by merging any nodes which are identical modulo tree expansion by using graph coloring with the global stabilization condition. We then construct a quotient graph, merging any of these identical nodes. We then compute a new graph coloring for each node, this time using the local stabilization condition. Since these colors are unique, they can be canonically ordered. The canonical ordering can then be used to construct a canonical adjacency list, which can then be hashed using an ordinary string hashing function. Algorithm \ref{alg:local-node-hash} gives a pseudo-code implementation of this approach that computes the hash for all nodes in the input graph.
 
 \begin{algorithm}[t]
     \caption{Local Digraph Node Hash}\label{alg:local-node-hash}
     \begin{algorithmic}[1]
+
+    \Function{\textproc{serialize}}{$Q=(V, E, L)$, root, reach, colors}
+        \State order $\gets$ \textproc{sorted}(reach, key=colors)
+        \State index $\gets$ $\{x \mapsto i \mid (i, x) \in \textproc{enumerate}(\text{order})\}$
+        \State root\_idx $\gets$ index[root]
+        \State adj\_list = \textproc{sorted}([(index[$s$], index[$t$] $\mid (s, t) \in E \land s \in \text{reach} \land t \in \text{reach}$)])
+        \State labels $\gets$ [L(x) \textbf{for} $x$ \textbf{in} order]
+        \State \Return $\mathcal{H}$(\textproc{to\_str}(root\_idx, labels, adj\_list))
+    \EndFunction
+
     \Function{$\mathcal{H_L}$}{$G=(V, E, L)$}
         \State $C \gets$ \textproc{global\_colors}($G$) \Comment Map nodes in $V$ to colors
         \State $Q \gets G / C$ \Comment Use colors as an equivalence class to compute a quotient graph
@@ -371,40 +383,51 @@ To summarize our approach, we begin by merging any nodes which are identical mod
 Given some node $u$ from $G_1$ and some node $v$ from $G_2$, $\mathcal{H_L}(G_1)[u] = \mathcal{H_L}(G_2)[v]$ if and only if $\textproc{tree\_expansion}(G_1, u) \cong \textproc{tree\_expansion}(G_2, v)$
 \end{theoremrep}
 
-\begin{inlineproof}
+\begin{proof}
   ($\Rightarrow$) If $\mathcal{H_L}(G_1)[u] = \mathcal{H_L}(G_2)[v]$, then the reachable subgraphs in the quotient graph from $u$ and $v$ are identical. Since the tree expansion depends only on the reachable parts of the graph, and taking the quotient leaves the tree expansion unchanged, the tree expansions are isomorphic.
 
-  ($\Leftarrow$) Let $V_1$ be the vertices of the quotient graph $Q_1 = G_1 / C_1$ reachable from $u$ and $V_2$ be the vertices of the quotient graph $Q_2 = G_2 / C_2$ reachable from $v$.
+  ($\Leftarrow$) Let $V_1, E_1$ be the vertices and edges of the quotient graph $Q_1 = G_1 / C_1$ reachable from $u$. Let $V_2, E_2$ be the vertices and edges of the quotient graph $Q_2 = G_2 / C_2$ reachable from $v$.
   
-  Then it is easy to construct a bijection of the vertices in the tree expansions since they are isomorphic. This bijection maps between nodes with isomorphic subtrees. Since the quotient graph merges any nodes with identical tree expansions, this same bijection can be re-interpreted as a bijection $f : V_1 \rightarrow V_2$ between the nodes in the reachable portions of the quotient graph.
+  Then it is easy to construct a bijection $f$ of the vertices in the tree expansions since they are isomorphic. This bijection maps between nodes with isomorphic subtrees. Since the quotient graph merges any nodes with identical tree expansions, this same bijection can be re-interpreted as a bijective induced map $g : V_1 \rightarrow V_2$ between the nodes in the reachable portions of the quotient graphs.
 
-  We now show that $f$ also preserves edges. We prove the following cases:
+  We now show that $g$ also preserves edges. That is, $(a, b) \in E_1$ if and only if $(g(a), g(b)) \in E_2$.
+  
+  Consider the following cases:
   \begin{itemize}
-    \item If $(a, b) \in E_1$, then $(f(a), f(b)) \in E_2$. Assume that $(f(a), f(b)) \notin E_2$. Then $\textproc{tree\_expansion}(G_1, a) \ncong  \textproc{tree\_expansion}(G_1, f(a))$, which contradicts the assumption that $f$ also maps between isomorphic tree expansions.
-    \item If $(f(a), f(b)) \in E_2$, then $(a, b) \in E_1$. Assume that $(a, b) \notin E_1$. Then $\textproc{tree\_expansion}(G_1, a) \ncong  \textproc{tree\_expansion}(G_1, f(a))$, which contradicts the assumption that $f$ also maps between isomorphic tree expansions.
+    \item If $(a, b) \in E_1$, then $(g(a), g(b)) \in E_2$. Assume that $(g(a), g(b)) \notin E_2$. Then $\textproc{tree\_expansion}(G_1, a) \ncong  \textproc{tree\_expansion}(G_2, g(a))$, which contradicts the assumption that the original bijection $f$ maps between isomorphic tree expansions.
+    \item If $(g(a), g(b)) \in E_2$, then $(a, b) \in E_1$. Assume that $(a, b) \notin E_1$. Then $\textproc{tree\_expansion}(G_1, a) \ncong  \textproc{tree\_expansion}(G_2, g(a))$, which contradicts the assumption that the original bijection $f$ maps between isomorphic tree expansions.
   \end{itemize}
 
-  We now show that if $(a, b) \in E_1$, then $(f(a), f(b)) \in E_2$.
+  We have therefore shown that the reachable portions of the quotient graph are isomorphic. We now note that the process of computing the final\_hash values in Algorithm \ref{alg:local-node-hash} is permutation invariant with respect to the quotient graph. This is because the color refinement portion of the computation is independent of vertex order, and the locally stable colors for each node when \textproc{partition\_unchanged} is true must be unique (by virtue of operating over a globally stable color quotient graph). We can therefore conclude that $\mathcal{H_L}(G_1)[u] = \mathcal{H_L}(G_2)[v]$.
+\end{proof}
+
+\begin{inlineproof}
+Available in appendix
 \end{inlineproof}
 
+\subsection{Alternative Formulations of Local Hashing}
 
-\clearpage
+The strategy employed for local hashing depends on properties we can observe by traversing the graph forward along its directed edges. There are several other formulations of local hashing which we will note here:
 
-In contrast to a global hashing approach, a local hashing strategy depends on the properties we can observe by traversing the graph along edges. A local graph hash can be formulated in several ways:
-
-\begin{enumerate}
-  \item As a \textit{directed vertex language}. In this formulation, the hash of a node depends on the (potentially infinite) set of strings that can be formed by visiting labeled nodes. This particular formulation is very similar to that of nondeterminstic finite automata, except that characters are added by visiting nodes (instead of edges), and all states can be terminal states.
+\begin{itemize}
+  \item As a \textit{directed vertex language}. In this formulation, the hash of a node is defined as the hash of the (potentially infinite) set of strings that can be formed by visiting labeled nodes:
   
-  Our primary note on this formulation of local graph hashing is that computing a hash value is PSPACE-hard. For this reason, we will not elaborate much further on solving this problem as an efficient algorithm is not possible.
+  \begin{equation}
+  \text{Lang}_G(u) = \{L(u)\} \cup \bigcup_{v \in \text{neighbor}(u)} \{L(u) \circ x \mid x \in \text{Lang}_G(v)\}
+  \end{equation}
 
-  \textbf{Proof Sketch:} We perform a poly-time reduction from the NFA universality problem (UNIV), which is PSPACE-complete \cite{univ}. We say that an NFA is universal if it accepts every string. Given an input NFA, we can perform a poly-time version to an equivalent directed vertex language. We can then construct a universal NFA and encode it in a directed vertex language. If we could compute the hash of a directed vertex language, we could decide the equality between the input NFA and the universal NFA.
-\end{enumerate}
+  This particular formulation is very similar to that of nondeterminstic finite automata, except that characters are added by visiting nodes (instead of edges), and all states can be terminal states.
+  
+  \,
 
+  Our primary note on this formulation of local graph hashing is that computing a hash value is \textbf{PSPACE-hard}. For this reason, we will not elaborate much further on solving this problem as an efficient algorithm is not possible.
 
-\footnotetext{\url{https://commons.wikimedia.org/wiki/File:Graph_Condensation.svg}}
+  \,
 
+  \textbf{Proof Sketch:} We perform a poly-time reduction from the NFA universality problem (UNIV), which is \textbf{PSPACE-complete} \cite{univ}. We say that an NFA is universal if it accepts every string. Given an input NFA, we can perform a poly-time version to an equivalent directed vertex language. We can then construct a universal NFA and encode it in a directed vertex language. If we could compute the hash of a directed vertex language, we could decide the equality between the input NFA and the universal NFA.
+\end{itemize}
 
-\subsection{Outgoing Ordered Edge Graphs}
+\section{Outgoing Ordered Edge Graphs}
 
 For many real world applications of graph hashing, the labels of outgoing edges can be strictly ordered.  We can take advantage of this extra structure on the edges to create hashing algorithms that run in polynomial time. Doing so also removes the dependency on the more complicated and exponential time canonization and orbit partitioning algorithms that are required for general digraphs.
 
@@ -422,7 +445,7 @@ The algorithms in this section are directly inspired by the more general Scott g
     \end{enumerate}    
 \end{algorithm}
 
-For the case of a strongly connected graph, we can use these hashes to compute both a canonical order and orbit partition in quadratic time. This special case is useful for the Merkle-style graph hashing algorithm given in Section \ref{sec:merkle-graph-hashing} where strongly connected components are hashed recursively.
+For the special case of a strongly connected graph, we can use these hashes to compute both a canonical order and orbit partition in quadratic time. This special case is useful for the Merkle-style graph hashing algorithm given in Section \ref{sec:merkle-graph-hashing} where strongly connected components are hashed recursively.
 
 \begin{algorithm}[H]
     \caption{Canonization and Orbit Partitioning for Strongly Connected Outgoing Ordered Edge Graphs}\label{alg:scc-outgoing-edges}
@@ -433,7 +456,7 @@ For the case of a strongly connected graph, we can use these hashes to compute b
     \end{enumerate}
 \end{algorithm}
 
-\begin{figure}[t]  
+\begin{figure}[b]  
 \centering 
 \begin{tikzpicture}[
     > = stealth, % arrow head style
@@ -470,7 +493,7 @@ For the case of a strongly connected graph, we can use these hashes to compute b
 
 Why must we restrict ourselves to the special case of strongly connected graphs? In the case of a generic digraph, the symmetry and therefore the orbit of a node depends not only on the structure of the reachable subgraph, but also on the structure from ancestor nodes. Incoming edges from ancestor nodes can break the symmetry of an orbit, as demonstrated in Figure \ref{fig:breaksymmetry}. In the case of a strongly connected graph, this is not an issue as all nodes are mutual descendants.
 
-\subsection{Merkle Graph Hashing}\label{sec:merkle-graph-hashing}
+\section{Merkle Graph Hashing}\label{sec:merkle-graph-hashing}
 
 For applications where graphs are built up over time taking a recursive algorithmic approach similar to Merkle-tree hashing would be highly beneficial. We will now construct such an algorithm that recursively operates over the condensation graph, which is a directed acyclic graph by construction. Algorithm \ref{alg:merklegraphhash} gives a pseudo-code implementation of the approach we will now discuss.
 
@@ -488,178 +511,6 @@ To compute the hash of a specific node, we begin by computing the strongly conne
     \EndFunction
     \end{algorithmic}
 \end{algorithm}
-
-\section{Local Vertex Hashing}
-
-In contrast to global graph hashing, local graph hashing computes a vertex hash based on solely local properties that can be observed by walking through the graph. In our formulation, the local hash of a vertex is defined as the hash of the potentially infinite tree formed by traversing the directed graph. This particular formulation is that of bisimulation equivalence and is useful for hashing finite co-inductive formulations of directed graphs.
-
-Our approach begins by computing a quotient graph where nodes that are bisimilar are merged into a single node. This can be computed by a color refinement algorithm. Although most commonly used as a first pass phase in graph isomorphism checks, color refinement actually computes groups of nodes that are bisimilar.
-
-Once a quotient graph modulo bisimilarity is computed of our input graph, we then proceed to compute a canonical order of the input nodes. This can be accomplished by computing the hash of a finite tree expansion for each node. The depth of the finite tree expansion should be set to the minimum depth needed to distinguish any two nodes in the reachable part of the quotient graph. To optimize the computation of the hash, the tree should be built bottom-up. In practice, computing the quotient graph and performing this canonization step can be fused together and calculated simultaneously.
-
-Suppose that we have graph $G$ minimized to $G'$ and some arbitrary minimal $G_min$. We then show the existance of a bijection $f : V(G') \rightarrow V(G_{min})$ when Tree($G$) = Tree($G_{min}$).
-
-\begin{lemma}
-  $f$ is defined everywhere.
-\end{lemma}
-\begin{proof}
-  Consider some vertex $p$ in $G$. Let $T=\text{Tree}_{G'}(p)$. Then $T \in \text{Tree}(G')$. However $\text{Tree}(G')=\text{Tree}(G_{min})$. This means that there must be a vertex $p'$ such that $T=\text{Tree}_{G_{min}}(p')$. We can then map $p \mapsto p'$ in $f$.
-\end{proof}
-
-\begin{lemma}
-  $f$ is well defined
-\end{lemma}
-\begin{proof}
-  $f$ is well defined if $p=q$ implies $f(p)=f(q)$.
-
-  Assume $f$ is not well defined. Then there is some $p$ such that $f(p)=p'$ and $f(p)=p''$ where $p' \neq p''$.
-
-  This means that $\text{Tree}_{G_{min}}(p)=\text{Tree}_{G_{min}}(p'')$ which means that $p$ and $p''$ have equal tree expansions. This contradicts the assumption that $G_{min}$ is minimal.
-\end{proof}
-
-\begin{lemma}
-  $f$ is injective
-\end{lemma}
-\begin{proof}
-  Assume that $f$ is not injective. Then there are some states $p$ and $q$ such that $f(p)=f(q)$.
-
-  Since $\text{Tree}(G)=\text{Tree}(G_{min})$, this implies that $p$ and $q$ have identical tree expansions. However our algorithm verified that $p$ and $q$ had different tree expansions, which is a contradiction.
-\end{proof}
-
-\begin{lemma}
-  $f$ is surjective
-\end{lemma}
-\begin{proof}
-  Assume $f$ is not surjective. Then there is some state $p'$ such that there is no node $p$ such that $f(p)=p'$. This implies that $\text{Tree}(G') \neq \text{Tree}(G_{min})$ which is a contradiction.
-\end{proof}
-
-\begin{lemma}
-  $(u, v)$
-\end{lemma}
-
-
-This idea is essentially that of bisimulation equivalence and is useful for hashing co-inductive formulations of directed graphs.
-
-For our formulation of local vertex hashing, the only property we can observe while traversing the graph are vertex labels. Other properties, such as vertex out-degree are not observable properties for our purposes.
-
-With these ideas in mind, we can write a canonization modulo bisimulation equivalence by using a color refinement algorithm:
-
-\begin{enumerate}
-  \item Given an input graph $G$ and a vertex $v$, remove all nodes in $G$ that are not reachable from $v$.
-  \item 
-\end{enumerate}
-
-Note here that in our formulation, we cannot explicitly observe other properties such as vertex out degree.
-
-
-
-
-We will now explore the design space for hashing a node in a directed graph by 
-
-
-\section{Directed Vertex Languages}
-
-We will now explore the design space for hashing a node in the directed graph
-by computing the hash of a node's \textit{vertex language}. We define the directed vertex
-language $L_G(u)$ of some node $u$ in directed graph
-$G$ to be the set of all strings formed by all walks starting from $u$ in $G$. The strings
-in this set are built from the labels of the vertices visited in each walk. This differs from a
-more standard deterministic finite automaton (DFA) where characters are added to a string by
-walking along an edge. More formally, we can describe the language of a node using recursion
-and a union operation:
-
-\begin{equation}
-  L_G(u) = \{\mathcal{L}(u)\} \cup \bigcup_{v \in \text{neighbor}(u)} \{\mathcal{L}(u) \circ x \mid x \in L_G(v)\}
-\end{equation}
-
-We now proceed to construct an algorithm that can compute a hash for this (potentially infinite) set.
-To accomplish this, we will use the following strategy, given some input graph $G$ and node $u$
-\begin{enumerate}
-  \item We will aggressively merge vertices in $G$ that are indistinguishable from the perspective of
-  walks through the graph starting at $u$. This will result in a minimized digraph.
-  \item We will show that this minimal digraph is unique.
-  \item We will canonically order nodes in the minimal digraph using a relation we will define Section \ref{sec:relation}.
-  \item With the ordering in hand, we can order the minimal digraph's adjacency list, which can be fed to a typical string hashing function as we have done in previous sections.
-\end{enumerate}
-
-\subsection{Minimization}
-
-Two nodes $u$ and $v$ can be merged if any of the following conditions hold:
-
-\begin{enumerate}
-  \item $L(u) = L(v)$
-  \item $L^T(u) = L^T(v)$
-  \item $L(u) \supseteq L(v)$ and $L^T(u) \supseteq L^T(v)$
-\end{enumerate}
-
-\subsection{Relation}
-\label{sec:relation}
-
-Let $A$, $B$, and $C$ be sets of strings such that $A \neq B \neq C$. We define a new relation $X \prec Y \iff \min(X \triangle Y) \in Y \setminus X$ where $\triangle$ is the symmetric difference.
-
-\begin{theorem}
-The relation $\prec$ is transitive. That is, if $A \prec B$ and $B \prec C$, then $A \prec C$.
-\end{theorem}
-\begin{proof}
-We begin by defining the following two strings $p$ and $q$:
-\[
-  p = \min(A \triangle B) \in B \setminus A
-\]
-\[
-  q = \min(B \triangle C) \in C \setminus B
-\]
-
-\noindent We must show that $\min(A \triangle C) \in C \setminus A$.
-
-\medskip
-
-\noindent We make the following two observations:
-\begin{observation}\label{obs:1}
-For all $n < p$, $n \in A \iff n \in B$.
-\end{observation}
-\begin{observation}\label{obs:2}
-For all $n < q$, $n \in B \iff n \in C$.
-\end{observation}
-
-\noindent We now consider the following cases:
-\begin{itemize}
-  \item \textbf{Case $p < q$}. Applying Observation \ref{obs:2}, we have $p \in B \iff p \in C$.
-  
-  \medskip
-
-  We know $p \in B$ from our hypotheses, so $p \in C$. Combined with $p \notin A$, we get $p \in C \setminus A \subseteq A \triangle C$.
-
-  \medskip
-
-  Let $n$ be any string where $n < p$. By Observation \ref{obs:1}, $n \in A \iff n \in B$, and since $n < p < q$, by Observation \ref{obs:2}, $n \in B \iff n \in C$. Chaining these together, $n \in A \iff n \in C$, so $n \notin A \triangle C$.
-
-  \medskip
-
-  Therefore $\min(A \triangle C) = p \in C \setminus A$.
-
-  \item \textbf{Case $q < p$}. Applying Observation \ref{obs:1}, we have $q \in A \iff q \in B$.
-  
-  \medskip
-
-  We know $q \notin B$ by our hypotheses, so $q \notin A$. Combined with $q \in C$, we get $q \in C \setminus A \subseteq A \triangle C$.
-
-  \medskip
-
-  Let $n$ be any string where $n < q$. By Observation \ref{obs:2}, $n \in B \iff n \in C$, and since $n < q < p$, by Observation \ref{obs:1}, $n \in A \iff n \in B$. Chaining these together, $n \in A \iff n \in C$, so $n \notin A \triangle C$.
-
-  \medskip
-
-  Therefore $\min(A \triangle C) = q \in C \setminus A$.
-
-  \medskip
-
-  \item \textbf{Case $p = q$}. From our hypotheses, $p \in B \setminus A$ and $q \in C \setminus B$. This means that $p \in B$ and $q \notin B$. However $p=q$, so $p \in B$ and $p \notin B$, which is a contradiction.
-\end{itemize}
-
-\noindent In all possible cases, $\min(A \triangle C) \in C \setminus A$, so $A \prec C$.
-
-\end{proof}
-
 
 \section{Application Sketch}
 
