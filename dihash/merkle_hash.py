@@ -2,8 +2,8 @@ import functools
 
 import networkx as nx
 
-from dihash.local_hash import local_strongly_connected_hash, LocalHashVariant
-from dihash.ordered_edges_hash import ordered_edges_sc_global_hash, _port_successors
+from dihash.local_hash import local_sc_hash, LocalHashVariant
+from dihash.ordered_hash import ordered_sc_global_hash, _port_successors
 from dihash.util import encode, hash_sha256
 from dihash.global_hash import global_hash
 
@@ -112,9 +112,9 @@ def merkle_hash(g: nx.DiGraph, variant: MerkleHashVariant, nodes_to_hash=None, p
     if isinstance(variant, GlobalMH):
         component_hash = functools.partial(global_hash, hash_nodes=True, string_hash_fun=string_hash_fun)
     elif isinstance(variant, LocalMH):
-        component_hash = functools.partial(local_strongly_connected_hash, variant=variant.local_hash_variant, string_hash_fun=string_hash_fun)
+        component_hash = functools.partial(local_sc_hash, variant=variant.local_hash_variant, string_hash_fun=string_hash_fun)
     elif isinstance(variant, OrderedGlobalMH):
-        component_hash = functools.partial(ordered_edges_sc_global_hash, hash_nodes=True, string_hash_fun=string_hash_fun)
+        component_hash = functools.partial(ordered_sc_global_hash, hash_nodes=True, string_hash_fun=string_hash_fun)
     elif isinstance(variant, OrderedLocalMH):
         # It should be possible to implement an OrderedLocalMHVariant using DFA partition refinement. With the order of the
         # edges, this algorithm should be even faster than LocalMHVariant

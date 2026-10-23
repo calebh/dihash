@@ -11,7 +11,7 @@ dihash hashes node-labeled directed graphs, and the individual nodes within them
 | `global_hash` | some isomorphism of their graphs maps one node onto the other. Within one graph: the nodes are in the same automorphism orbit | Exponential in the worst case (uses nauty), fast in practice |
 | `local_hash` (unfolding) | the (possibly infinite) trees obtained by unfolding the graph from the two nodes are isomorphic | Polynomial |
 | `local_hash` (bisimulation) | the two nodes are bisimilar | Polynomial |
-| `ordered_edges_node_hash` | the subgraphs reachable from the two nodes are isomorphic, respecting the order of the outgoing edges | Linear |
+| `ordered_node_hash` | the subgraphs reachable from the two nodes are isomorphic, respecting the order of the outgoing edges | Linear |
 | `merkle_hash` | the nodes are equivalent component by component, see [Merkle Graph Hashing](#merkle-graph-hashing) | Depends on the variant |
 
 The global hash looks at the whole graph. The local hashes only look at what can be observed by following edges forward from a node. The Merkle hashes recurse over the strongly connected components of the graph, like a Merkle tree, which is useful for graphs that are built up over time.
@@ -33,8 +33,8 @@ A critical bug has been fixed with the color ordering passed to pynauty. Previou
 # Version 3.0
 dihash 3.0 follows the new version of the paper (source in `papers/soda`) and reorganizes the library around the notions of equivalence above:
 - `hash_graph` has been renamed to `global_hash`. It now returns only the graph hash unless `hash_nodes=True` is passed.
-- New `local_hash` and `local_strongly_connected_hash` functions hash nodes by their unfoldings or up to bisimulation, in polynomial time.
-- New functions for graphs whose outgoing edges are ordered (`ordered_edges_node_hash` and `ordered_edges_sc_global_hash`).
+- New `local_hash` and `local_sc_hash` functions hash nodes by their unfoldings or up to bisimulation, in polynomial time.
+- New functions for graphs whose outgoing edges are ordered (`ordered_node_hash` and `ordered_sc_global_hash`).
 - `merkle_hash_graph` has been replaced by `merkle_hash`, which takes a variant argument selecting how each strongly connected component is hashed.
 - The `apply_quotient` option, `hash_graph_node_set`, and the edge-label and multigraph encoding functions have been removed. Graph-level labels (`g.graph['label']`) are no longer used.
 - Every hash is now tested against independent brute-force decision procedures for its equivalence (see "Running the Tests").
@@ -62,10 +62,10 @@ All functions take NetworkX digraphs. Each node should have a 'label' entry in i
 The functions are found in the following modules:
 
 ```
-import dihash                                  # global_hash, local_hash, local_strongly_connected_hash, merkle_hash
+import dihash                                  # global_hash, local_hash, local_sc_hash, merkle_hash
 from dihash.local_hash import LocalHashVariant
 from dihash.merkle_hash import GlobalMH, LocalMH, OrderedGlobalMH
-from dihash.ordered_edges_hash import ordered_edges_node_hash, ordered_edges_sc_global_hash
+from dihash.ordered_hash import ordered_node_hash, ordered_sc_global_hash
 ```
 
 ## Global Graph Hashing
@@ -184,7 +184,7 @@ True
 For strongly connected graphs there is a faster function that also returns a hash for the whole graph:
 
 ```
-(sc_hash, sc_node_hashes) = dihash.local_strongly_connected_hash(sc_graph, variant=LocalHashVariant.UNFOLDING, string_hash_fun=hash_sha256)
+(sc_hash, sc_node_hashes) = dihash.local_sc_hash(sc_graph, variant=LocalHashVariant.UNFOLDING, string_hash_fun=hash_sha256)
 ```
 
 The input `sc_graph` must be strongly connected, otherwise an AssertionError is raised. The node hashes satisfy the same guarantee as those of `local_hash`, but they are computed with a different encoding, so the two functions return different hash values for the same node. `sc_hash` is the hash of the graph obtained by merging all nodes with equal hashes.
@@ -195,15 +195,15 @@ In many applications the outgoing edges of a node are ordered, for example the l
 The ordered node hashing algorithm has the following definition:
 
 ```
-node_hash = ordered_edges_node_hash(g, node, string_hash_fun=hash_sha256)
+node_hash = ordered_node_hash(g, node, string_hash_fun=hash_sha256)
 ```
 
-`ordered_edges_node_hash` has the following inputs:
+`ordered_node_hash` has the following inputs:
 - g: A NetworkX digraph. Each node should have a 'label' entry in its node attribute dictionary, and each edge should have a 'port' entry in its edge attribute dictionary. A ValueError is raised if two outgoing edges of a node have the same port.
 - node: The node to hash.
 - string_hash_fun: A function which maps strings to a string. The default value, hash_sha256 hashes by using hashlib.sha256 and converting to the result to a hex digest.
 
-`ordered_edges_node_hash` has the following output:
+`ordered_node_hash` has the following output:
 - node_hash: A hex digest of the hash of the node. Two nodes have the same hash if and only if there is an isomorphism between the subgraphs reachable from them that maps one node onto the other and preserves labels and the order of the outgoing edges.
 
 The hash is computed by a depth-first search from the node, so it runs in linear time in the size of the reachable subgraph.
@@ -211,8 +211,8 @@ The hash is computed by a depth-first search from the node, so it runs in linear
 For strongly connected graphs with ordered edges, a global hash and the automorphism orbits can be computed in polynomial time:
 
 ```
-g_hash = ordered_edges_sc_global_hash(g, hash_nodes=False, string_hash_fun=hash_sha256)
-(g_hash, node_hashes) = ordered_edges_sc_global_hash(g, hash_nodes=True, string_hash_fun=hash_sha256)
+g_hash = ordered_sc_global_hash(g, hash_nodes=False, string_hash_fun=hash_sha256)
+(g_hash, node_hashes) = ordered_sc_global_hash(g, hash_nodes=True, string_hash_fun=hash_sha256)
 ```
 
 The input `g` must be strongly connected, otherwise an AssertionError is raised. Two strongly connected graphs have the same `g_hash` if and only if they are isomorphic (preserving labels and edge order), and two nodes have the same hash if and only if some such isomorphism maps one onto the other. This runs in O(n(n+m)) time for a graph with n nodes and m edges.
@@ -221,7 +221,7 @@ Example:
 
 ```
 import networkx as nx
-from dihash.ordered_edges_hash import ordered_edges_node_hash, ordered_edges_sc_global_hash
+from dihash.ordered_hash import ordered_node_hash, ordered_sc_global_hash
 
 # The same links, in two different orders
 g1 = nx.DiGraph()
@@ -239,7 +239,7 @@ g2.add_edge('r', 'y', port=1)
 g2.add_edge('x', 'r', port=0)
 g2.add_edge('x', 'y', port=1)
 
-print(ordered_edges_node_hash(g1, 'r') == ordered_edges_node_hash(g2, 'r'))
+print(ordered_node_hash(g1, 'r') == ordered_node_hash(g2, 'r'))
 
 # A strongly connected ordered graph: every node links to 'a' first, then to 'b'
 c = nx.DiGraph()
@@ -249,7 +249,7 @@ c.add_edge('a', 'a', port=0)
 c.add_edge('a', 'b', port=1)
 c.add_edge('b', 'a', port=0)
 c.add_edge('b', 'b', port=1)
-(c_hash, node_hashes) = ordered_edges_sc_global_hash(c, hash_nodes=True)
+(c_hash, node_hashes) = ordered_sc_global_hash(c, hash_nodes=True)
 print(node_hashes['a'] == node_hashes['b'])  # No ordered automorphism exchanges a and b
 ```
 
@@ -273,9 +273,9 @@ The Merkle graph hashing algorithm has the following definition:
 - g: A NetworkX digraph. Each node should have a 'label' entry in its node attribute dictionary. The value of this entry should be a string which determines the label of that node.
 - variant: Determines how each SCC is hashed. It should be one of the following:
   - `GlobalMH()`: Each SCC is hashed with `global_hash`. Two nodes have the same hash if and only if there is an isomorphism between their SCCs that maps one node onto the other, preserves labels, and matches the successors outside the SCC with successors that have equal hashes. This variant may take exponential time in the worst case.
-  - `LocalMH(LocalHashVariant.UNFOLDING)`: Each SCC is hashed with `local_strongly_connected_hash`. Two nodes have the same hash if and only if their unfoldings are isomorphic, when every edge is marked by whether it stays inside its SCC or leaves it. This variant runs in polynomial time.
+  - `LocalMH(LocalHashVariant.UNFOLDING)`: Each SCC is hashed with `local_sc_hash`. Two nodes have the same hash if and only if their unfoldings are isomorphic, when every edge is marked by whether it stays inside its SCC or leaves it. This variant runs in polynomial time.
   - `LocalMH(LocalHashVariant.BISIMULATION)`: As above, but up to bisimulation instead of unfolding isomorphism.
-  - `OrderedGlobalMH()`: For graphs with ordered edges (see "Ordered Outgoing Edges"). Each SCC is hashed with `ordered_edges_sc_global_hash`, and the positions of the links that leave the SCC are recorded. This variant runs in polynomial time.
+  - `OrderedGlobalMH()`: For graphs with ordered edges (see "Ordered Outgoing Edges"). Each SCC is hashed with `ordered_sc_global_hash`, and the positions of the links that leave the SCC are recorded. This variant runs in polynomial time.
   - `OrderedLocalMH()`: Not implemented yet. Passing it raises NotImplementedError.
 - nodes_to_hash: A list of nodes to hash in the graph. If nodes_to_hash is None, all nodes in the input graph will be hashed.
 - precomputed_hashes: A dictionary mapping nodes to their hashes (should be encoded as a string hexdigest). This parameter is useful if you are hashing graphs built up over time. If a node has a hash set in the dictionary, that node's precomputed hash will be used instead of recursively hashing the graph. The precomputed hashes must have been computed with the same variant and string_hash_fun.

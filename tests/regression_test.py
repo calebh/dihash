@@ -10,9 +10,9 @@ import pytest
 
 import dihash
 from dihash.util import encode
-from dihash.local_hash import LocalHashVariant, local_hash, local_strongly_connected_hash
+from dihash.local_hash import LocalHashVariant, local_hash, local_sc_hash
 from dihash.merkle_hash import merkle_hash, MerkleHashVariant, GlobalMH, LocalMH, OrderedGlobalMH, OrderedLocalMH
-from dihash.ordered_edges_hash import _dfs, _port_successors, ordered_edges_node_hash, ordered_edges_sc_global_hash
+from dihash.ordered_hash import _dfs, _port_successors, ordered_node_hash, ordered_sc_global_hash
 
 UNF = LocalHashVariant.UNFOLDING
 BISIM = LocalHashVariant.BISIMULATION
@@ -64,8 +64,8 @@ def test_bisimulation_variant_on_graphs_with_edges():
     h_cycle = local_hash(cycle, variant=BISIM)
     assert len(set(h_cycle.values())) == 1
     assert local_hash(loop, variant=BISIM)["s"] == h_cycle[0]
-    (sc_hash, sc_nodes) = local_strongly_connected_hash(cycle, variant=BISIM)
-    assert sc_hash == local_strongly_connected_hash(loop, variant=BISIM)[0]
+    (sc_hash, sc_nodes) = local_sc_hash(cycle, variant=BISIM)
+    assert sc_hash == local_sc_hash(loop, variant=BISIM)[0]
     assert len(set(sc_nodes.values())) == 1
 
     # Duplicated bisimilar successors are ignored by bisimulation but not by unfolding isomorphism
@@ -90,10 +90,10 @@ def test_dfs_is_a_depth_first_preorder():
 def test_ordered_hash_of_deep_graphs():
     path5 = build(same_labels(range(5)), [(i, i + 1, 0) for i in range(4)])
     path4 = build(same_labels(range(4)), [(i, i + 1, 0) for i in range(3)])
-    assert ordered_edges_node_hash(path5, 0) != ordered_edges_node_hash(path4, 0)
-    assert ordered_edges_node_hash(path5, 1) == ordered_edges_node_hash(path4, 0)
+    assert ordered_node_hash(path5, 0) != ordered_node_hash(path4, 0)
+    assert ordered_node_hash(path5, 1) == ordered_node_hash(path4, 0)
     cycle = build(same_labels(range(3)), [(0, 1, 0), (1, 2, 0), (2, 0, 0)])
-    (g_hash, node_hashes) = ordered_edges_sc_global_hash(cycle, hash_nodes=True)
+    (g_hash, node_hashes) = ordered_sc_global_hash(cycle, hash_nodes=True)
     assert len(set(node_hashes.values())) == 1
 
 
@@ -102,10 +102,10 @@ def test_ordered_input_validation():
     meaningful (orbits!) on strongly connected graphs."""
     dup = build(same_labels("rab"), [("r", "a", 0), ("r", "b", 0)])
     with pytest.raises(ValueError):
-        ordered_edges_node_hash(dup, "r")
+        ordered_node_hash(dup, "r")
     path = build(same_labels("ab"), [("a", "b", 0)])
     with pytest.raises(AssertionError):
-        ordered_edges_sc_global_hash(path)
+        ordered_sc_global_hash(path)
 
 
 @pytest.mark.parametrize("make_variant", [GlobalMH, lambda: LocalMH(UNF), lambda: LocalMH(BISIM)],
@@ -132,9 +132,9 @@ def test_custom_string_hash_function_is_used_everywhere(monkeypatch):
     outputs += list(dihash.global_hash(g, hash_nodes=True, string_hash_fun=md5)[1].values())
     for variant in (UNF, BISIM):
         outputs += list(local_hash(g, variant=variant, string_hash_fun=md5).values())
-        outputs += list(local_strongly_connected_hash(o, variant=variant, string_hash_fun=md5)[1].values())
-    outputs += [ordered_edges_node_hash(o, 0, string_hash_fun=md5)]
-    outputs += list(ordered_edges_sc_global_hash(o, hash_nodes=True, string_hash_fun=md5)[1].values())
+        outputs += list(local_sc_hash(o, variant=variant, string_hash_fun=md5)[1].values())
+    outputs += [ordered_node_hash(o, 0, string_hash_fun=md5)]
+    outputs += list(ordered_sc_global_hash(o, hash_nodes=True, string_hash_fun=md5)[1].values())
     for (graph, variant) in [(g, GlobalMH()), (g, LocalMH(UNF)), (g, LocalMH(BISIM)), (o, OrderedGlobalMH())]:
         outputs += list(merkle_hash(graph, variant, string_hash_fun=md5)[2].values())
     assert all(len(h) == 32 for h in outputs)
@@ -168,7 +168,7 @@ def test_ordered_edge_order_must_be_serialized():
     """Example: sorting the relabeled adjacency list loses the port order. These graphs are not ordered-isomorphic."""
     g1 = build({"r": "r", "x": "x", "y": "y"}, [("r", "x", 0), ("r", "y", 1), ("x", "y", 0), ("x", "r", 1)])
     g2 = build({"r": "r", "x": "x", "y": "y"}, [("r", "x", 0), ("r", "y", 1), ("x", "r", 0), ("x", "y", 1)])
-    assert ordered_edges_node_hash(g1, "r") != ordered_edges_node_hash(g2, "r")
+    assert ordered_node_hash(g1, "r") != ordered_node_hash(g2, "r")
 
 
 def test_bisimulation_example():
@@ -210,7 +210,7 @@ def test_merkle_examples():
     o = build(same_labels("ab"), [("a", "a", 0), ("a", "b", 1), ("b", "a", 0), ("b", "b", 1)])
     h = merkle(o, OrderedGlobalMH())
     assert h["a"] != h["b"]
-    assert ordered_edges_node_hash(o, "a") != ordered_edges_node_hash(o, "b")
+    assert ordered_node_hash(o, "a") != ordered_node_hash(o, "b")
     # whereas s(a) = (b, a), s(b) = (a, b) has the automorphism exchanging a and b
     sym = build(same_labels("ab"), [("a", "b", 0), ("a", "a", 1), ("b", "a", 0), ("b", "b", 1)])
     h = merkle(sym, OrderedGlobalMH())

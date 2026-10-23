@@ -48,7 +48,7 @@ def _ordered_edges_hash(g, node, string_hash_fun):
 
     return (string_hash_fun(encode((labels, out_seq))), discovery_order, order_lookup)
 
-def ordered_edges_node_hash(g, node, string_hash_fun=hash_sha256):
+def ordered_node_hash(g, node, string_hash_fun=hash_sha256):
     """
     Returns the hash of a node, solely determined by the reachable graph from that node. The graph is canonized\
     based on the DFS traversal order.
@@ -61,7 +61,7 @@ def ordered_edges_node_hash(g, node, string_hash_fun=hash_sha256):
     """
     return _ordered_edges_hash(g, node, string_hash_fun=string_hash_fun)[0]
 
-def ordered_edges_sc_global_hash(g, hash_nodes=False, string_hash_fun=hash_sha256):
+def ordered_sc_global_hash(g, hash_nodes=False, string_hash_fun=hash_sha256):
     """
     Returns the hash of an entire strongly connected ordered graph, along with the hash of the nodes in the graph
 

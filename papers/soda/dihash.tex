@@ -641,7 +641,7 @@ Sorting the relabeled adjacency list, as an earlier version of this algorithm di
 
 \begin{theorem}
 \label{thm:orderedhash}
-$\HO$ realizes rooted ordered isomorphism of reachable subgraphs: assuming $\mathcal{H}$ is injective, $\HO(G_1,n_1)=\HO(G_2,n_2)$ if and only if there is an ordered isomorphism $G_1[\Reach(n_1)]\to G_2[\Reach(n_2)]$ mapping $n_1$ to $n_2$. It runs in time $O(|\Reach(n)|+|E(\Reach(n))|)$ plus the cost of hashing.
+$\HO$ realizes rooted ordered isomorphism of reachable subgraphs: assuming $\mathcal{H}$ is injective, $\HO(G_1,n_1)=\HO(G_2,n_2)$ if and only if there is an ordered isomorphism on the reachable subgraphs $G_1[\Reach(n_1)]\to G_2[\Reach(n_2)]$ mapping $n_1$ to $n_2$. It runs in time $O(|\Reach(n)|+|E(\Reach(n))|)$ plus the cost of hashing.
 \end{theorem}
 \begin{proof}
 ($\Leftarrow$) The depth-first search is deterministic given the port orders. An ordered isomorphism $\psi$ commutes with every step of it: by induction on the steps, the searches from $n_1$ and $\psi(n_1)=n_2$ discover $x$ and $\psi(x)$ at the same step. Hence $\psi$ preserves discovery numbers, and the serializations coincide.
@@ -737,7 +737,7 @@ In a strongly connected graph every node reaches every other node. The local has
         \State index $\gets$ $\{X \mapsto i \mid (i, X) \in \textproc{enumerate}(\text{order})\}$
         \State labels $\gets$ $[L_Q(X)$ \textbf{for} $X$ \textbf{in} order$]$
         \State edges $\gets$ \textproc{sorted}($[(\text{index}[X], \text{index}[Y], \mu_Q(X,Y)) \mid \mu_Q(X,Y) > 0]$)
-        \Statex \hfill \Comment{ordered: $[(\text{index}[Y] \mid Y \in s(X))$ \textbf{for} $X$ \textbf{in} order$]$}
+        \Statex \hfill \Comment{ordered: $[[\text{index}[Y]~\textbf{for}~Y~\textbf{in}~s(X)]$ \textbf{for} $X$ \textbf{in} order$]$}
         \State $g \gets \mathcal{H}(\enc((\text{labels}, \text{edges})))$
         \State \Return $\{x \mapsto \mathcal{H}(\enc((\text{index}[C(x)], g))) \mid x \in V_S\}$
     \EndFunction

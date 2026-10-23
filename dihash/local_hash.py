@@ -136,7 +136,7 @@ def local_hash(G, variant=LocalHashVariant.UNFOLDING, string_hash_fun=hash_sha25
     quotient_hash = _canonical_quotient_hashes(Q, variant, string_hash_fun=string_hash_fun)
     return {n: quotient_hash[class_of[n]] for n in G.nodes}
 
-def local_strongly_connected_hash(sc_graph, variant=LocalHashVariant.UNFOLDING, string_hash_fun=hash_sha256):
+def local_sc_hash(sc_graph, variant=LocalHashVariant.UNFOLDING, string_hash_fun=hash_sha256):
     """
     Computes the hash of a strongly connected graph, along with the hashes of the nodes in the graph.
 

@@ -11,9 +11,9 @@ import networkx as nx
 import pytest
 
 import dihash
-from dihash.local_hash import LocalHashVariant, local_hash, local_strongly_connected_hash
+from dihash.local_hash import LocalHashVariant, local_hash, local_sc_hash
 from dihash.merkle_hash import merkle_hash, GlobalMH, LocalMH, OrderedGlobalMH
-from dihash.ordered_edges_hash import ordered_edges_node_hash, ordered_edges_sc_global_hash
+from dihash.ordered_hash import ordered_node_hash, ordered_sc_global_hash
 
 import brute_force as bf
 
@@ -93,8 +93,8 @@ def test_local_strongly_connected_hash(variant):
     for (g1, g2) in pairs(6):
         for s1 in sccs_of(g1):
             for s2 in sccs_of(g2):
-                (gh1, h1) = local_strongly_connected_hash(s1, variant=variant)
-                (gh2, h2) = local_strongly_connected_hash(s2, variant=variant)
+                (gh1, h1) = local_sc_hash(s1, variant=variant)
+                (gh2, h2) = local_sc_hash(s2, variant=variant)
                 if variant == LocalHashVariant.UNFOLDING:
                     (t1, t2) = bf.unfolding_classes(s1, s2)
                     same = lambda u, v: t1[u] == t2[v]
@@ -104,8 +104,8 @@ def test_local_strongly_connected_hash(variant):
                     for v in s2:
                         assert (h1[u] == h2[v]) == same(u, v), (u, v)
             (copy, mapping) = bf.shuffled_copy(rng, s1)
-            (gh_copy, h_copy) = local_strongly_connected_hash(copy, variant=variant)
-            assert gh_copy == local_strongly_connected_hash(s1, variant=variant)[0]
+            (gh_copy, h_copy) = local_sc_hash(copy, variant=variant)
+            assert gh_copy == local_sc_hash(s1, variant=variant)[0]
 
 
 def test_local_strongly_connected_hash_rejects_non_scc():
@@ -114,7 +114,7 @@ def test_local_strongly_connected_hash_rejects_non_scc():
     g.add_node(1, label='a')
     g.add_edge(0, 1)
     with pytest.raises(AssertionError):
-        local_strongly_connected_hash(g)
+        local_sc_hash(g)
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -123,8 +123,8 @@ def test_local_strongly_connected_hash_rejects_non_scc():
 
 def test_ordered_node_hash_iff_ordered_rooted_isomorphic():
     for (g1, g2) in pairs(7, ordered=True):
-        h1 = {u: ordered_edges_node_hash(g1, u) for u in g1}
-        h2 = {v: ordered_edges_node_hash(g2, v) for v in g2}
+        h1 = {u: ordered_node_hash(g1, u) for u in g1}
+        h2 = {v: ordered_node_hash(g2, v) for v in g2}
         for u in g1:
             for v in g2:
                 assert (h1[u] == h2[v]) == bf.ordered_rooted_isomorphic(g1, u, g2, v), (u, v)
@@ -136,9 +136,9 @@ def test_ordered_sc_global_hash():
     for (g1, g2) in pairs(8, ordered=True):
         for s1 in sccs_of(g1):
             for s2 in sccs_of(g2):
-                (gh1, h1) = ordered_edges_sc_global_hash(s1, hash_nodes=True)
-                (gh2, h2) = ordered_edges_sc_global_hash(s2, hash_nodes=True)
-                assert gh1 == ordered_edges_sc_global_hash(s1)  # hash_nodes=False returns the same graph hash
+                (gh1, h1) = ordered_sc_global_hash(s1, hash_nodes=True)
+                (gh2, h2) = ordered_sc_global_hash(s2, hash_nodes=True)
+                assert gh1 == ordered_sc_global_hash(s1)  # hash_nodes=False returns the same graph hash
                 assert (gh1 == gh2) == bf.is_isomorphic(s1, s2, ordered=True)
                 for u in s1:
                     for v in s2:
