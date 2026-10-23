@@ -103,6 +103,8 @@
 \newcommand{\eql}{\approx_{\mathrm{loc}}}
 \newcommand{\hgt}{\mathrm{ht}}
 \newcommand{\UnfA}{\Unf^{\mathrm{scc}}}
+\newcommand{\Succ}{\mathrm{succ}}
+\newcommand{\Scc}{\mathrm{scc}}
 \newcommand{\enc}{\mathrm{enc}}
 \newcommand{\canon}{\mathrm{canon}}
 \newcommand{\Unf}{\mathcal{T}}
@@ -214,7 +216,7 @@ One common theme throughout this paper is reliance on conversion of graphs to \t
 \end{figure*}
 
 \subsection{Labeled digraphs and symmetry.}
-A \emph{labeled digraph} is a triple $G=(V,E,L)$ where $V$ is a finite vertex set, $E \subseteq V \times V$ is the edge set (self-loops are allowed), and $L$ maps vertices to labels drawn from a set of strings. In Section~\ref{sec:local-graph-hashing} we also use \emph{labeled multidigraphs} $G=(V,\mu,L)$, where $\mu : V\times V \to \mathbb{N}$ gives edge multiplicities; a digraph is the special case $\mu(u,v)=[(u,v)\in E]$. We write $\mathrm{succ}(u)$ for the multiset of successors of $u$ (with $v$ occurring $\mu(u,v)$ times), and $\Reach(u)$ for the set of vertices reachable from $u$ (including $u$). A set $S \subseteq V$ is \emph{forward-closed} if every successor of a vertex of $S$ lies in $S$; each $\Reach(u)$ is forward-closed, and so is $V$.
+A \emph{labeled digraph} is a triple $G=(V,E,L)$ where $V$ is a finite vertex set, $E \subseteq V \times V$ is the edge set (self-loops are allowed), and $L$ maps vertices to labels drawn from a set of strings. In Section~\ref{sec:local-graph-hashing} we also use \emph{labeled multidigraphs} $G=(V,\mu,L)$, where $\mu : V\times V \to \mathbb{N}$ gives edge multiplicities; a digraph is the special case $\mu(u,v)=[(u,v)\in E]$. We write $\Succ(u)$ for the multiset of successors of $u$ (with $v$ occurring $\mu(u,v)$ times), and $\Reach(u)$ for the set of vertices reachable from $u$ (including $u$). A set $S \subseteq V$ is \emph{forward-closed} if every successor of a vertex of $S$ lies in $S$; each $\Reach(u)$ is forward-closed, and so is $V$.
 
 An \emph{isomorphism} $\phi : G_1 \to G_2$ is a bijection $V_1 \to V_2$ with $L_2(\phi(u)) = L_1(u)$ and $\mu_2(\phi(u),\phi(v)) = \mu_1(u,v)$ for all $u,v$; we write $G_1 \iso G_2$. A \emph{rooted isomorphism} $(G_1,v_1) \iso (G_2,v_2)$ is an isomorphism with $\phi(v_1)=v_2$. An \emph{automorphism} is an isomorphism $G\to G$; the automorphisms form the group
 \[
@@ -412,7 +414,7 @@ $\Unf(G_1,u)\iso\Unf(G_2,v)$ if and only if $\Unf_k(G_1,u)\iso\Unf_k(G_2,v)$ for
 Our strategy for local graph hashing uses a variant of color refinement \cite{weisfeiler1968reduction,Shervashidze2011-dt} along outgoing edges. The initial coloring is the hash of the node label, and each round combines a node's label with the multiset of its successors' colors (a multiset is serialized by sorting):
 \begin{align}
   \lambda_0(u) &= \mathcal{H}(\enc(L(u))), \label{eq:coloring-init}\\
-  \lambda_{i+1}(u) &= \mathcal{H}\big(\enc\big((L(u), \mset{\lambda_{i}(v) \mid v \in \mathrm{succ}(u)})\big)\big). \label{eq:coloring-step}
+  \lambda_{i+1}(u) &= \mathcal{H}\big(\enc\big((L(u), \mset{\lambda_{i}(v) \mid v \in \Succ(u)})\big)\big). \label{eq:coloring-step}
 \end{align}
 Note that the colors are defined for nodes of \emph{any} graph by the same formula, so colors of nodes in different graphs can be compared.
 
@@ -421,7 +423,7 @@ Note that the colors are defined for nodes of \emph{any} graph by the same formu
 Assuming $\mathcal{H}$ is injective, for nodes $u$ of $G_1$ and $v$ of $G_2$ and every $i \ge 0$: $\lambda_i(u)=\lambda_i(v)$ if and only if $\Unf_i(G_1,u)\iso\Unf_i(G_2,v)$. Consequently the colorings refine monotonically: $\lambda_{i+1}(u) = \lambda_{i+1}(v)$ implies $\lambda_i(u) = \lambda_i(v)$.
 \end{lemma}
 \begin{proof}
-Induction on $i$. For $i=0$ both sides say $L_1(u)=L_2(v)$. For the step, by injectivity $\lambda_{i+1}(u)=\lambda_{i+1}(v)$ if and only if $L_1(u)=L_2(v)$ and the multisets $\mset{\lambda_i(x)\mid x\in\mathrm{succ}(u)}$ and $\mset{\lambda_i(y)\mid y\in\mathrm{succ}(v)}$ are equal. By the induction hypothesis the latter holds if and only if there is a bijection between the children of the two roots of $\Unf_{i+1}$ matching isomorphic depth-$i$ subtrees, which (with the labels) is exactly $\Unf_{i+1}(G_1,u)\iso\Unf_{i+1}(G_2,v)$. Monotonicity follows because an isomorphism of $\Unf_{i+1}$ restricts to one of $\Unf_i$.
+Induction on $i$. For $i=0$ both sides say $L_1(u)=L_2(v)$. For the step, by injectivity $\lambda_{i+1}(u)=\lambda_{i+1}(v)$ if and only if $L_1(u)=L_2(v)$ and the multisets $\mset{\lambda_i(x)\mid x\in\Succ(u)}$ and $\mset{\lambda_i(y)\mid y\in\Succ(v)}$ are equal. By the induction hypothesis the latter holds if and only if there is a bijection between the children of the two roots of $\Unf_{i+1}$ matching isomorphic depth-$i$ subtrees, which (with the labels) is exactly $\Unf_{i+1}(G_1,u)\iso\Unf_{i+1}(G_2,v)$. Monotonicity follows because an isomorphism of $\Unf_{i+1}$ restricts to one of $\Unf_i$.
 \end{proof}
 
 Thus $\lambda_i(u)$ is exactly the multiset Merkle hash of the finite tree $\Unf_i(G,u)$, built bottom-up one layer per round; the bottom-up construction maximally shares computation in a dynamic programming fashion. Since colors change every round, we stop based on the \emph{partition} they induce. For $S\subseteq V$ let $\pi_i(S)$ be the partition of $S$ into classes of equal $\lambda_i$.
@@ -498,7 +500,7 @@ The first claim follows by induction on $i$ from \eqref{eq:coloring-init}--\eqre
     \Function{\textproc{serialize}}{$Q=(V_Q, \mu_Q, L_Q)$, root, reach, colors}
         \State order $\gets$ \textproc{sorted}(reach, key=colors) \Comment{no ties, by Lemma~\ref{lem:local-injective}}
         \State index $\gets$ $\{x \mapsto i \mid (i, x) \in \textproc{enumerate}(\text{order})\}$
-        \State adj\_list $\gets$ \textproc{sorted}($[(\text{index}[s], \text{index}[t], \mu_Q(s,t)) \mid s, t \in \text{reach},\ \mu_Q(s,t) > 0]$)
+        \State adj\_list $\gets$ \textproc{sorted}($[(\text{index}[x], \text{index}[y], \mu_Q(x,y)) \mid x, y \in \text{reach},\ \mu_Q(x,y) > 0]$)
         \State labels $\gets$ $[L_Q(x)$ \textbf{for} $x$ \textbf{in} order$]$
         \State \Return $\mathcal{H}$($\enc$((index[root], labels, adj\_list)))
     \EndFunction
@@ -553,7 +555,7 @@ The strategy above hashes what an observer can see by traversing the graph forwa
 
 \paragraph{Walk languages.} Treat labels as letters of an alphabet and define the \emph{vertex language} of $u$ as the set of label sequences of walks starting at $u$:
 \begin{equation}
-  \text{Lang}_G(u) = \{L(u)\} \cup \bigcup_{v \in \text{succ}(u)} \{L(u) \circ x \mid x \in \text{Lang}_G(v)\}.
+  \text{Lang}_G(u) = \{L(u)\} \cup \bigcup_{v \in \Succ(u)} \{L(u) \circ x \mid x \in \text{Lang}_G(v)\}.
 \end{equation}
 This resembles a nondeterministic finite automaton in which letters are emitted when visiting nodes rather than when traversing edges, and in which every state is accepting. Every vertex language is therefore prefix-closed.
 
@@ -575,7 +577,7 @@ A tempting modification of Algorithm~\ref{alg:local-node-hash} is to keep the mu
 Let $u\to a_1$, $u\to b$, $b\to a_2$, $a_1\to x$, $a_2\to x$ and $a_2\to x'$, where $x$ and $x'$ are sinks with the same label and $a_1,a_2$ have the same label. Then $a_1$ and $a_2$ are bisimilar. Multiset refinement separates them ($\mset{X}$ versus $\mset{X,X}$), and in the collapsed quotient they have equal colors forever. Sorting $\Reach(u)$ then depends on how the tie between $a_1$ and $a_2$ is broken, and the two tie-breaks produce different adjacency lists (the edge from $u$ points to one or the other), so the hash is not well defined.
 \end{exmp}
 
-The correct modification replaces the multisets in \eqref{eq:coloring-step} by \emph{sets} in \emph{both} refinement stages: $\lambda^{\mathrm{set}}_{i+1}(u)=\mathcal{H}(\enc((L(u),\{\lambda^{\mathrm{set}}_i(v)\mid v\in\mathrm{succ}(u)\})))$. The global stage then computes bisimilarity, as in relational coarsest partition algorithms \cite{kanellakis1990ccs,paige1987three}. The quotient is the ordinary digraph with an edge $A\to B$ if and only if some (equivalently, every) $u\in A$ has a successor in $B$, and \textproc{serialize} emits a simple adjacency list. Call the resulting hash $\HB$.
+The correct modification replaces the multisets in \eqref{eq:coloring-step} by \emph{sets} in \emph{both} refinement stages: $\lambda^{\mathrm{set}}_{i+1}(u)=\mathcal{H}(\enc((L(u),\{\lambda^{\mathrm{set}}_i(v)\mid v\in\Succ(u)\})))$. The global stage then computes bisimilarity, as in relational coarsest partition algorithms \cite{kanellakis1990ccs,paige1987three}. The quotient is the ordinary digraph with an edge $A\to B$ if and only if some (equivalently, every) $u\in A$ has a successor in $B$, and \textproc{serialize} emits a simple adjacency list. Call the resulting hash $\HB$.
 
 \begin{theorem}
 \label{thm:bisimhash}
@@ -624,7 +626,7 @@ The proof follows that of Theorem~\ref{thm:localhashcorrect}, replacing $\Unf_i$
 
 In many real world applications the outgoing edges of each node are ordered. Examples include the links of a web page, the fields of a record, and the arguments of a function call. We take advantage of this extra structure to create simpler and faster hashing algorithms. The algorithms in this section were inspired by the more general Scott graph canonization algorithm of Bloyet, Marteau and Fr\'enod \cite{scott}. The basic idea is that, because the edges are ordered, a depth-first search from a given root visits the nodes in an order that is determined by the structure alone.
 
-\paragraph{Model.} An \emph{ordered labeled digraph} assigns to each node $u$ a label $L(u)$ and a finite \emph{out-sequence} $s(u)=(s_1(u),\dots,s_{d(u)}(u))$ of successor nodes; position $k$ is the $k$-th \emph{port} of $u$, and repeated entries (two links to the same page) are allowed. An \emph{ordered isomorphism} $\phi:G_1\to G_2$ is a label-preserving bijection with $s(\phi(u)) = (\phi(s_1(u)),\dots,\phi(s_{d(u)}(u)))$ for all $u$. Ordered automorphisms, orbits and rooted ordered isomorphisms are defined accordingly. For a node $n$ we write $G[\Reach(n)]$ for the ordered subgraph induced on its reachable set.
+\paragraph{Model.} An \emph{ordered labeled digraph} assigns to each node $u$ a label $L(u)$ and a finite \emph{out-sequence} $s(u)=(s_1(u),\dots,s_{d(u)}(u))$ of successor nodes; position $k$ is the $k$-th \emph{port} of $u$, and repeated entries (two links to the same page) are allowed. Forgetting the order, the entries of $s(u)$ form the multiset $\Succ(u)$ of Section~\ref{sec:preliminaries}, so an ordered graph is a labeled multidigraph with additional structure. An \emph{ordered isomorphism} $\phi:G_1\to G_2$ is a label-preserving bijection with $s(\phi(u)) = (\phi(s_1(u)),\dots,\phi(s_{d(u)}(u)))$ for all $u$. Ordered automorphisms, orbits and rooted ordered isomorphisms are defined accordingly. For a node $n$ we write $G[\Reach(n)]$ for the ordered subgraph induced on its reachable set.
 
 \begin{exmp}[Edge order must be serialized]
 \label{ex:ordered}
@@ -774,18 +776,18 @@ For the running time, each refinement round costs $O((n+m)\log n)$, each of the 
 The proof uses the colors of line~4 only through two properties: they are injective on $V_Q$, and isomorphisms between quotients preserve them. Both also hold for the coarsest stable coloring computed by canonical color refinement \cite{berkholz2017tight}, which supports directed and edge-colored graphs (ports can be encoded as edge colors) and runs in $O((n+m)\log n)$ time. Together with partition refinement for line~2 \cite{cardon1982partitioning,paige1987three,valmari2008partial}, this gives an $O((n+m)\log n)$ bound for Algorithm~\ref{alg:local-component-hash}, plus the cost of hashing.
 
 \subsection{Which nodes receive equal hashes?}
-Within a component, the global variant respects the full structure, including automorphisms and incoming edges inside the component, while the local variant only sees what can be observed by following edges. Across components both behave like a Merkle tree: they compare external targets only through their hashes and ignore whether two targets are shared. We make this precise with a single definition that covers both variants. Fix labeled digraphs $G_1$ and $G_2$ (possibly equal), and let $W=V_1\sqcup V_2$. For $u\in W$ let $S(u)$ be the SCC of $u$ in its own graph, and let $\hgt(u)$ be the height of $S(u)$.
+Within a component, the global variant respects the full structure, including automorphisms and incoming edges inside the component, while the local variant only sees what can be observed by following edges. Across components both behave like a Merkle tree: they compare external targets only through their hashes and ignore whether two targets are shared. We make this precise with a single definition that covers both variants. Fix labeled digraphs $G_1$ and $G_2$ (possibly equal), and let $W=V_1\sqcup V_2$. For $u\in W$ let $\Scc(u)$ be the SCC of $u$ in its own graph, and let $\hgt(u)$ be the height of $\Scc(u)$.
 
 \begin{defn}[Merkle equivalences]
 \label{def:merkle-eq}
-Let $\sim$ be either rooted isomorphism or isomorphism of unfoldings (for ordered graphs: rooted ordered isomorphism or isomorphism of ordered unfoldings). We define a relation $\approx$ on $W$ by well-founded recursion on $\max(\hgt(u),\hgt(v))$. Suppose that $\approx$ has been defined on the nodes of height less than $h$. For a node $x$ of height at most $h$, all external successors of $x$ have height less than $h$. Let $X^{\approx}(x)$ be the multiset of their $\approx$-classes; for ordered graphs, let it be the sequence whose $k$-th entry is the $\approx$-class of $s_k(x)$ if $s_k(x)\notin S(x)$, and $\star$ otherwise. Let $C^{\approx}(x)$ be the subgraph induced on $S(x)$ (for ordered graphs, keeping the internal targets of each node in port order), with labels $L^{\approx}(y)=(L(y),X^{\approx}(y))$. For $u,v$ with $\max(\hgt(u),\hgt(v))=h$, set
+Let $\sim$ be either rooted isomorphism or isomorphism of unfoldings (for ordered graphs: rooted ordered isomorphism or isomorphism of ordered unfoldings). We define a relation $\approx$ on $W$ by well-founded recursion on $\max(\hgt(u),\hgt(v))$. Suppose that $\approx$ has been defined on the nodes of height less than $h$. For a node $x$ of height at most $h$, all external successors of $x$ have height less than $h$. Let $X^{\approx}(x)$ be the multiset of their $\approx$-classes; for ordered graphs, let it be the sequence whose $k$-th entry is the $\approx$-class of $s_k(x)$ if $s_k(x)\notin \Scc(x)$, and $\star$ otherwise. Let $C^{\approx}(x)$ be the subgraph induced on $\Scc(x)$ (for ordered graphs, keeping the internal targets of each node in port order), with labels $L^{\approx}(y)=(L(y),X^{\approx}(y))$. For $u,v$ with $\max(\hgt(u),\hgt(v))=h$, set
 \[
 u\approx v \iff (C^{\approx}(u),u)\sim(C^{\approx}(v),v).
 \]
 We write $\eqg$ and $\eql$ for the relations obtained when $\sim$ is rooted isomorphism and isomorphism of unfoldings, respectively.
 \end{defn}
 
-The recursion is well founded because external successors lie in SCCs of strictly smaller height. By induction on $h$, both relations are equivalence relations that relate only nodes of equal height. Indeed, if $u\approx v$ then every node of $S(u)$ corresponds to a node of $S(v)$ with the same label $L^{\approx}$ and vice versa (for unfoldings, because every node of a strongly connected graph occurs in its unfolding). So the two components have the same classes of external successors, and hence the same height. Spelled out, $u\eqg v$ if and only if there is a bijection $\phi:S(u)\to S(v)$ with $\phi(u)=v$ that is a label-preserving isomorphism of the induced subgraphs and, for every $x\in S(u)$, matches the external successors of $x$ bijectively with $\eqg$-equivalent external successors of $\phi(x)$. For ordered graphs the matching is port by port, with internal ports mapped by $\phi$.
+The recursion is well founded because external successors lie in SCCs of strictly smaller height. By induction on $h$, both relations are equivalence relations that relate only nodes of equal height. Indeed, if $u\approx v$ then every node of $\Scc(u)$ corresponds to a node of $\Scc(v)$ with the same label $L^{\approx}$ and vice versa (for unfoldings, because every node of a strongly connected graph occurs in its unfolding). So the two components have the same classes of external successors, and hence the same height. Spelled out, $u\eqg v$ if and only if there is a bijection $\phi:\Scc(u)\to \Scc(v)$ with $\phi(u)=v$ that is a label-preserving isomorphism of the induced subgraphs and, for every $x\in \Scc(u)$, matches the external successors of $x$ bijectively with $\eqg$-equivalent external successors of $\phi(x)$. For ordered graphs the matching is port by port, with internal ports mapped by $\phi$.
 
 \begin{theorem}[Correctness of the Merkle hashes]
 \label{thm:merkle}
@@ -795,14 +797,14 @@ Assuming $\mathcal{H}$ is injective, $\HMg$ realizes $\eqg$ and $\HMl$ realizes 
 By induction on $h=\max(\hgt(u),\hgt(v))$. By the induction hypothesis (vacuous when $h=0$), two nodes of height less than $h$ have equal hashes if and only if they are $\approx$-equivalent. So $[y]_{\approx}\mapsto h[y]$ is a well-defined injective map on these classes. Hence, for nodes $x,x'$ of height at most $h$, $X(x)=X(x')$ if and only if $X^{\approx}(x)=X^{\approx}(x')$, and by injectivity $L'(x)=L'(x')$ if and only if $L^{\approx}(x)=L^{\approx}(x')$. Relabeling by an injective map preserves and reflects both rooted isomorphism and isomorphism of unfoldings. Therefore the relabeled components $G'$ of Algorithm~\ref{alg:merklegraphhash} containing $u$ and $v$ satisfy $(G'(u),u)\sim(G'(v),v)$ if and only if $(C^{\approx}(u),u)\sim(C^{\approx}(v),v)$. In the ordered case, $L'$ records the $\star$-masked sequence and $G'$ keeps internal targets in port order, so together they determine every port, exactly as $C^{\approx}$ does. Finally, the component hash realizes $\sim$ on strongly connected graphs. For the global variant this is Theorem~\ref{thm:digraphnodehashcorrect}, or Theorem~\ref{thm:scc-ordered}(c) for ordered graphs. For the local variant it is Theorem~\ref{thm:local-component}.
 \end{proof}
 
-The local equivalence has a direct description in terms of unfoldings. The \emph{SCC-annotated unfolding} $\UnfA(G,u)$ is the unfolding $\Unf(G,u)$ (ordered by port for ordered graphs) in which every tree edge, corresponding to a step from $x_{k-1}$ to $x_k$, is marked \emph{internal} if $x_k\in S(x_{k-1})$ and \emph{external} otherwise. Isomorphisms of annotated unfoldings must preserve the marks.
+The local equivalence has a direct description in terms of unfoldings. The \emph{SCC-annotated unfolding} $\UnfA(G,u)$ is the unfolding $\Unf(G,u)$ (ordered by port for ordered graphs) in which every tree edge, corresponding to a step from $x_{k-1}$ to $x_k$, is marked \emph{internal} if $x_k\in \Scc(x_{k-1})$ and \emph{external} otherwise. Isomorphisms of annotated unfoldings must preserve the marks.
 
 \begin{prop}
 \label{prop:annotated}
 For nodes $u$ of $G_1$ and $v$ of $G_2$, $u\eql v$ if and only if $\UnfA(G_1,u)\iso\UnfA(G_2,v)$. The same holds for ordered graphs.
 \end{prop}
 \begin{proof}
-Marks depend only on the endpoints of each step, so the subtree of $\UnfA(G,u)$ below a walk ending at $y$ is $\UnfA(G,y)$. The walks from $u$ that use only internal steps stay in $S(u)$. They form a subtree, the \emph{internal part}, which is the unfolding at $u$ of the subgraph induced on $S(u)$. A tree node of the internal part ending at $x$ has one internal child for each internal edge of $x$ and one external child for each external edge. We proceed by induction on $\max(\hgt(u),\hgt(v))$.
+Marks depend only on the endpoints of each step, so the subtree of $\UnfA(G,u)$ below a walk ending at $y$ is $\UnfA(G,y)$. The walks from $u$ that use only internal steps stay in $\Scc(u)$. They form a subtree, the \emph{internal part}, which is the unfolding at $u$ of the subgraph induced on $\Scc(u)$. A tree node of the internal part ending at $x$ has one internal child for each internal edge of $x$ and one external child for each external edge. We proceed by induction on $\max(\hgt(u),\hgt(v))$.
 
 ($\Rightarrow$) Let $\tau$ be an isomorphism of the unfoldings of $C^{\approx}(u)$ and $C^{\approx}(v)$, i.e.\ of the internal parts, preserving $L^{\approx}$. For a tree node $w$ ending at $x$ with $\tau(w)$ ending at $x'$, we have $L(x)=L(x')$ and $X^{\approx}(x)=X^{\approx}(x')$. So there is a bijection (port by port for ordered graphs) between the external successors of $x$ and those of $x'$ relating only $\eql$-equivalent nodes, whose annotated unfoldings are isomorphic by the induction hypothesis. Extending $\tau$ at every external child by these isomorphisms gives an isomorphism $\UnfA(G_1,u)\to\UnfA(G_2,v)$.
 
@@ -822,7 +824,7 @@ A rooted isomorphism of reachable subgraphs maps SCCs to SCCs, so it witnesses D
 
 For strictness, all nodes in the following examples carry the same label.
 \begin{itemize}
-  \item \emph{First implication.} Let $x\to p$, $x\to q$, $p\to s$ and $q\to s$, and compare with the same graph in which $s$ is replaced by two copies $s_1,s_2$ with $p\to s_1$ and $q\to s_2$. The nodes $x$ are $\eqg$-equivalent, since all SCCs are singletons and the external multisets agree, but the reachable subgraphs have $4$ and $5$ nodes.
+  \item \emph{First implication.} Let $x\to p$, $x\to q$, $p\to z$ and $q\to z$, and compare with the same graph in which $z$ is replaced by two copies $z_1,z_2$ with $p\to z_1$ and $q\to z_2$. The nodes $x$ are $\eqg$-equivalent, since all SCCs are singletons and the external multisets agree, but the reachable subgraphs have $4$ and $5$ nodes.
   \item \emph{Second implication.} A node with a self-loop and a node on a $2$-cycle are $\eql$-equivalent, since both internal unfoldings are infinite paths without external edges. They are not $\eqg$-equivalent, since their SCCs have different sizes.
   \item \emph{Third implication.} A node $u$ with a self-loop, and a node $v$ whose only edge leads to a node $w$ with a self-loop, have isomorphic unfoldings (infinite paths). They are not $\eql$-equivalent, because the first step from $u$ is internal and the first step from $v$ is external.
 \end{itemize}
