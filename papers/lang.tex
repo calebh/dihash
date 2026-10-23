@@ -142,9 +142,11 @@ This immediately follows by applying Lemmas \ref{thm:tbl_correctness1}, \ref{thm
 
 \clearpage
 
-\subsection{Proof of Uniqueness of Minimum}
+\subsection{Proof of Uniqueness}
 
-We prove this by constructing an isomorphism. Suppose we have a graph
+\subsubsection{Existence of Bijection}
+
+We prove this by constructing the bijection. Suppose we have a graph
 $G$ minimized to $G'$ and some arbitrary minimal graph $G_{min}$ where
 $L(G')=L(G_{min})$. We then show an existence of a bijection
 $f : V(G') \rightarrow V(G_{min})$ when $L_{G'}(p) = L_{G_{min}}(f(p))$.
@@ -202,6 +204,42 @@ is no node $p$ such that $f(p)=p'$. This implies that $L(G') \neq L(G_{min})$,
 which is a contradiction.
 \end{proof}
 
+\begin{figure}
+    \centering
+    \caption{Minimal graphs (in terms of number of nodes) may not be isomorphic due to differences
+    in edge structure. These three graphs have identical languages. However only the rightmost graph
+    is edge saturated. Applying the edge saturation process to the two left hand graphs will result
+    in the graph on the right.}
+    \label{fig:isomorphism_counterexample}
+    \begin{tikzpicture}[main/.style = {draw, circle}] 
+        \node[main] (1) {$a$};
+        \node[main] (2) [right of = 1] {$x$};
+        \node[main] (3) [below of = 1] {$x$};
+        \draw[->] (1) to [out=315, in=225] (2);
+        \draw[->] (2) to [out=0,in=270,looseness=5] (2);
+        \draw[->] (2) to [out=135, in=45, looseness=1] (1);
+    \end{tikzpicture}
+    \begin{tikzpicture}[main/.style = {draw, circle}] 
+        \node[main] (1) {$a$};
+        \node[main] (2) [right of = 1] {$x$};
+        \node[main] (3) [below of = 1] {$x$};
+        \draw[->] (1) to [out=315, in=225] (2);
+        \draw[->] (1) -- (3);
+        \draw[->] (2) to [out=0,in=270,looseness=5] (2);
+        \draw[->] (2) to [out=135, in=45, looseness=1] (1);
+    \end{tikzpicture}
+    \begin{tikzpicture}[main/.style = {draw, circle}] 
+        \node[main] (1) {$a$};
+        \node[main] (2) [right of = 1] {$x$};
+        \node[main] (3) [below of = 1] {$x$};
+        \draw[->] (1) to [out=315, in=225] (2);
+        \draw[->] (1) -- (3);
+        \draw[->] (2) to [out=0,in=270,looseness=5] (2);
+        \draw[->] (2) to [out=135, in=45, looseness=1] (1);
+        \draw[->] (2) to [out=247.5, in=45, looseness=0] (3);
+    \end{tikzpicture}
+    \end{figure}
+
 \begin{lemma}
 \label{thm:bijection_final}
 Although a bijection between vertices $f$ must exist, it is not the case that
@@ -213,38 +251,7 @@ $f$ must exist. However the edge structure of $G'$ and $G_{min}$ need not be the
 counterexample in Figure \ref{fig:isomorphism_counterexample} demonstrates.
 \end{proof}
 
-\begin{figure}
-\label{fig:isomorphism_counterexample}
-\begin{tikzpicture}[main/.style = {draw, circle}] 
-    \node[main] (1) {$a$};
-    \node[main] (2) [right of = 1] {$x$};
-    \node[main] (3) [below of = 1] {$x$};
-    \draw[->] (1) to [out=315, in=225] (2);
-    \draw[->] (2) to [out=0,in=270,looseness=5] (2);
-    \draw[->] (2) to [out=135, in=45, looseness=1] (1);
-\end{tikzpicture}
-\begin{tikzpicture}[main/.style = {draw, circle}] 
-    \node[main] (1) {$a$};
-    \node[main] (2) [right of = 1] {$x$};
-    \node[main] (3) [below of = 1] {$x$};
-    \draw[->] (1) to [out=315, in=225] (2);
-    \draw[->] (1) -- (3);
-    \draw[->] (2) to [out=0,in=270,looseness=5] (2);
-    \draw[->] (2) to [out=135, in=45, looseness=1] (1);
-\end{tikzpicture}
-\begin{tikzpicture}[main/.style = {draw, circle}] 
-    \node[main] (1) {$a$};
-    \node[main] (2) [right of = 1] {$x$};
-    \node[main] (3) [below of = 1] {$x$};
-    \draw[->] (1) to [out=315, in=225] (2);
-    \draw[->] (1) -- (3);
-    \draw[->] (2) to [out=0,in=270,looseness=5] (2);
-    \draw[->] (2) to [out=135, in=45, looseness=1] (1);
-    \draw[->] (2) to [out=247.5, in=45, looseness=0] (3);
-\end{tikzpicture}
-\end{figure}
-
-\subsection{Edge Saturation}
+\subsubsection{Uniqueness by Edge Saturated Minimum}
 
 Given a minimal graph $G$, we will now add edges to the graph until we reach a
 condition of \textit{edge saturation}. We first observe that for some pair of nodes
@@ -267,23 +274,23 @@ $\Rightarrow$ We now show that if $(p,q) \in E(G')$ then $(f(p), f(q)) \in E(G_{
 Suppose that node $p$ has label $a$. Now consider the set of strings $\{aw \mid w \in L_G(q)\}$.
 By the bijection of $f$, this same set of strings must also appear in the language of
 $f(p)$. There are two possible ways for this entire subset to exist in the language of $f(p)$:
-\begin{itemize}
+\begin{enumerate}
     \item $(f(p), f(q)) \in E(G_{min})$, in which case we have proved the goal.
     \item $(f(p), q') \in E(G_{min})$ where $L_{G_{min}}(q') \supseteq L_{G_{min}}(f(q))$.
     However $G_{min}$ is edge saturated, which means that the edge $(f(p), f(q))$ is also in
     $E(G_{min})$.
-\end{itemize}
+\end{enumerate}
 
 $\Leftarrow$ We now show that if $(f(p), f(q)) \in E(G_{min})$, then $(p,q) \in E(G')$. This
 argument is almost identical to the previous case. Suppose that node $f(p)$ has label $a$.
 Now consider the set of strings $\{aw \mid w \in L_G(f(q))\}$. By the bijection of $f$, this
 same set of strings must also appear in the language of $f^{-1}(f(p))=p$.
 There are two possible ways for this entire susbset to exist in the language of $p$.
-\begin{itemize}
+\begin{enumerate}
     \item $(p, q) \in E(G')$, in which case we have proved the goal.
     \item $(p, q') \in E(G')$ where $L_{G'}(q') \supseteq L_{G'}(q)$. However $G'$ is edge
     saturated, which means that $(p, q)$ is also in $E(G')$.
-\end{itemize}
+\end{enumerate}
 \end{proof}
 
 \clearpage
