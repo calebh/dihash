@@ -220,7 +220,7 @@ The recursive Merkle-style algorithm will utilize the analysis of cycles within 
 \section{Global Graph Hashing}
 
 \begin{algorithm}[b]
-    \caption{Global Directed Graph Hash}\label{digraphhash}
+    \caption{Global Digraph Hash}\label{digraphhash}
     \begin{algorithmic}[1]
     \Function{$\mathcal{H_G}$}{G=(V,E,L)}
         \State \Comment{V is the set of vertices, E is the set of edges, L is the node labeling function}
@@ -256,7 +256,7 @@ Available in appendix
 \end{inlineproof}
 
 \begin{algorithm}[t]
-    \caption{Global Directed Graph Node Hash}\label{alg:digraph-node-hash}
+    \caption{Global Digraph Node Hash}\label{alg:digraph-node-hash}
     \begin{algorithmic}[1]
     \Function{$\mathcal{H_N}$}{v, G}
         \State $\rho \gets$ \textproc{canonize}(G)
@@ -328,15 +328,47 @@ We now define the following stabilization condition which will tell us when to s
 
 Our first step of local graph hashing, then, is to take the input graph and compute the stable colors of each node, stopping when the global stabilization condition is achieved. With this in hand, we then construct a quotient graph induced by the stable colors, merging any nodes together with identical color. Note here that the quotient graph produced is a multi-digraph, so that we preserve the tree expansion of all nodes.
 
-We now define the following stabilization condition which will tell us when to stop computing new colors on the next step of our algorithm:
+
+We then proceed to operate on the new quotient graph, and pass it through a fresh round of color refinement, this time making use of the following stabilization condition:
 
 \begin{stoppingcondition}
-\textbf{Local Stabilization Condition}: A node $n$ is stable in round $i$ if for all nodes $u$, $v$ in the reachable subgraph from $n$, $\lambda_{i+1}(u)=\lambda_{i+1}(v)$ if and only if $\lambda_i(u)=\lambda_i(v)$.
+\textbf{Local Stabilization Condition}: A node $n$ is locally stable in round $i$ if for all nodes $u$, $v$ in the reachable subgraph from $n$, $\lambda_{i+1}(u)=\lambda_{i+1}(v)$ if and only if $\lambda_i(u)=\lambda_i(v)$.
 \end{stoppingcondition}
 
-We then define the canonical label of a node $n$ to be the coloring of $n$ in the round in which local stabilization in the quotient graph is achieved for $n$. The canonical label can be used to order the nodes of the quotient graph. For some input node $n$ that we are hashing, we then say that the hash of $n$ is equal to the hash of the adjacency list of the subgraph reachable subgraph from $n$, sorted in canonical order via the canonical labels.
+For each node $n$ in the quotient graph, there will be some step $i$ in which that node becomes locally stable. On that round we can create a canonical order for the nodes in the reachable subgraph of $n$ by sorting the colors $\lambda_i$ for each node. We can then use this ordering to create a canonical adjacency list, which can then be serialized to a string and passed through a string hashing function. This gives the node hash for vertex $n$.
 
 To summarize our approach, we begin by merging any nodes which are identical modulo tree expansion by using graph coloring with the global stabilization condition. We then construct a quotient graph, merging any of these identical nodes. We then compute a new graph coloring for each node, this time using the local stabilization condition. Since these colors are unique, they can be canonically ordered. The canonical ordering can then be used to construct a canonical adjacency list, which can then be hashed using an ordinary string hashing function.
+
+\begin{algorithm}[t]
+    \caption{Local Digraph Node Hash}\label{alg:local-digraph-node-hash}
+    \begin{algorithmic}[1]
+    \Function{$\mathcal{H_N}$}{$G=(V, E, L)$}
+        \State $C \gets$ \textproc{global\_colors}($G$) \Comment Map nodes in $V$ to colors
+        \State $Q \gets G / C$ \Comment Use colors as an equivalence class to compute a quotient graph
+        \State $(V', E', L') \gets Q$ \Comment $L'$ maps nodes in $V'$ to the original node labels
+        \State reachable $\gets \{n \mapsto \textproc{descendants}(Q, n) \mid n \in V'\}$
+        \State stable $\gets \{\}$
+        \State final\_hash $\gets \textproc{empty\_dict}()$
+        \State colors $\gets \{n \mapsto \mathcal{H}(L'(n)) \mid n \in V'\}$
+        \While{$|\text{stable}|<|V'|$}
+          \State new\_colors $\gets$ \textproc{refine\_round}($Q$, colors, $L'$)
+          \For{$n \in V'$}
+            \If{$n \notin \text{stable}$}
+              \If{\textproc{partition\_unchanged}(reachable[n], colors, new\_colors)}
+                \State stable $\gets \text{stable} \cup \{n\}$
+                \State final\_hash[n] $\gets$ \textproc{serialize}($Q$, $n$, reachable[n], new\_colors)
+              \EndIf
+            \EndIf
+          \EndFor
+        \EndWhile
+        \State \Return $\{n \mapsto \text{final\_hash}[C[n]] \mid n \in V\}$
+    \EndFunction
+    \end{algorithmic}
+\end{algorithm}
+
+
+
+
 
 \clearpage
 
