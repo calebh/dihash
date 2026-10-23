@@ -553,7 +553,7 @@ The strategy above hashes what an observer can see by traversing the graph forwa
 
 \paragraph{Walk languages.} Treat labels as letters of an alphabet and define the \emph{vertex language} of $u$ as the set of label sequences of walks starting at $u$:
 \begin{equation}
-  \text{Lang}_G(u) = \{L(u)\} \cup \bigcup_{v \in \text{succ}(u)} \{L(u)\, x \mid x \in \text{Lang}_G(v)\}.
+  \text{Lang}_G(u) = \{L(u)\} \cup \bigcup_{v \in \text{succ}(u)} \{L(u) \circ x \mid x \in \text{Lang}_G(v)\}.
 \end{equation}
 This resembles a nondeterministic finite automaton in which letters are emitted when visiting nodes rather than when traversing edges, and in which every state is accepting. Every vertex language is therefore prefix-closed.
 
@@ -714,7 +714,7 @@ Algorithm \ref{alg:merklegraphhash} gives the pseudo-code; each component is pro
             \If{outgoing edges are unordered}
               \State $X(x) \gets \mset{h[y] \mid y\notin S \land (x,y)\in E}$
             \Else
-              \State $X(x) \gets (\,h[y] \text{ if } y\notin S \text{ else } \star \mid y \in s(x)\,)$
+              \State $X(x) \gets [\,(h[y]~\textbf{if}~y\notin S~\text{else}~\star)~\textbf{for}~y~\textbf{in}~s(x)\,]$
             \EndIf
             \State $L'(x) \gets \mathcal{H}(\enc((L(x), X(x))))$
           \EndFor
