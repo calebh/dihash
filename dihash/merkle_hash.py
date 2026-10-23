@@ -3,15 +3,49 @@ from enum import Enum
 
 import networkx as nx
 
-from dihash.local_hash import local_strongly_connected_hash
+from dihash.local_hash import local_strongly_connected_hash, LocalHashVariant
+from dihash.ordered_edges_hash import ordered_edges_sc_global_hash, _port_successors
 from dihash.util import encode, hash_sha256
 from dihash.global_hash import global_hash
+
+class MerkleHashVariant:
+    def __init__(self):
+        raise ValueError("You should be constructing a particular variant using a child class of MerkleHashVariant")
+
+class GlobalMHVariant(MerkleHashVariant):
+    """
+    This indicates that global graph hashing should be used within an SCC. As such, this implementation may run
+    in exponential time.
+    """
+    pass
+
+class LocalMHVariant(MerkleHashVariant):
+    """
+    This indicates that local graph hashing should be used within an SCC, This implementation runs in poly time.
+    """
+
+    def __init__(self, local_hash_variant: LocalHashVariant):
+        """
+        :param local_hash_variant: Determines if unfolding or bisimulation equivalence should be used within the SCC\
+        and on outgoing edges
+        """
+        self.local_hash_variant = local_hash_variant
+
+class OrderedGlobalMHVariant(MerkleHashVariant):
+    """
+    This indicates that the edges of the graph are ordered, and as such an ordered aware variant of the algorithm
+    should be used. This implementation runs in poly time.
+    """
+    pass
+
+class OrderedLocalMHVariant(MerkleHashVariant):
+    pass
 
 class MerkleHashVariant(Enum):
     GLOBAL = 0
     LOCAL = 1
 
-def hash_scc(g, cond, scc, scc_hashes, node_hashes, string_hash_fun, comp_hash):
+def _hash_scc(g, cond, scc, scc_hashes, node_hashes, string_hash_fun, comp_hash, variant: MerkleHashVariant):
     if scc in scc_hashes:
         return
 
@@ -24,9 +58,15 @@ def hash_scc(g, cond, scc, scc_hashes, node_hashes, string_hash_fun, comp_hash):
         for t in non_scc_succs:
             if t not in node_hashes:
                 t_scc = cond.graph['mapping'][t]
-                hash_scc(g, cond, t_scc, scc_hashes, node_hashes, string_hash_fun, comp_hash)
-        non_scc_succs_hashes = sorted([node_hashes[t] for t in non_scc_succs])
-        scc_graph.nodes[s]['label'] = string_hash_fun(encode((g.nodes[s]['label'], non_scc_succs_hashes)))
+                _hash_scc(g, cond, t_scc, scc_hashes, node_hashes, string_hash_fun, comp_hash, variant)
+        if isinstance(variant, OrderedGlobalMHVariant):
+            new_labels = [node_hashes[t] if t in non_scc_succs else "*" for t in _port_successors(g, s)]
+        else:
+            if isinstance(variant, LocalMHVariant) and variant.local_hash_variant == LocalHashVariant.BISIMULATION:
+                new_labels = sorted({node_hashes[t] for t in non_scc_succs})
+            else:
+                new_labels = sorted(node_hashes[t] for t in non_scc_succs)
+        scc_graph.nodes[s]['label'] = string_hash_fun(encode((g.nodes[s]['label'], new_labels)))
 
     (scc_hash, scc_node_hashes) = comp_hash(scc_graph)
 
@@ -46,13 +86,20 @@ def merkle_hash(g, variant: MerkleHashVariant, nodes_to_hash=None, precomputed_h
     else:
         roots = {cond.graph['mapping'][n] for n in nodes_to_hash}
 
-    match variant:
-        case MerkleHashVariant.GLOBAL:
-            component_hash = functools.partial(global_hash, hash_nodes=True, string_hash_fun=string_hash_fun)
-        case MerkleHashVariant.LOCAL:
-            component_hash = functools.partial(local_strongly_connected_hash, string_hash_fun=string_hash_fun)
+    if isinstance(variant, GlobalMHVariant):
+        component_hash = functools.partial(global_hash, hash_nodes=True, string_hash_fun=string_hash_fun)
+    elif isinstance(variant, LocalMHVariant):
+        component_hash = functools.partial(local_strongly_connected_hash, variant=variant.local_hash_variant, string_hash_fun=string_hash_fun)
+    elif isinstance(variant, OrderedGlobalMHVariant):
+        component_hash = functools.partial(ordered_edges_sc_global_hash, hash_nodes=True, string_hash_fun=string_hash_fun)
+    elif isinstance(variant, OrderedLocalMHVariant):
+        # It should be possible to implement an OrderedLocalMHVariant using DFA partition refinement. With the order of the
+        # edges, this algorithm should be even faster than LocalMHVariant
+        raise NotImplementedError("At the moment ordered local Merkle-hashing is not implemented. It should be possible to implement this efficiently using DFA partition refinement.")
+    else:
+        raise NotImplementedError(f"Unknown variant {variant}")
 
     for r in roots:
-        hash_scc(g, cond, r, scc_hashes, node_hashes, string_hash_fun, component_hash)
+        _hash_scc(g, cond, r, scc_hashes, node_hashes, string_hash_fun, component_hash, variant)
 
     return (scc_hashes, cond, node_hashes)

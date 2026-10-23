@@ -26,7 +26,7 @@ def _dfs(start, succ_iter):
         else:
             stack.pop()
 
-def _ordered_edges_hash(g, node, string_hash_fun=hash_sha256):
+def _ordered_edges_hash(g, node, string_hash_fun):
     discovery_order = []
     succ_iter = functools.partial(_port_successors, g)
     for reachable_node in _dfs(node, succ_iter):
@@ -41,9 +41,31 @@ def _ordered_edges_hash(g, node, string_hash_fun=hash_sha256):
     return (string_hash_fun(encode((labels, out_seq))), discovery_order, order_lookup)
 
 def ordered_edges_node_hash(g, node, string_hash_fun=hash_sha256):
+    """
+    Returns the hash of a node, solely determined by the reachable graph from that node. The graph is canonized\
+    based on the DFS traversal order.
+
+    :param g: An input directed graph, with edges having a label called 'port'. The outgoing edges of a node should\
+    have non-duplicate port numbers.
+    :param node: The node to compute the hash of.
+    :param string_hash_fun: The string hashing function to use. Default is SHA-256
+    :return:
+    """
     return _ordered_edges_hash(g, node, string_hash_fun=string_hash_fun)[0]
 
 def ordered_edges_sc_global_hash(g, hash_nodes=False, string_hash_fun=hash_sha256):
+    """
+    Returns the hash of an entire strongly connected ordered graph, along with the hash of the nodes in the graph
+
+    :param g: A strongly digraph. Edges in the graph should have a label called 'port', whose value is the port\
+    identifier of that edge. The outgoing edges of a node should have non-duplicate port numbers. The port numbers\
+    are used to order the DFS from the nodes.
+    :param hash_nodes: If hash_nodes is True, the return value is (g_hash, node_hashes). Otherwise only the graph hash\
+    is returned
+    :param string_hash_fun: The string hashing function to use. Default is SHA-256
+    :return: If hash_nodes is True, returns a tuple of (g_hash, node_hashes). Otherwise returns only the hash of the\
+    entire strongly connected graph.
+    """
     g_hash = None
     canon_order_lookup = dict()
 

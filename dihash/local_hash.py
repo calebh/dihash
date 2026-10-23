@@ -1,3 +1,5 @@
+from enum import Enum
+
 import networkx as nx
 from .util import hash_sha256, encode, invert_list
 
@@ -6,10 +8,17 @@ from .util import hash_sha256, encode, invert_list
 # colors are collected per *edge*, so parallel edges count with multiplicity)
 # --------------------------------------------------------------------------
 
-def _refine_round(G, colors, label_digest, string_hash_fun, memo):
+class LocalHashVariant(Enum):
+    UNFOLDING = 0
+    BISIMULATION = 1
+
+def _refine_round(G, colors, label_digest, variant: LocalHashVariant, string_hash_fun, memo):
     new_colors = {}
     for n in G.nodes:
-        children = sorted(colors[t] for _, t in G.out_edges(n))
+        if variant == LocalHashVariant.BISIMULATION:
+            children = sorted({colors[t] for _, t in G.out_edges(n)})
+        else:
+            children = sorted(colors[t] for _, t in G.out_edges(n))
         signature = encode((label_digest[n], children))
         digest = memo.get(signature)
         if digest is None:
@@ -33,13 +42,13 @@ def _partition_unchanged(nodes, old_colors, new_colors):
             return False
     return True
 
-def _globally_stable_colors(G, string_hash_fun):
+def _globally_stable_colors(G, variant: LocalHashVariant, string_hash_fun):
     """Colors at the first round whose refinement changes no class globally."""
     label_digest = {n: string_hash_fun(G.nodes[n]["label"]) for n in G.nodes}
     colors = dict(label_digest)
     nodes = list(G.nodes)
     while True:
-        new_colors = _refine_round(G, colors, label_digest, string_hash_fun, {})
+        new_colors = _refine_round(G, colors, label_digest, variant, string_hash_fun, {})
         if _partition_unchanged(nodes, colors, new_colors):
             return colors
         colors = new_colors
@@ -48,13 +57,16 @@ def _globally_stable_colors(G, string_hash_fun):
 # Step 2: quotient multi-digraph
 # --------------------------------------------------------------------------
 
-def _quotient_multidigraph(G, class_of):
+def _quotient_multidigraph(G, class_of, variant: LocalHashVariant):
     """Quotient of G by the partition `class_of` (node -> class id).
 
     Edges of one representative per class are used; for the converged
     refinement partition this is representative-independent, including
     multiplicities."""
-    Q = nx.MultiDiGraph()
+    if variant == LocalHashVariant.BISIMULATION:
+        Q = nx.DiGraph()
+    else:
+        Q = nx.MultiDiGraph()
     representative = {}
     for n in G.nodes:
         c = class_of[n]
@@ -82,7 +94,7 @@ def _serialize_reachable(Q: nx.MultiDiGraph, root, reach, colors, string_hash_fu
     labels = [Q.nodes[x]["label"] for x in order]
     return string_hash_fun(encode((root_idx, labels, adj_list)))
 
-def _canonical_quotient_hashes(Q, string_hash_fun):
+def _canonical_quotient_hashes(Q, variant: LocalHashVariant, string_hash_fun):
     nodes = list(Q.nodes)
     if not nodes:
         return {}
@@ -92,7 +104,7 @@ def _canonical_quotient_hashes(Q, string_hash_fun):
     final_hash = {}
     stable = set()
     while len(stable) < len(nodes):
-        new_colors = _refine_round(Q, colors, label_digest, string_hash_fun, {})
+        new_colors = _refine_round(Q, colors, label_digest, variant, string_hash_fun, {})
         for n in nodes:
             if n in stable:
                 continue
@@ -108,7 +120,7 @@ def _canonical_quotient_hashes(Q, string_hash_fun):
 # Public entry point
 # --------------------------------------------------------------------------
 
-def local_hash(G, string_hash_fun=hash_sha256):
+def local_hash(G, variant=LocalHashVariant.UNFOLDING, string_hash_fun=hash_sha256):
     """Hash every node of a directed graph by its tree expansion.
 
     Guarantee (modulo hash collisions): two nodes -- in the same graph or in
@@ -117,16 +129,15 @@ def local_hash(G, string_hash_fun=hash_sha256):
     """
     if G.number_of_nodes() == 0:
         return {}
-    class_of = _globally_stable_colors(G, string_hash_fun)
-    Q = _quotient_multidigraph(G, class_of)
-    quotient_hash = _canonical_quotient_hashes(Q, string_hash_fun)
+    class_of = _globally_stable_colors(G, variant, string_hash_fun=string_hash_fun)
+    Q = _quotient_multidigraph(G, class_of, variant)
+    quotient_hash = _canonical_quotient_hashes(Q, variant, string_hash_fun=string_hash_fun)
     return {n: quotient_hash[class_of[n]] for n in G.nodes}
 
-
-def local_strongly_connected_hash(sc_graph, string_hash_fun=hash_sha256):
-    colors = _globally_stable_colors(sc_graph, string_hash_fun=string_hash_fun)
-    quotient = _quotient_multidigraph(sc_graph, colors)
-    quotient_colors = _globally_stable_colors(quotient, string_hash_fun=string_hash_fun)
+def local_strongly_connected_hash(sc_graph, variant=LocalHashVariant.UNFOLDING, string_hash_fun=hash_sha256):
+    colors = _globally_stable_colors(sc_graph, variant, string_hash_fun=string_hash_fun)
+    quotient = _quotient_multidigraph(sc_graph, colors, variant)
+    quotient_colors = _globally_stable_colors(quotient, variant, string_hash_fun=string_hash_fun)
     order = sorted(quotient.nodes, key=quotient_colors.get)
     index = invert_list(order)
     labels = [quotient.nodes[x]['label'] for x in order]
