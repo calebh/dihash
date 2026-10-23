@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from enum import Enum
 
 import networkx as nx
@@ -88,7 +90,9 @@ def _serialize_reachable(Q: nx.MultiDiGraph, root, reach, colors, string_hash_fu
         raise AssertionError("Colors not discrete on a stabilized reachable set of a reduced quotient - this should be impossible")
     index = {x: i for i, x in enumerate(order)}
     root_idx = index[root]
-    adj_list = sorted((index[s], index[t]) for (s, t, _) in Q.edges if s in reach and t in reach)
+    # Q.edges() yields (s, t) pairs for both DiGraph (bisimulation) and MultiDiGraph (unfolding, one pair per
+    # parallel edge, so multiplicities are kept)
+    adj_list = sorted((index[s], index[t]) for (s, t) in Q.edges() if s in reach and t in reach)
     labels = [Q.nodes[x]["label"] for x in order]
     return string_hash_fun(encode((root_idx, labels, adj_list)))
 
@@ -151,7 +155,7 @@ def local_strongly_connected_hash(sc_graph, variant=LocalHashVariant.UNFOLDING, 
     order = sorted(quotient.nodes, key=quotient_colors.get)
     index = invert_list(order)
     labels = [quotient.nodes[x]['label'] for x in order]
-    edges = sorted((index[x], index[y]) for (x, y, _) in quotient.edges)
+    edges = sorted((index[x], index[y]) for (x, y) in quotient.edges())
     sc_hash = string_hash_fun(encode((labels, edges)))
     sc_node_hashes = {x: string_hash_fun(encode((index[colors[x]], sc_hash))) for x in sc_graph}
     return (sc_hash, sc_node_hashes)

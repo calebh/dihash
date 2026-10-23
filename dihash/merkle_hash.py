@@ -9,7 +9,8 @@ from dihash.global_hash import global_hash
 
 class MerkleHashVariant:
     def __init__(self):
-        raise ValueError("You should be constructing a particular variant using a child class of MerkleHashVariant")
+        if type(self) is MerkleHashVariant:
+            raise ValueError("You should be constructing a particular variant using a child class of MerkleHashVariant")
 
 class GlobalMH(MerkleHashVariant):
     """
@@ -40,33 +41,45 @@ class OrderedGlobalMH(MerkleHashVariant):
 class OrderedLocalMH(MerkleHashVariant):
     pass
 
-def _hash_scc(g, cond, scc, scc_hashes, node_hashes, string_hash_fun, comp_hash, variant: MerkleHashVariant):
-    if scc in scc_hashes:
-        return
+def _hash_scc(g, cond, root_scc, scc_hashes, node_hashes, string_hash_fun, comp_hash, variant: MerkleHashVariant):
+    # Post-order traversal of the condensation graph with an explicit stack (a recursive traversal exceeds Python's
+    # recursion limit on long chains of SCCs). An SCC is hashed once all SCCs it points to have been hashed.
+    stack = [(root_scc, False)]
+    while len(stack) > 0:
+        (scc, children_done) = stack.pop()
+        if scc in scc_hashes:
+            continue
 
-    scc_members = frozenset(cond.nodes[scc]['members'])
-    scc_graph = g.subgraph(scc_members).copy()
+        scc_members = frozenset(cond.nodes[scc]['members'])
 
-    for s in scc_members:
-        non_scc_succs = frozenset(g.successors(s)) - scc_members
-        # Recursively hash all nodes that are the target of an edge from within the scc to outside the scc
-        for t in non_scc_succs:
-            if t not in node_hashes:
-                t_scc = cond.graph['mapping'][t]
-                _hash_scc(g, cond, t_scc, scc_hashes, node_hashes, string_hash_fun, comp_hash, variant)
-        if isinstance(variant, OrderedGlobalMH):
-            new_labels = [node_hashes[t] if t in non_scc_succs else "*" for t in _port_successors(g, s)]
-        else:
-            if isinstance(variant, LocalMH) and variant.local_hash_variant == LocalHashVariant.BISIMULATION:
-                new_labels = sorted({node_hashes[t] for t in non_scc_succs})
+        if not children_done:
+            stack.append((scc, True))
+            for s in scc_members:
+                # Hash all nodes that are the target of an edge from within the scc to outside the scc first
+                for t in frozenset(g.successors(s)) - scc_members:
+                    if t not in node_hashes:
+                        t_scc = cond.graph['mapping'][t]
+                        if t_scc not in scc_hashes:
+                            stack.append((t_scc, False))
+            continue
+
+        scc_graph = g.subgraph(scc_members).copy()
+
+        for s in scc_members:
+            non_scc_succs = frozenset(g.successors(s)) - scc_members
+            if isinstance(variant, OrderedGlobalMH):
+                new_labels = [node_hashes[t] if t in non_scc_succs else "*" for t in _port_successors(g, s)]
             else:
-                new_labels = sorted(node_hashes[t] for t in non_scc_succs)
-        scc_graph.nodes[s]['label'] = string_hash_fun(encode((g.nodes[s]['label'], new_labels)))
+                if isinstance(variant, LocalMH) and variant.local_hash_variant == LocalHashVariant.BISIMULATION:
+                    new_labels = sorted({node_hashes[t] for t in non_scc_succs})
+                else:
+                    new_labels = sorted(node_hashes[t] for t in non_scc_succs)
+            scc_graph.nodes[s]['label'] = string_hash_fun(encode((g.nodes[s]['label'], new_labels)))
 
-    (scc_hash, scc_node_hashes) = comp_hash(scc_graph)
+        (scc_hash, scc_node_hashes) = comp_hash(scc_graph)
 
-    scc_hashes[scc] = scc_hash
-    node_hashes.update(scc_node_hashes)
+        scc_hashes[scc] = scc_hash
+        node_hashes.update(scc_node_hashes)
 
 def merkle_hash(g: nx.DiGraph, variant: MerkleHashVariant, nodes_to_hash=None, precomputed_hashes=None, string_hash_fun=hash_sha256):
     """

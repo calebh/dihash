@@ -1,6 +1,7 @@
 import networkx as nx
 import dihash
-from dihash.merkle_hash import MerkleHashVariant
+from dihash.merkle_hash import GlobalMH, LocalMH
+from dihash.local_hash import LocalHashVariant
 
 def test_merkle_hash_graph():
     g1 = nx.DiGraph()
@@ -33,7 +34,7 @@ def test_merkle_hash_graph():
     g1.add_edge(3, 4)
     g1.add_edge(4, 3)
 
-    (scc_hashes1, cond1, node_hashes1) = dihash.merkle_hash(g1, MerkleHashVariant.GLOBAL)
+    (scc_hashes1, cond1, node_hashes1) = dihash.merkle_hash(g1, GlobalMH())
 
     assert(node_hashes1[1] == node_hashes1[4])
     assert(node_hashes1[2] == node_hashes1[3])
@@ -69,7 +70,7 @@ def test_merkle_hash_graph():
     g2.add_edge(3, 4)
     g2.add_edge(4, 3)
 
-    (scc_hashes2, cond2, node_hashes2) = dihash.merkle_hash(g1, MerkleHashVariant.GLOBAL)
+    (scc_hashes2, cond2, node_hashes2) = dihash.merkle_hash(g2, GlobalMH())
 
     assert(node_hashes2[1] == node_hashes2[4])
     assert(node_hashes2[2] == node_hashes2[3])
@@ -96,7 +97,7 @@ def test_merkle_hash_graph2():
     g1.nodes[0]['label'] = 'a'
     g1.nodes[1]['label'] = 'a'
 
-    (scc_hashes1, cond1, node_hashes1) = dihash.merkle_hash(g1, MerkleHashVariant.LOCAL)
+    (scc_hashes1, cond1, node_hashes1) = dihash.merkle_hash(g1, LocalMH(LocalHashVariant.UNFOLDING))
 
     assert(node_hashes1[0] == node_hashes1[1])
 
@@ -107,7 +108,7 @@ def test_merkle_hash_graph2():
 
     g2.nodes[0]['label'] = 'a'
 
-    (scc_hashes2, cond2, node_hashes2) = dihash.merkle_hash(g2, MerkleHashVariant.LOCAL)
+    (scc_hashes2, cond2, node_hashes2) = dihash.merkle_hash(g2, LocalMH(LocalHashVariant.UNFOLDING))
 
     assert(node_hashes1[0] == node_hashes2[0])
 
@@ -116,13 +117,14 @@ def test_merkle_hash_graph2():
 
     g3.nodes[0]['label'] = 'a'
 
-    (scc_hashes3, cond3, node_hashes3) = dihash.merkle_hash(g3, MerkleHashVariant.LOCAL)
+    (scc_hashes3, cond3, node_hashes3) = dihash.merkle_hash(g3, LocalMH(LocalHashVariant.UNFOLDING))
 
     assert(node_hashes3[0] != node_hashes1[0])
 
     print("test_merkle_hash_graph2 passed")
 
-test_merkle_hash_graph()
-test_merkle_hash_graph2()
+if __name__ == "__main__":
+    test_merkle_hash_graph()
+    test_merkle_hash_graph2()
 
-print("All tests passed!")
+    print("All tests passed!")

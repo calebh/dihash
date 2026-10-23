@@ -2,7 +2,7 @@ import networkx as nx
 
 from dihash import local_hash
 from dihash.util import hash_sha256
-from dihash.local_hash import _globally_stable_colors
+from dihash.local_hash import _globally_stable_colors, LocalHashVariant
 
 def build(labels, edges):
     G = nx.DiGraph()
@@ -138,7 +138,7 @@ def test9():
         A = random_graph(random.randint(1, 7), random.randint(1, 3), 0.25)
         B = random_graph(random.randint(1, 7), random.randint(1, 3), 0.25)
         U = nx.union(A, B, rename=("A", "B"))
-        truth = _globally_stable_colors(U, hash_sha256)
+        truth = _globally_stable_colors(U, LocalHashVariant.UNFOLDING, hash_sha256)
         hA, hB = local_hash(A), local_hash(B)
         joint = {**{f"A{n}": hA[n] for n in A}, **{f"B{n}": hB[n] for n in B}}
         for x in U.nodes:
@@ -149,13 +149,14 @@ def test9():
     print("9. 200 randomized cross-graph trials match ground truth: OK")
 
 
-test1()
-test2()
-test3()
-test4()
-test5()
-test6()
-test7()
-test8()
-test9()
-print("\nAll tests passed.")
+if __name__ == "__main__":
+    test1()
+    test2()
+    test3()
+    test4()
+    test5()
+    test6()
+    test7()
+    test8()
+    test9()
+    print("\nAll tests passed.")

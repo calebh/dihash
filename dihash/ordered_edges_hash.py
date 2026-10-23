@@ -1,28 +1,36 @@
 import functools
 from collections import defaultdict
 
+import networkx as nx
+
 from dihash.global_hash import _orbit_indices
 from dihash.util import invert_list, hash_sha256, encode
 
 def _port_successors(g, u):
     succ = sorted(((v, v_attr['port']) for (v, v_attr) in g[u].items()), key=lambda tup: tup[1])
+    for i in range(1, len(succ)):
+        if succ[i - 1][1] == succ[i][1]:
+            raise ValueError(f"Node {u} has two outgoing edges with port {succ[i][1]}; ports must be distinct")
     for (v, _) in succ:
         yield v
 
 def _dfs(start, succ_iter):
+    """
+    Preorder (discovery order) of a depth-first search from start that explores the out-edges of each node in the\
+    order given by succ_iter.
+    """
+    discovered = {start}
     yield start
-
-    discovered = set()
-    discovered.add(start)
 
     stack = [succ_iter(start)]
 
     while len(stack) > 0:
-        for node in stack[0]:
+        for node in stack[-1]:
             if node not in discovered:
+                discovered.add(node)
                 yield node
                 stack.append(succ_iter(node))
-            break
+                break
         else:
             stack.pop()
 
@@ -57,7 +65,7 @@ def ordered_edges_sc_global_hash(g, hash_nodes=False, string_hash_fun=hash_sha25
     """
     Returns the hash of an entire strongly connected ordered graph, along with the hash of the nodes in the graph
 
-    :param g: A strongly digraph. Edges in the graph should have a label called 'port', whose value is the port\
+    :param g: A strongly connected digraph. Edges in the graph should have a label called 'port', whose value is the port\
     identifier of that edge. The outgoing edges of a node should have non-duplicate port numbers. The port numbers\
     are used to order the DFS from the nodes.
     :param hash_nodes: If hash_nodes is True, the return value is (g_hash, node_hashes). Otherwise only the graph hash\
@@ -66,6 +74,9 @@ def ordered_edges_sc_global_hash(g, hash_nodes=False, string_hash_fun=hash_sha25
     :return: If hash_nodes is True, returns a tuple of (g_hash, node_hashes). Otherwise returns only the hash of the\
     entire strongly connected graph.
     """
+    if not nx.is_strongly_connected(g):
+        raise AssertionError("Input graph is not strongly connected")
+
     g_hash = None
     canon_order_lookup = dict()
 

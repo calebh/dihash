@@ -49,7 +49,8 @@ def test_iso_duplicate_removal():
 
     print("test_iso_duplicate_removal passed")
 
-test_hash_graph()
-test_iso_duplicate_removal()
+if __name__ == "__main__":
+    test_hash_graph()
+    test_iso_duplicate_removal()
 
-print("All tests passed!")
+    print("All tests passed!")
