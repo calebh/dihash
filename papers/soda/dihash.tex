@@ -137,7 +137,7 @@ Unauthorized reproduction of this article is prohibited}}
 %Copyright retained by principal author's organization}}
 
 \begin{abstract}
-  We present methods, with correctness proofs, for hashing node-labeled directed graphs and the individual nodes within them. We distinguish between hashing based on the \emph{global} structure of a graph, where equal hashes correspond to isomorphism and automorphism orbits, and hashing based on \emph{local} observations obtained by traversing the graph along its edges, where equal hashes correspond to isomorphic (possibly infinite) unfoldings or, in a variant, to bisimilarity. For graphs whose outgoing edges are ordered we give linear-time node hashes and a quadratic-time canonization of strongly connected graphs, and we combine these ingredients into Merkle-style hashes that recurse over the condensation of a graph, in a global variant and a polynomial-time local variant, characterizing exactly which nodes receive equal hashes under each. Applied to the quotient of a graph by the unfolding equivalence, the local Merkle hash yields the local hashes of all nodes in $O((n+m)\log^2 n)$ time. We also show that hashing nodes by the language of their walks is PSPACE-hard. Structural hashing of trees is ubiquitous in blockchains, version control, and content-addressed storage; by contrast, hashing of cyclic directed graphs has received comparatively little systematic treatment. A reference implementation is validated against brute-force equivalence checks, and we report its running time on random digraphs.
+  We present methods, with correctness proofs, for hashing node-labeled directed graphs and the individual nodes within them. We distinguish between hashing based on the \emph{global} structure of a graph, where equal hashes correspond to isomorphism and automorphism orbits, and hashing based on \emph{local} observations obtained by traversing the graph along its edges, where equal hashes correspond to isomorphic (possibly infinite) unfoldings or, in a variant, to bisimilarity. Using a canonical variant of partition refinement and a recursion over the strongly connected components of the quotient by this equivalence, we compute local hashes of all nodes in $O((n+m)\log^2 n)$ time for a graph with $n$ nodes and $m$ edges. For graphs whose outgoing edges are ordered we give linear-time node hashes and a quadratic-time canonization of strongly connected graphs, and we combine these ingredients into Merkle-style hashes that recurse over the condensation of a graph, in a global variant and a polynomial-time local variant, characterizing exactly which nodes receive equal hashes under each. We also show that hashing nodes by the language of their walks is PSPACE-hard. Structural hashing of trees is ubiquitous in blockchains, version control, and content-addressed storage; by contrast, hashing of cyclic directed graphs has received comparatively little systematic treatment. An implementation is validated against brute-force equivalence checks, and we report its running time on random digraphs.
 \end{abstract}
 
 \section{Introduction}\label{sec:introduction}
@@ -162,14 +162,14 @@ Extending hashing to node-labeled directed graphs is non-trivial due to the pres
 
 \begin{itemize}
   \item \textbf{Global Hashing} (Section \ref{sec:global-graph-hashing}) --- for use cases where the \textit{global} structure of the digraph is of importance. Two graphs hash equally if and only if they are isomorphic, and two nodes hash equally if and only if some isomorphism of their graphs maps one onto the other; in particular, nodes in the same automorphism orbit hash equally.
-  \item \textbf{Local Hashing} (Section \ref{sec:local-graph-hashing}) --- for use cases where observers can only observe \textit{local} information by traversing from a node to a neighbor on an outgoing edge. Two nodes hash equally if and only if the (potentially infinite) trees obtained by unfolding the graph from them are isomorphic. We also give a variant for bisimilarity, show that both can be computed in $O((n+m)\log^2 n)$ time for a graph with $n$ nodes and $m$ edges (Section~\ref{sec:subquadratic}), and show that hashing by the language of walks is PSPACE-hard. Local hashing has many commonalities with bisimulation and co-inductive representations of finite directed graphs \cite{bisimulation_book,coinductive_graphs}.
+  \item \textbf{Local Hashing} (Section \ref{sec:local-graph-hashing}) --- for use cases where observers can only observe \textit{local} information by traversing from a node to a neighbor on an outgoing edge. Two nodes hash equally if and only if the (potentially infinite) trees obtained by unfolding the graph from them are isomorphic. We also give a variant for bisimilarity, show that both can be computed in $O((n+m)\log^2 n)$ time for a graph with $n$ nodes and $m$ edges, and show that hashing by the language of walks is PSPACE-hard. Local hashing has many commonalities with bisimulation and co-inductive representations of finite directed graphs \cite{bisimulation_book,coinductive_graphs}.
   \item \textbf{Ordered Outgoing Edges} (Section \ref{sec:outgoing-ordered-edge-graphs}) --- in many practical applications the outgoing edges from a node are ordered. We use this additional structure to obtain linear-time node hashes and a quadratic-time canonization of strongly connected graphs.
   \item \textbf{Merkle Graph Hashing} (Section \ref{sec:merkle-graph-hashing}) --- for use cases where graphs are hashed recursively, or are built up over time. We hash strongly connected components individually, either globally (up to rooted isomorphism) or locally (up to unfolding isomorphism), then recurse over the acyclic condensation graph. We characterize precisely which nodes receive equal hashes in each variant. Both equivalences lie strictly between rooted isomorphism and unfolding isomorphism, and the local variant runs in polynomial time even for unordered graphs.
 \end{itemize}
 
 One common theme throughout this paper is reliance on conversion of graphs to \textit{canonical form}. If two graphs (or nodes within them) can be converted to a canonical form, we can serialize the canonical form and pass it through an ordinary string hashing function. We distinguish carefully between the hash of an entire graph and the hash of a specific node within a graph. Our general strategy for computing the hash of a specific node is to combine the overall graph hash with the node's position in canonical order, taking care that this position accounts for any symmetry present in the graph (two nodes may be identical modulo automorphism).
 
-\paragraph{Contributions.} Each hashing scheme comes with an exact characterization of hash equality (Theorems \ref{thm:digraphhashcorrect}, \ref{thm:digraphnodehashcorrect}, \ref{thm:localhashcorrect}, \ref{thm:bisimhash}, \ref{thm:orderedhash}, \ref{thm:scc-ordered}, \ref{thm:local-component}, \ref{thm:merkle} and \ref{thm:quotient-merkle}), stated relative to an idealized string hash (Section~\ref{sec:hash-model}). We identify and prove the \emph{local stabilization} property that makes color-refinement colors usable as a canonical order (Lemma~\ref{lem:local-injective}), prove PSPACE-hardness of hashing walk languages (Proposition~\ref{prop:pspace}), characterize the local Merkle equivalence by SCC-annotated unfoldings (Proposition~\ref{prop:annotated}), and position both Merkle schemes relative to the other equivalences (Proposition~\ref{prop:merkle-position}). Combining canonical partition refinement with the Merkle construction on the unfolding quotient, we compute local hashes in $O((n+m)\log^2 n)$ time (Theorem~\ref{thm:subquadratic}). A reference implementation is validated against brute-force checks and benchmarked in Section~\ref{sec:experiments}.
+\paragraph{Contributions.} Each hashing scheme comes with an exact characterization of hash equality (Theorems \ref{thm:digraphhashcorrect}, \ref{thm:digraphnodehashcorrect}, \ref{thm:localhashcorrect}, \ref{thm:bisimhash}, \ref{thm:orderedhash}, \ref{thm:ordered-local}, \ref{thm:scc-ordered} and \ref{thm:merkle}), stated relative to an idealized string hash (Section~\ref{sec:hash-model}). We compute local hashes, which can be compared across graphs, for unfolding isomorphism and for bisimilarity in $O((n+m)\log^2 n)$ time (Theorems~\ref{thm:localhashcorrect} and~\ref{thm:bisimhash}), using a canonical variant of partition refinement (Lemma~\ref{lem:canonical-refinement}) and a recursion over the strongly connected components of the quotient. We prove PSPACE-hardness of hashing walk languages (Proposition~\ref{prop:pspace}), characterize the local Merkle equivalence by SCC-annotated unfoldings (Proposition~\ref{prop:annotated}), and position both Merkle schemes relative to the other equivalences (Proposition~\ref{prop:merkle-position} and Corollary~\ref{cor:quotient-merkle}). An implementation is validated against brute-force checks and benchmarked in Section~\ref{sec:experiments}.
 
 \section{Preliminaries}
 \label{sec:preliminaries}
@@ -386,12 +386,11 @@ $a$, every vertex is replaced by one copy per walk reaching it, so the cycle
 $a\to b\to a$ and the self-loop $c\to c$ are unrolled into an infinite tree;
 only the layers $i=0,\dots,3$ are drawn. Each tree node at layer $i$
 corresponds to a walk of length $i$ from $a$ in $G$; colours indicate the
-end vertex of the walk. The color $\lambda_i(a)$ is the (multiset) Merkle hash
-of the truncation $\Unf_i(G,a)$ consisting of layers $0,\dots,i$.}
+end vertex of the walk.}
 \label{fig:unfolding}
 \end{figure*}
 
-In comparison to the global hashing strategy which depends on the global structure of the graph, the local hashing strategy depends only on properties we can \textit{observe} by traversing the digraph forward along its edges. To make this concept precise, the hashes of two nodes should be equal if and only if their \textit{unfoldings} are isomorphic.
+In comparison to the global hashing strategy which depends on the global structure of the graph, the local hashing strategy depends only on properties we can \textit{observe} by traversing the digraph forward along its edges. To make this concept precise, the hashes of two nodes should be equal if and only if their \textit{unfoldings} are isomorphic. We characterize this equivalence by stable partitions and merge equivalent nodes into a quotient (Section~\ref{sec:quotient}). A canonical variant of partition refinement then orders the nodes of each strongly connected component of the quotient (Sections~\ref{sec:canonical-refinement} and~\ref{sec:component-hash}), and the components are hashed one at a time, sinks first (Section~\ref{sec:all-nodes}). The resulting hash runs in $O((n+m)\log^2 n)$ time for a graph with $n$ nodes and $m$ edges.
 
 \subsection{Unfoldings.}
 \begin{defn}[Unfolding]
@@ -399,7 +398,7 @@ In comparison to the global hashing strategy which depends on the global structu
 Let $G=(V,\mu,L)$ be a labeled multidigraph and $u\in V$. The \emph{unfolding} $\Unf(G,u)$ is the rooted, labeled, unordered tree defined as follows. The nodes of $\Unf(G,u)$ are the walks in $G$ starting at $u$, i.e.\ sequences $w = (x_0, e_1, x_1, \dots, e_k, x_k)$ of vertices $x_j \in V$ of $G$ with $x_0 = u$ and $e_j \in \{1,\dots,\mu(x_{j-1},x_j)\}$ selecting one of the parallel edges from $x_{j-1}$ to $x_j$. Each walk, taken as a whole, is one tree node; the same vertex of $G$ can therefore occur in many tree nodes. The root is the walk $(u)$ of length $0$, the parent of a walk of length $k\ge 1$ is obtained by deleting its last step $(e_k, x_k)$, and the label of $w$ is $L(x_k)$, the label of the vertex at which the walk ends. The \emph{truncation} $\Unf_k(G,u)$ is the subtree of walks of length at most $k$.
 \end{defn}
 
-Isomorphism of rooted labeled unordered trees means a label-preserving bijection preserving the root and the parent relation. Two finite such trees are isomorphic if and only if the roots have equal labels and there is a bijection between the children of the two roots that maps each child subtree to an isomorphic child subtree. We use two elementary facts. First, the subtree of $\Unf(G,u)$ below a walk ending at $x$ is isomorphic to $\Unf(G,x)$. Second, the root of $\Unf(G,u)$ has exactly $\mu(u,x)$ children whose subtrees are copies of $\Unf(G,x)$, for each $x$. Unfoldings are infinite as soon as a cycle is reachable, but they are finitely branching. Figure \ref{fig:unfolding} shows an example.
+Isomorphism of rooted labeled unordered trees means a label-preserving bijection preserving the root and the parent relation. Two finite such trees are isomorphic if and only if the roots have equal labels and there is a bijection between the children of the two roots that maps each child subtree to an isomorphic child subtree. We use two elementary facts. First, the subtree of $\Unf(G,u)$ below a walk ending at $x$ is isomorphic to $\Unf(G,x)$. Second, the root of $\Unf(G,u)$ has exactly $\mu(u,x)$ children whose subtrees are copies of $\Unf(G,x)$, for each $x$. Unfoldings are infinite as soon as a cycle is reachable, but they are finitely branching. Figure \ref{fig:unfolding} shows an example. For nodes $u$ of $G_1$ and $v$ of $G_2$, which may be the same graph, we write $u\equiv v$ if $\Unf(G_1,u)\iso\Unf(G_2,v)$.
 
 \begin{lemma}[Truncations suffice]
 \label{lem:truncation}
@@ -410,50 +409,21 @@ $\Unf(G_1,u)\iso\Unf(G_2,v)$ if and only if $\Unf_k(G_1,u)\iso\Unf_k(G_2,v)$ for
 ($\Leftarrow$) Let $I_k$ be the set of isomorphisms $\Unf_k(G_1,u) \to \Unf_k(G_2,v)$. Each $I_k$ is finite (the trees are finite) and nonempty by assumption, and restriction maps $I_{k+1}$ into $I_k$. Let $J_k \subseteq I_k$ be the set of elements of $I_k$ that are restrictions of elements of $I_j$ for every $j > k$. Since the images of $I_j$ in $I_k$ form a decreasing chain of finite nonempty sets, $J_k$ is nonempty, and every element of $J_k$ is the restriction of an element of $J_{k+1}$. By K\H{o}nig's lemma \cite{konig1936theorie} (or simply by induction) there is a sequence $\phi_k \in J_k$ with $\phi_{k+1}$ extending $\phi_k$. Their union is an isomorphism $\Unf(G_1,u)\to\Unf(G_2,v)$.
 \end{proof}
 
-\subsection{Color refinement.}
-Our strategy for local graph hashing uses a variant of color refinement \cite{weisfeiler1968reduction,Shervashidze2011-dt} along outgoing edges. The initial coloring is the hash of the node label, and each round combines a node's label with the multiset of its successors' colors (a multiset is serialized by sorting):
-\begin{align}
-  \lambda_0(u) &= \mathcal{H}(\enc(L(u))), \label{eq:coloring-init}\\
-  \lambda_{i+1}(u) &= \mathcal{H}\big(\enc\big((L(u), \mset{\lambda_{i}(v) \mid v \in \Succ(u)})\big)\big). \label{eq:coloring-step}
-\end{align}
-Note that the colors are defined for nodes of \emph{any} graph by the same formula, so colors of nodes in different graphs can be compared.
+\subsection{Stable partitions and the unfolding quotient.}
+\label{sec:quotient}
+For a node $u$ and a set $Y$ of nodes of a labeled multidigraph $G=(V,\mu,L)$, let $\mu(u,Y)=\sum_{y\in Y}\mu(u,y)$ be the number of edges from $u$ into $Y$. A partition $P$ of $V$ is \emph{stable with respect to} $Y$ if $\mu(u,Y)=\mu(u',Y)$ for any two nodes $u,u'$ in the same block of $P$, and $P$ is \emph{stable} if the nodes in each block have equal labels and $P$ is stable with respect to each of its blocks. Stability with respect to $Y$ is preserved when $P$ is refined, and stability with respect to $D$ and to a subset $E\subseteq D$ implies stability with respect to $D\setminus E$, since $\mu(u,D\setminus E)=\mu(u,D)-\mu(u,E)$.
 
-\begin{lemma}
-\label{lem:colors-trunc}
-Assuming $\mathcal{H}$ is injective, for nodes $u$ of $G_1$ and $v$ of $G_2$ and every $i \ge 0$: $\lambda_i(u)=\lambda_i(v)$ if and only if $\Unf_i(G_1,u)\iso\Unf_i(G_2,v)$. Consequently the colorings refine monotonically: $\lambda_{i+1}(u) = \lambda_{i+1}(v)$ implies $\lambda_i(u) = \lambda_i(v)$.
+\begin{lemma}[Stable partitions]
+\label{lem:stable}
+The classes of $\equiv$ on $V$ form a stable partition, and every stable partition of $V$ refines it. Hence the classes of $\equiv$ form the coarsest stable partition of $V$.
 \end{lemma}
 \begin{proof}
-Induction on $i$. For $i=0$ both sides say $L_1(u)=L_2(v)$. For the step, by injectivity $\lambda_{i+1}(u)=\lambda_{i+1}(v)$ if and only if $L_1(u)=L_2(v)$ and the multisets $\mset{\lambda_i(x)\mid x\in\Succ(u)}$ and $\mset{\lambda_i(y)\mid y\in\Succ(v)}$ are equal. By the induction hypothesis the latter holds if and only if there is a bijection between the children of the two roots of $\Unf_{i+1}$ matching isomorphic depth-$i$ subtrees, which (with the labels) is exactly $\Unf_{i+1}(G_1,u)\iso\Unf_{i+1}(G_2,v)$. Monotonicity follows because an isomorphism of $\Unf_{i+1}$ restricts to one of $\Unf_i$.
+If $u\equiv u'$, an isomorphism $\Unf(G,u)\to\Unf(G,u')$ preserves the label of the root and maps the children of the root bijectively onto the children of the root, and the subtree below each child, which is the unfolding of the end vertex of the corresponding edge, onto an isomorphic subtree. Hence $L(u)=L(u')$, and $u$ and $u'$ have the same number of edges into every class of $\equiv$.
+
+Conversely, let $P$ be a stable partition. We show by induction on $k$ that $\Unf_k(G,u)\iso\Unf_k(G,u')$ for any two nodes $u,u'$ in the same block of $P$. For $k=0$ this holds because their labels are equal. For the step, $u$ and $u'$ have the same number of edges into every block $B$ of $P$. Bijections between these edges, for all blocks $B$, give a bijection between the children of the roots of $\Unf_{k+1}(G,u)$ and $\Unf_{k+1}(G,u')$ in which corresponding children are walks ending in the same block, and their depth-$k$ subtrees are isomorphic by the induction hypothesis. Hence $\Unf_{k+1}(G,u)\iso\Unf_{k+1}(G,u')$, and $u\equiv u'$ by Lemma~\ref{lem:truncation}.
 \end{proof}
 
-Thus $\lambda_i(u)$ is exactly the multiset Merkle hash of the finite tree $\Unf_i(G,u)$, built bottom-up one layer per round; the bottom-up construction maximally shares computation in a dynamic programming fashion. Since colors change every round, we stop based on the \emph{partition} they induce. For $S\subseteq V$ let $\pi_i(S)$ be the partition of $S$ into classes of equal $\lambda_i$.
-
-\begin{stoppingcondition}
-\textbf{Stabilization on $S$}: a set $S$ is \emph{stable in round $i$} if $\pi_{i+1}(S)=\pi_i(S)$. \emph{Global stabilization} is stabilization on $S=V$. A node $n$ is \emph{locally stable} in round $i$ if $\Reach(n)$ is stable in round $i$.
-\end{stoppingcondition}
-
-By monotonicity, $\pi_{i+1}(S)=\pi_i(S)$ holds if and only if $\lambda_i$ and $\lambda_{i+1}$ take the same \emph{number} of distinct values on $S$, which is how the check is implemented.
-
-\begin{lemma}[Stability persists]
-\label{thm:stability}
-Assume $\mathcal{H}$ is injective and let $S$ be forward-closed. If $S$ is stable in round $i$, then $\pi_j(S)=\pi_i(S)$ for all $j\ge i$. Moreover, $S$ is stable in some round $i \le |S|-1$.
-\end{lemma}
-\begin{proof}
-It suffices to show that stability in round $j$ implies stability in round $j+1$. If $\pi_{j+1}(S)=\pi_j(S)$, the assignment $\beta(\lambda_j(x)) = \lambda_{j+1}(x)$ for $x \in S$ is a well-defined bijection between the color sets of rounds $j$ and $j+1$ on $S$. Let $u,v\in S$. All successors of $u$ and $v$ lie in $S$ because $S$ is forward-closed, and the round-$(j+1)$ multiset of successor colors of $u$ is the image under $\beta$ of the round-$j$ multiset. Since $\beta$ is injective, the round-$(j+1)$ multisets of $u$ and $v$ are equal if and only if the round-$j$ multisets are. By \eqref{eq:coloring-step} and injectivity of $\mathcal{H}$, $\lambda_{j+2}(u)=\lambda_{j+2}(v)$ if and only if $\lambda_{j+1}(u)=\lambda_{j+1}(v)$, i.e.\ $\pi_{j+2}(S)=\pi_{j+1}(S)$. This completes the inductive step.
-
-For the bound: by monotonicity each round either leaves $\pi_i(S)$ unchanged or strictly increases the number of classes, which is at most $|S|$; $\pi_0(S)$ has at least one class.
-\end{proof}
-
-\begin{cor}
-\label{cor:stable-unfolding}
-Assume $\mathcal{H}$ is injective. Let $S$ be forward-closed and stable in round $i$. For $u,v\in S$, $\lambda_i(u)=\lambda_i(v)$ if and only if $\Unf(G,u)\iso\Unf(G,v)$.
-\end{cor}
-\begin{proof}
-If $\lambda_i(u)=\lambda_i(v)$ then $\lambda_j(u)=\lambda_j(v)$ for all $j\ge i$ by Lemma~\ref{thm:stability} and for all $j\le i$ by monotonicity. By Lemma~\ref{lem:colors-trunc} all truncations are isomorphic, and by Lemma~\ref{lem:truncation} so are the unfoldings. The converse follows from Lemma~\ref{lem:colors-trunc}.
-\end{proof}
-
-\subsection{The unfolding quotient.}
-Write $u\equiv v$ if $\Unf(G,u)\iso\Unf(G,v)$. By Corollary~\ref{cor:stable-unfolding} with $S=V$, the global stable coloring $C=\lambda_{i^*}$, where $i^*$ is the first round of global stabilization, has exactly the classes of $\equiv$.
+We write $[u]$ for the class of $u$, and $C:V\to V/{\equiv}$ for the map $u\mapsto[u]$.
 
 \begin{defn}[Unfolding quotient]
 \label{def:quotient}
@@ -464,94 +434,135 @@ We define the quotient multidigraph $Q = G/{\equiv}$, written $(V_Q,\mu_Q,L_Q)$,
 i.e.\ the number of edges from a single representative of $A$ into $B$.
 \end{defn}
 
-This is \emph{not} the naive quotient that creates one edge $[u]\to[v]$ for every edge $(u,v)$ of $G$: that construction multiplies multiplicities by class sizes and does not preserve unfoldings. Definition~\ref{def:quotient} coincides with the minimum base of a graph fibration \cite{boldi2002fibrations}.
+This is \emph{not} the naive quotient that creates one edge $[u]\to[v]$ for every edge $(u,v)$ of $G$: that construction multiplies multiplicities by class sizes and does not preserve unfoldings. Definition~\ref{def:quotient} coincides with the minimum base of a graph fibration \cite{boldi2002fibrations}. We call a labeled multidigraph \emph{reduced} if distinct vertices have non-isomorphic unfoldings.
 
-\begin{lemma}%[Quotient preserves unfoldings]
+\begin{lemma}
 \label{lem:quotient}
-Definition~\ref{def:quotient} is independent of the chosen representative; $\Unf(Q,[u])\iso\Unf(G,u)$ for every $u \in V$; and distinct vertices of $Q$ have non-isomorphic unfoldings.
+The multiplicities $\mu_Q$ do not depend on the chosen representatives, and $\Unf(Q,[u])\iso\Unf(G,u)$ for every $u \in V$. The quotient $Q$ is reduced, so its coarsest stable partition is discrete. Finally, $C$ maps every edge of $G$ to an edge of $Q$, so $Q$ is strongly connected if $G$ is.
 \end{lemma}
 \begin{proof}
-If $u\equiv u'$, an isomorphism $\Unf(G,u)\to\Unf(G,u')$ matches the root children, whose subtrees are the unfoldings of the successors. Hence for every $\equiv$-class $B$ the number of successors (with multiplicity) of $u$ in $B$ equals that of $u'$, so $\mu_Q$ is well defined. Next we show $\Unf_k(Q,[u])\iso\Unf_k(G,u)$ by induction on $k$, simultaneously for all $u$. The case $k=0$ holds by the choice of $L_Q$. For the step, the root of $\Unf_{k+1}(G,u)$ has, for each class $B$, exactly $\mu_Q([u],B)$ children whose subtrees are $\Unf_k(G,x)$ with $x\in B$. By the induction hypothesis each of these is isomorphic to $\Unf_k(Q,B)$, and the root of $\Unf_{k+1}(Q,[u])$ has exactly $\mu_Q([u],B)$ children with subtree $\Unf_k(Q,B)$. Lemma~\ref{lem:truncation} gives the full unfoldings. Finally, if $A\ne B$ in $V_Q$ with representatives $u\not\equiv v$, then $\Unf(Q,A)\iso\Unf(G,u)\not\iso\Unf(G,v)\iso\Unf(Q,B)$.
+The first statement is the stability of $\equiv$ (Lemma~\ref{lem:stable}). Next we show $\Unf_k(Q,[u])\iso\Unf_k(G,u)$ by induction on $k$, simultaneously for all $u$. The case $k=0$ holds by the choice of $L_Q$. For the step, the root of $\Unf_{k+1}(G,u)$ has, for each class $B$, exactly $\mu_Q([u],B)$ children whose subtrees are $\Unf_k(G,x)$ with $x\in B$. By the induction hypothesis each of these is isomorphic to $\Unf_k(Q,B)$, and the root of $\Unf_{k+1}(Q,[u])$ has exactly $\mu_Q([u],B)$ children with subtree $\Unf_k(Q,B)$. Lemma~\ref{lem:truncation} gives the full unfoldings. If $A\ne B$ in $V_Q$ with representatives $u\not\equiv v$, then $\Unf(Q,A)\iso\Unf(G,u)\not\iso\Unf(G,v)\iso\Unf(Q,B)$, so $Q$ is reduced, and by Lemma~\ref{lem:stable} applied to $Q$ its coarsest stable partition is discrete. Finally, for an edge $(x,y)$ of $G$, choosing $x$ as the representative of $[x]$ in Definition~\ref{def:quotient} shows that $\mu_Q([x],[y])\ge\mu(x,y)>0$. So $C$ maps walks of $G$ to walks of $Q$, and since $C$ is surjective, $Q$ is strongly connected if $G$ is.
 \end{proof}
 
-\subsection{Local stabilization and canonical order.}
-We now run a fresh color refinement on $Q$ (colors $\lambda_i$ below refer to $Q$). For a vertex $n$ of $Q$, let $i_n$ be the first round in which $n$ is locally stable, i.e.\ in which $\Reach(n)$ is stable. We order $\Reach(n)$ by the colors $\lambda_{i_n}$ and serialize.
+In reduced graphs, isomorphic unfoldings come from isomorphic reachable subgraphs.
 
-\begin{lemma}[Local colors are a canonical order]
-\label{lem:local-injective}
-Assume $\mathcal{H}$ is injective. For every vertex $n$ of $Q$, $\lambda_{i_n}$ is injective on $\Reach(n)$.
+\begin{lemma}[Reduced graphs]
+\label{lem:reduced-iso}
+Let $Q_1$ and $Q_2$ be reduced labeled multidigraphs, $A\in V_{Q_1}$ and $B\in V_{Q_2}$. Then $A\equiv B$ if and only if there is an isomorphism between the sub-multigraphs induced on $\Reach(A)$ and $\Reach(B)$ that maps $A$ to $B$.
 \end{lemma}
 \begin{proof}
-$\Reach(n)$ is forward-closed and stable in round $i_n$. If $\lambda_{i_n}(x)=\lambda_{i_n}(y)$ for $x,y\in\Reach(n)$, then $\Unf(Q,x)\iso\Unf(Q,y)$ by Corollary~\ref{cor:stable-unfolding}, so $x=y$ by Lemma~\ref{lem:quotient}.
+($\Leftarrow$) The unfolding of a vertex depends only on the sub-multigraph induced on its reachable set, and isomorphisms preserve unfoldings.
+
+($\Rightarrow$) Let $\tau:\Unf(Q_1,A)\to\Unf(Q_2,B)$ be an isomorphism. Define $g:\Reach(A)\to\Reach(B)$ by letting $g(X)$ be the end vertex of $\tau(w)$ for any walk $w$ from $A$ to $X$. The subtree below $w$ is $\Unf(Q_1,X)$, and the subtree below $\tau(w)$ is $\Unf(Q_2,g(X))$, so $X\equiv g(X)$. Since $Q_2$ is reduced, $g(X)$ does not depend on the choice of $w$. The same argument with $\tau^{-1}$ gives an inverse map, so $g$ is a bijection with $g(A)=B$, and it preserves labels. For multiplicities, fix $X$ and $Z$ in $\Reach(A)$. Since $Q_1$ is reduced, the root of $\Unf(Q_1,X)$ has exactly $\mu_{Q_1}(X,Z)$ children whose subtrees are isomorphic to $\Unf(Q_1,Z)$. Since $Q_2$ is reduced and $Z\equiv g(Z)$, the root of $\Unf(Q_2,g(X))$ has exactly $\mu_{Q_2}(g(X),g(Z))$ children of this isomorphism type. An isomorphism between $\Unf(Q_1,X)$ and $\Unf(Q_2,g(X))$ preserves the number of children of each isomorphism type, so $\mu_{Q_1}(X,Z)=\mu_{Q_2}(g(X),g(Z))$. Thus $g$ is an isomorphism.
 \end{proof}
 
-\begin{lemma}[Local colors are intrinsic]
-\label{lem:local-intrinsic}
-Let $n_1\in V_{Q_1}$, $n_2\in V_{Q_2}$, and let $\psi$ be a rooted isomorphism between the sub-multigraphs induced on $\Reach(n_1)$ and $\Reach(n_2)$, with $\psi(n_1)=n_2$. Then $\lambda_i(\psi(x))=\lambda_i(x)$ for all $i$ and all $x\in\Reach(n_1)$, $i_{n_1}=i_{n_2}$, and $\textproc{serialize}$ in Algorithm~\ref{alg:local-node-hash} produces the same string for $n_1$ and $n_2$.
+\subsection{Canonical refinement.}
+\label{sec:canonical-refinement}
+The coarsest stable partition can be computed by partition refinement \cite{cardon1982partitioning}. We use a variant whose result is invariant under isomorphisms, so that its block numbers can serve as a canonical order. It maintains a partition $P$ of $V$ into numbered blocks and a first-in, first-out worklist $W$ of blocks.
+\begin{enumerate}
+  \item Initially, the blocks are the classes of nodes with equal labels, numbered $0,1,\dots$ in increasing order of the encodings of their labels, and all of them are in $W$, in this order.
+  \item While $W$ is not empty, remove the first block $E$ from $W$, and compute $\mu(u,E)$ for every node $u$ that has a successor in $E$. Then, in increasing order of their numbers, split the blocks that contain such nodes into groups of nodes with equal values of $\mu(u,E)$. The group with $\mu(u,E)=0$ keeps the number of the block, or, if there is no such group, the group with the smallest value keeps it. The other groups receive the next unused numbers in increasing order of $\mu(u,E)$.
+  \item If a block that is split was in $W$, all new groups are appended to $W$. Otherwise, all its groups except a largest one are appended, where among several largest groups the one with the smallest number is left out.
+\end{enumerate}
+
+\begin{lemma}[Canonical refinement]
+\label{lem:canonical-refinement}
+The procedure stops with the coarsest stable partition, whose blocks are the classes of $\equiv$, after $O((n+m)\log^2 n)$ time plus the time to sort the labels. Its block numbers are canonical: if $\psi:G_1\to G_2$ is an isomorphism, then for every node $x$ of $G_1$, the final block of $\psi(x)$ in the run on $G_2$ has the same number as the final block of $x$ in the run on $G_1$. In particular, if the coarsest stable partition of $G$ is discrete, the block numbers form a canonical order of $V$.
 \end{lemma}
 \begin{proof}
-The first claim follows by induction on $i$ from \eqref{eq:coloring-init}--\eqref{eq:coloring-step}, since the successors of $x$ lie in $\Reach(n_1)$ and $\psi$ preserves labels and multiplicities. Hence $\psi$ maps $\pi_i(\Reach(n_1))$ onto $\pi_i(\Reach(n_2))$ for every $i$, so both sets first stabilize in the same round. Sorting by $\lambda_{i_{n_1}}$ therefore gives index$(\psi(x))=$ index$(x)$, so the root index, label lists and multiplicity lists coincide.
+\emph{Correctness.} Every block is a union of classes of $\equiv$. This holds initially, and since $\equiv$ is stable (Lemma~\ref{lem:stable}), equivalent nodes have equal numbers of edges into every union of classes, so no step separates them. By Lemma~\ref{lem:stable} it therefore suffices to show that $P$ is stable when the procedure stops. We show that the following invariant holds after every step: for every block $B\notin W$ there is a set $D\supseteq B$ such that $P$ is stable with respect to $D$, and $D\setminus B$ is a union of blocks in $W$. It holds initially, because all blocks are in $W$. Consider a step that removes $E$ from $W$. After the step, $P$ is stable with respect to $E$, and remains stable with respect to every set $D$ chosen before, since splitting refines $P$. A block $B\notin W$ whose set $D$ contains $E$ satisfies the invariant with $D\setminus E$ in place of $D$. If $E$ is still a block, or for the group of $E$ that is not appended to $W$, the invariant holds with $D=E$. Blocks in $W$ that are split have all their groups in $W$, so sets $D\setminus B$ that contained them are still unions of blocks in $W$. Finally, if another block $B\notin W$ is split, its group $B'$ that is not appended satisfies the invariant with the same set $D$ as $B$, since $D\setminus B'$ consists of $D\setminus B$ and the other groups of $B$, which are in $W$. When $W$ is empty, the invariant gives $D=B$ for every block $B$, so $P$ is stable.
+
+\emph{Running time.} Consider a node $x$ and two consecutive steps whose removed blocks $E$ and $E'$ contain $x$. Immediately after the first of these steps, the block of $x$ is a subset of $E$, and it is in $W$ only if it is an appended group of $E$, which has at most $|E|/2$ nodes. Otherwise it returns to $W$ only as an appended group of a block outside $W$ that is not a largest group, which again has at most $|E|/2$ nodes. Blocks only shrink, so $|E'|\le|E|/2$, and $x$ lies in $O(\log n)$ removed blocks. A step that removes $E$ examines the incoming edges of the nodes of $E$, and sorts at most as many blocks and values as there are such edges, in $O\big((|E|+\sum_{y\in E}d^-(y))\log n\big)$ time, where $d^-(y)$ is the number of edges into $y$. Summing over all steps gives $O((n+m)\log^2 n)$.
+
+\emph{Canonicity.} We compare the runs on $G_1$ and $G_2$ step by step. By induction on the number of steps, $\psi$ maps every block of the first run onto the block with the same number in the second run, and the two worklists contain the same numbers in the same order. This holds initially because $\psi$ preserves labels. In a step, the removed blocks correspond, $\psi$ preserves the values $\mu(u,E)$, and hence the split blocks, their groups, the sizes of the groups, and all decisions on numbers and on the worklist.
 \end{proof}
 
-\begin{algorithm*}[!b]
-    \caption{Local Digraph Node Hash}\label{alg:local-node-hash}
+The second logarithmic factor comes only from sorting. With the canonical colour refinement of Berkholz, Bonsma and Grohe \cite{berkholz2017tight} in place of this procedure, all bounds below become $O((n+m)\log n)$, which matches their lower bound for algorithms based on partition refinement.
+
+\subsection{Hashing a strongly connected graph.}
+\label{sec:component-hash}
+In a strongly connected graph, every node reaches every other node, so a canonical order of the whole quotient depends only on what each node can observe. Algorithm~\ref{alg:local-component-hash} serializes the quotient once in this order, and hashes each node by its position.
+
+\begin{algorithm}[t]
+    \caption{Local Component Hash}\label{alg:local-component-hash}
     \begin{algorithmic}[1]
-
-    \Function{\textproc{serialize}}{$Q=(V_Q, \mu_Q, L_Q)$, root, reach, colors}
-        \State order $\gets$ \textproc{sorted}(reach, key=colors) \Comment{no ties, by Lemma~\ref{lem:local-injective}}
-        \State index $\gets$ $\{x \mapsto i \mid (i, x) \in \textproc{enumerate}(\text{order})\}$
-        \State adj\_list $\gets$ \textproc{sorted}($[(\text{index}[x], \text{index}[y], \mu_Q(x,y)) \mid x, y \in \text{reach},\ \mu_Q(x,y) > 0]$)
-        \State labels $\gets$ $[L_Q(x)$ \textbf{for} $x$ \textbf{in} order$]$
-        \State \Return $\mathcal{H}$($\enc$((index[root], labels, adj\_list)))
-    \EndFunction
-
-    \Function{$\HL$}{$G=(V, E, L)$}
-        \State $C \gets$ \textproc{global\_stable\_colors}($G$) \Comment{refine with \eqref{eq:coloring-step} until global stabilization}
-        \State $Q=(V_Q,\mu_Q,L_Q) \gets G / C$ \Comment{unfolding quotient, Definition~\ref{def:quotient}; $C : V\to V_Q$ is the projection}
-        \State reach $\gets \{n \mapsto \Reach_Q(n) \mid n \in V_Q\}$
-        \State final\_hash $\gets \textproc{empty\_dict}()$
-        \State $\lambda \gets \{n \mapsto \mathcal{H}(\enc(L_Q(n))) \mid n \in V_Q\}$
-        \While{$|\text{final\_hash}|<|V_Q|$} \Comment{terminates by Lemma~\ref{thm:stability} with $S=V_Q$}
-          \State $\lambda_{next} \gets$ \textproc{refine\_round}($Q, \lambda$) \Comment{one application of \eqref{eq:coloring-step} on $Q$}
-          \For{$n \in V_Q$ \textbf{with} $n \notin \text{final\_hash}$}
-              \If{$|\{\lambda(x) \mid x\in\text{reach}[n]\}| = |\{\lambda_{next}(x) \mid x\in\text{reach}[n]\}|$} \Comment{$n$ locally stable}
-                \State final\_hash[$n$] $\gets$ \textproc{serialize}($Q$, $n$, reach[$n$], $\lambda$)
-              \EndIf
-          \EndFor
-          \State $\lambda \gets \lambda_{next}$
-        \EndWhile
-        %\State \Return $\{u \mapsto \text{final\_hash}[\pi(u)] \mid u \in V\}$
-        \State \Return $\{u \mapsto \text{final\_hash}[C(u)] \mid u \in V\}$
+    \Function{\textproc{local\_comp\_hash}}{$S=(V_S,\mu_S,L_S)$} \Comment{$S$ strongly connected}
+        \State $C \gets$ the classes of $\equiv$ on $V_S$ \Comment{partition refinement, Lemma~\ref{lem:canonical-refinement}}
+        \State $Q=(V_Q,\mu_Q,L_Q) \gets S / C$ \Comment{Definition~\ref{def:quotient}; $C : V_S\to V_Q$ maps nodes to classes}
+        \State $\kappa \gets$ the block numbers of the canonical refinement of $Q$ \Comment{a canonical order, Lemma~\ref{lem:comp-quotient}}
+        \State labels $\gets$ $[L_Q(X)$ \textbf{for} $X\in V_Q$ \textbf{in increasing order of} $\kappa(X)]$
+        \State edges $\gets$ \textproc{sorted}($[(\kappa(X), \kappa(Y), \mu_Q(X,Y)) \mid X,Y\in V_Q,\ \mu_Q(X,Y) > 0]$)
+        \State $g \gets \mathcal{H}(\enc((\text{labels}, \text{edges})))$
+        \State \Return $\{x \mapsto \mathcal{H}(\enc((\kappa(C(x)), g))) \mid x \in V_S\}$
     \EndFunction
     \end{algorithmic}
-\end{algorithm*}
+\end{algorithm}
 
-To summarize the approach: we first merge all nodes with isomorphic unfoldings using color refinement with the global stabilization condition, obtaining the quotient multigraph $Q$ in which distinct nodes have distinct unfoldings. We then refine again on $Q$, and for each node $n$ we wait until its reachable set stabilizes. At that point the colors on $\Reach(n)$ are pairwise distinct (Lemma~\ref{lem:local-injective}) and depend only on $\Reach(n)$ (Lemma~\ref{lem:local-intrinsic}), so they give a canonical order from which a canonical adjacency list is serialized and hashed. Algorithm \ref{alg:local-node-hash} gives pseudo-code that computes the hash of every node in the input graph.
+\begin{lemma}
+\label{lem:comp-quotient}
+Let $S$ be strongly connected and let $Q$ be its quotient. Then $Q$ is strongly connected, $\kappa$ is injective, and $Q$ has no automorphism other than the identity.
+\end{lemma}
+\begin{proof}
+By Lemma~\ref{lem:quotient}, $Q$ is strongly connected and its coarsest stable partition is discrete, so $\kappa$ is injective by Lemma~\ref{lem:canonical-refinement}. An automorphism of $Q$ maps every vertex to a vertex with an isomorphic unfolding, so it is the identity because $Q$ is reduced.
+\end{proof}
 
-\begin{remark}[Why local stabilization is needed]
-It is tempting to sort $\Reach(n)$ by the global stable colors $\lambda_{i^*}$ of $Q$ instead. These are also injective on $\Reach(n)$, but the round $i^*$ depends on parts of the graph that are \emph{not} reachable from $n$, and the color \emph{values} (unlike the partition) keep changing from round to round. The same reachable subgraph embedded in two different graphs would then be sorted by colors from different rounds, generally in different orders, and the resulting hash would not be an invariant of the unfolding. Waiting for local stabilization makes the round $i_n$, and hence the order, intrinsic to $\Reach(n)$.
-\end{remark}
+In particular, no orbit computation is needed: the canonical index of a vertex of $Q$ identifies it uniquely.
+
+\begin{theorem}[Correctness of the local component hash]
+\label{thm:local-component}
+Let $S_1,S_2$ be strongly connected labeled multidigraphs, let $x_1\in V_{S_1}$ and $x_2\in V_{S_2}$, and write $h_S=\textproc{local\_comp\_hash}(S)$. Assuming $\mathcal{H}$ is injective, $h_{S_1}(x_1)=h_{S_2}(x_2)$ if and only if $x_1\equiv x_2$. Algorithm~\ref{alg:local-component-hash} runs in $O((n+m)\log^2 n)$ time, where $n$ and $m$ are the numbers of vertices and edges of $S$, plus the time to sort the labels and to hash.
+\end{theorem}
+\begin{proof}
+Let $Q_1,Q_2$ be the quotients, $A=C_1(x_1)$ and $B=C_2(x_2)$.
+
+($\Leftarrow$) By Lemma~\ref{lem:quotient}, $A\equiv B$. By Lemmas~\ref{lem:reduced-iso} and~\ref{lem:comp-quotient}, the reachable sets of $A$ and $B$ are all of $Q_1$ and $Q_2$, and there is an isomorphism $\psi:Q_1\to Q_2$ with $\psi(A)=B$. By Lemma~\ref{lem:canonical-refinement}, $\kappa_2(\psi(X))=\kappa_1(X)$ for every vertex $X$ of $Q_1$. Hence the label lists, the edge lists, the hashes $g$ and the indices of $A$ and $B$ coincide.
+
+($\Rightarrow$) By injectivity, $\kappa_1(A)=\kappa_2(B)$, and the label and edge lists coincide. Since $\kappa_1$ and $\kappa_2$ are injective, mapping the vertex with $\kappa_1=i$ to the vertex with $\kappa_2=i$, for every $i$, is an isomorphism $Q_1\to Q_2$ that maps $A$ to $B$. Hence $A\equiv B$, and $x_1\equiv x_2$ by Lemma~\ref{lem:quotient}.
+
+The running time follows from Lemma~\ref{lem:canonical-refinement}, applied to $S$ and to $Q$, together with $O(n+m)$ time for the quotient and $O(m\log n)$ time for sorting the edges.
+\end{proof}
+
+\subsection{Hashing all nodes.}
+\label{sec:all-nodes}
+If a graph is not strongly connected, the canonical order of its whole quotient also depends on vertices that a node cannot reach, so the hash of the node would not be determined by its unfolding. We therefore hash the strongly connected components of the quotient one at a time, sinks first, like the nodes of a Merkle tree. Every vertex $x$ of a component $K$ is relabeled with its label and the multiset of hashes of its successors outside $K$, counted with multiplicity, and then $K$ is hashed with Algorithm~\ref{alg:local-component-hash}. Algorithm~\ref{alg:local-node-hash} gives the pseudo-code. Its loop is the local Merkle hash of Section~\ref{sec:merkle-graph-hashing}, applied to the quotient (Corollary~\ref{cor:quotient-merkle}).
+
+\begin{algorithm}[t]
+    \caption{Local Digraph Node Hash}\label{alg:local-node-hash}
+    \begin{algorithmic}[1]
+    \Function{$\HL$}{$G=(V,\mu,L)$}
+        \State $C \gets$ the classes of $\equiv$ on $V$ \Comment{partition refinement, Lemma~\ref{lem:canonical-refinement}}
+        \State $Q=(V_Q,\mu_Q,L_Q) \gets G / C$ \Comment{Definition~\ref{def:quotient}}
+        \State $h \gets \textproc{empty\_dict}()$
+        \For{\textbf{each} SCC $K$ of $Q$ in reverse topological order} \Comment{sinks first}
+          \For{$x \in K$}
+            \State $X(x) \gets \mset{h[y] \mid y\notin K}$, where $h[y]$ is repeated $\mu_Q(x,y)$ times
+            \State $L'(x) \gets (L_Q(x), X(x))$
+          \EndFor
+          \State $h \gets h \cup \textproc{local\_comp\_hash}((K,\ \mu_Q|_{K\times K},\ L'))$
+        \EndFor
+        \State \Return $\{u \mapsto h[C(u)] \mid u \in V\}$
+    \EndFunction
+    \end{algorithmic}
+\end{algorithm}
+
+For a vertex $x$ of $Q$, let $\hgt(x)$ be the height of its strongly connected component in the condensation of $Q$ (Section~\ref{sec:preliminaries}).
 
 \begin{theorem}[Correctness of the local hash]
 \label{thm:localhashcorrect}
-$\HL$ realizes unfolding isomorphism: assuming $\mathcal{H}$ is injective, for nodes $u$ of $G_1$ and $v$ of $G_2$, $\HL(G_1)[u] = \HL(G_2)[v]$ if and only if $\Unf(G_1, u) \iso \Unf(G_2, v)$.
+$\HL$ realizes unfolding isomorphism: assuming $\mathcal{H}$ is injective, for nodes $u$ of $G_1$ and $v$ of $G_2$, $\HL(G_1)[u] = \HL(G_2)[v]$ if and only if $\Unf(G_1, u) \iso \Unf(G_2, v)$. Algorithm~\ref{alg:local-node-hash} runs in $O((n+m)\log^2 n)$ time for a graph with $n$ nodes and $m$ edges, plus the time to sort labels and to hash strings of total length $O(n+m)$ labels and hashes.
 \end{theorem}
-
 \begin{proof}
-Let $Q_1,Q_2$ be the quotients, $A=[u]\in V_{Q_1}$ and $B=[v]\in V_{Q_2}$.
+Let $Q_1,Q_2$ be the quotients and $h_1,h_2$ the hashes computed for their vertices. Since $\HL(G_i)[u]=h_i(C_i(u))$ and $\Unf(G_i,u)\iso\Unf(Q_i,C_i(u))$ by Lemma~\ref{lem:quotient}, it suffices to show that $h_1(A)=h_2(B)$ if and only if $A\equiv B$, for vertices $A$ of $Q_1$ and $B$ of $Q_2$. We proceed by induction on $\max(\hgt(A),\hgt(B))$. Let $K$ and $K'$ be the components of $A$ and $B$, and $\hat K$ and $\hat K'$ the relabeled components passed to Algorithm~\ref{alg:local-component-hash}.
 
-($\Rightarrow$) Equal hashes give, by injectivity, equal root indices, label lists and multiplicity lists. Mapping the $k$-th vertex of $\Reach(A)$ in sorted order to the $k$-th vertex of $\Reach(B)$ is therefore a rooted isomorphism of the induced sub-multigraphs. The unfolding of a vertex depends only on the sub-multigraph induced by its reachable set and is invariant under isomorphism, so $\Unf(Q_1,A)\iso\Unf(Q_2,B)$. By Lemma~\ref{lem:quotient}, $\Unf(G_1,u)\iso\Unf(G_2,v)$.
+($\Leftarrow$) By Lemmas~\ref{lem:quotient} and~\ref{lem:reduced-iso}, there is an isomorphism $\psi$ between the sub-multigraphs induced on $\Reach(A)$ and $\Reach(B)$ with $\psi(A)=B$. It maps strongly connected components onto strongly connected components, so it maps $K$ onto $K'$, and for every $x\in K$ it maps the edges from $x$ that leave $K$ bijectively onto the edges from $\psi(x)$ that leave $K'$. An external successor $y$ of $x$ has a smaller height, and $\psi$ restricts to an isomorphism between the sub-multigraphs induced on $\Reach(y)$ and $\Reach(\psi(y))$, so $y\equiv\psi(y)$ and $h_1(y)=h_2(\psi(y))$ by the induction hypothesis. Hence $L'(\psi(x))=L'(x)$ for every $x\in K$, so $\psi$ restricts to an isomorphism $\hat K\to\hat K'$ with $\psi(A)=B$, and $h_1(A)=h_2(B)$ by Theorem~\ref{thm:local-component}.
 
-($\Leftarrow$) By Lemma~\ref{lem:quotient} there is a tree isomorphism $\tau:\Unf(Q_1,A)\to\Unf(Q_2,B)$. Define $g:\Reach(A)\to\Reach(B)$ by letting $g(X)$ be the end vertex of $\tau(w)$ for any walk $w$ from $A$ to $X$. The subtree below $w$ is $\Unf(Q_1,X)$, and the subtree below $\tau(w)$ is $\Unf(Q_2,g(X))$, so these are isomorphic. By Lemma~\ref{lem:quotient} (applied in $Q_2$), $g(X)$ does not depend on the choice of $w$. The same argument with $\tau^{-1}$ gives an inverse map, so $g$ is a bijection with $g(A)=B$ and $\Unf(Q_1,X)\iso\Unf(Q_2,g(X))$ for all $X$. It preserves labels. For multiplicities, fix $X$ and $Z$ in $\Reach(A)$. The root of $\Unf(Q_1,X)$ has $\mu_{Q_1}(X,Z)$ children of isomorphism type $\Unf(Q_1,Z)$. Since distinct vertices of $Q_2$ have distinct unfolding types, the root of $\Unf(Q_2,g(X))$ has $\mu_{Q_2}(g(X),g(Z))$ children of this type. An isomorphism between $\Unf(Q_1,X)$ and $\Unf(Q_2,g(X))$ preserves the number of children of each type, so $\mu_{Q_1}(X,Z)=\mu_{Q_2}(g(X),g(Z))$. Thus $g$ is a rooted isomorphism, and Lemma~\ref{lem:local-intrinsic} shows that the serializations, and hence the hashes, are equal.
+($\Rightarrow$) By Theorem~\ref{thm:local-component}, there is an isomorphism $\tau$ between the unfoldings of $A$ in $\hat K$ and of $B$ in $\hat K'$, which preserves the labels $L'$. The walks in $Q_1$ from $A$ that stay in $K$ are exactly the nodes of the first of these unfoldings, and every walk from $A$ consists of such a walk $w$, possibly followed by an edge $e$ that leaves $K$ and a walk from the end vertex $y$ of $e$. Let $w$ end at $x$, and $\tau(w)$ at $x'$. Then $L'(x)=L'(x')$, so $L(x)=L(x')$, and the edges from $x$ that leave $K$ can be matched bijectively with the edges from $x'$ that leave $K'$ so that matched edges end at vertices $y,y'$ with $h_1(y)=h_2(y')$. These vertices have heights less than $\max(\hgt(A),\hgt(B))$, so $y\equiv y'$ by the induction hypothesis. Mapping every walk $w$ that stays in $K$ to $\tau(w)$, and every walk that continues $w$ with an edge $e$ to the corresponding continuation of $\tau(w)$ with the matched edge, composed with an isomorphism $\Unf(Q_1,y)\to\Unf(Q_2,y')$, defines an isomorphism $\Unf(Q_1,A)\to\Unf(Q_2,B)$.
+
+\emph{Running time.} Line~2 takes $O((n+m)\log^2 n)$ time by Lemma~\ref{lem:canonical-refinement}, and the quotient, which has at most $n$ vertices and $m$ edges, and its condensation take $O(n+m)$ time. A component $K$ with $n_K$ vertices and $m_K$ internal edges is relabeled with one hash per edge that leaves it, and is hashed in $O((n_K+m_K)\log^2 n_K)$ time by Theorem~\ref{thm:local-component}. The components are disjoint, and every edge of $Q$ is internal to one component or leaves one, so these costs sum to $O((n+m)\log^2 n)$. Every relabeled label is serialized once with its component, and every node hash has constant size, which bounds the total length of the hashed strings.
 \end{proof}
 
-\paragraph{Complexity.} Let $n=|V|$ and $m=|E|$. Each refinement round costs $O((n+m)\log n)$ for sorting successor multisets (plus hashing of strings of total length $O(n+m)$ digests), and by Lemma~\ref{thm:stability} at most $n$ rounds are needed in each stage. The local stability checks cost $\sum_{x\in V_Q}|\Reach(x)| = O(n^2)$ per round, and the serializations cost $O(n(n+m)\log n)$ in total. The overall running time is therefore $O(n^3 + nm\log n)$. The serializations alone have total size $\Theta(\sum_x (|\Reach(x)| + |E(\Reach(x))|))$, which can be $\Theta(n(n+m))$, so a quadratic term is inherent in any scheme that serializes each node's reachable subgraph explicitly. In our experiments (Section~\ref{sec:experiments}) the number of rounds is small and the running time grows quadratically. Section~\ref{sec:subquadratic} avoids both costs: it computes both stages by partition refinement and applies the Merkle construction of Section~\ref{sec:merkle-graph-hashing} to the quotient $Q$, which yields a hash that realizes the same equivalence in $O((n+m)\log^2 n)$ time (Theorem~\ref{thm:subquadratic}).
-
-\subsection{Relation to prior work.}
-Our approach draws on color refinement for undirected graphs, also known as the 1-dimensional Weisfeiler--Leman algorithm and the basis of Weisfeiler--Lehman subtree kernels \cite{weisfeiler1968reduction,Shervashidze2011-dt,fast_subtree_kernels_on_graphs}, and on partition refinement for automata, such as Hopcroft's DFA minimization algorithm \cite{hopcraft, hopcraft-redescribe}. The equivalence $\equiv$ and the quotient $Q$ correspond to the fibration-theoretic notions of \emph{views} and \emph{minimum bases} \cite{yamashita1996anonymous,boldi2002fibrations}, and the bound of Lemma~\ref{thm:stability} parallels Norris's theorem that universal covers isomorphic to depth $n-1$ are isomorphic \cite{norris1995universal}. Unfoldings of finite graphs are exactly the regular (rational) trees, for which unique maximally-shared representations were studied by Mauborgne \cite{mauborgne2000incremental}. To our knowledge, the local stabilization condition and its use to turn refinement colors into a canonical order that is intrinsic to each node's reachable subgraph are new.
-
 \subsection{Alternative formulations of local hashing.}
-The strategy above hashes what an observer can see by traversing the graph forward along its directed edges. We note two other formulations.
+The local hash realizes what an observer can see by traversing the graph forward along its directed edges. We note two other formulations.
 
 \paragraph{Walk languages.} Treat labels as letters of an alphabet and define the \emph{vertex language} of $u$ as the set of label sequences of walks starting at $u$:
 \begin{equation}
@@ -570,17 +581,28 @@ Hardness: we reduce from equivalence of NFAs in which all states are final, whic
 
 \paragraph{Bisimulation.} Nodes $a$ and $b$ (possibly in different graphs) are \emph{bisimilar} if they are related by the largest relation $\mathcal{R}$ such that $a\mathcal{R}b$ implies: (a) $L(a)=L(b)$; (b) for every edge $a\to a'$ there is an edge $b\to b'$ with $a'\mathcal{R}b'$; and (c) for every edge $b\to b'$ there is an edge $a\to a'$ with $a'\mathcal{R}b'$ \cite{bisimulation_book}. The existential quantifiers, in place of a bijection between successors, mean that bisimulation ignores duplicated bisimilar successors: bisimilar nodes may have different out-degrees. Unfolding isomorphism is the counting analogue of bisimilarity and implies it.
 
-A tempting modification of Algorithm~\ref{alg:local-node-hash} is to keep the multiset refinement and merely collapse the quotient $G/C$ to an ordinary digraph. \emph{This is incorrect}, because multiset refinement separates bisimilar nodes that differ only in the number of equivalent successors; after collapsing, such nodes become distinct quotient vertices with identical colors, and sorting by color is no longer canonical.
+A partition of $V$ is \emph{bisimulation-stable} if the nodes in each block have equal labels and, for any two blocks $B$ and $B'$, either every node of $B$ has a successor in $B'$ or none has. The bisimilarity classes form the coarsest bisimulation-stable partition: by clauses (b) and (c) bisimilar nodes have successors in the same classes, and conversely, the relation of lying in the same block of a bisimulation-stable partition is a bisimulation. The relational coarsest partition algorithm of Paige and Tarjan \cite{paige1987three} computes these classes in $O(m\log n)$ time, see also \cite{kanellakis1990ccs}. The \emph{bisimulation quotient} has the classes as vertices, with the labels of their members, and an edge $A\to B$ if and only if some, equivalently every, node of $A$ has a successor in $B$. The pairs $(u,[u])$ form a bisimulation, so every node is bisimilar to its class, and by transitivity distinct vertices of a bisimulation quotient are not bisimilar.
 
-The correct modification replaces the multisets in \eqref{eq:coloring-step} by \emph{sets} in \emph{both} refinement stages: $\lambda^{\mathrm{set}}_{i+1}(u)=\mathcal{H}(\enc((L(u),\{\lambda^{\mathrm{set}}_i(v)\mid v\in\Succ(u)\})))$. The global stage then computes bisimilarity, as in relational coarsest partition algorithms \cite{kanellakis1990ccs,paige1987three}. The quotient is the ordinary digraph with an edge $A\to B$ if and only if some (equivalently, every) $u\in A$ has a successor in $B$, and \textproc{serialize} emits a simple adjacency list. Call the resulting hash $\HB$.
+The \emph{bisimulation hash} $\HB$ is Algorithm~\ref{alg:local-node-hash} with three changes, which apply to Algorithm~\ref{alg:local-component-hash} as well. The classes are the bisimilarity classes, and the quotients are bisimulation quotients. The external hashes $X(x)$ form a set rather than a multiset. And the edges are serialized without multiplicities. The canonical order $\kappa$ is still computed by the counting refinement of Section~\ref{sec:canonical-refinement}: unfolding isomorphism implies bisimilarity, so no two vertices of a bisimulation quotient have isomorphic unfoldings, and its coarsest stable partition is discrete.
 
 \begin{theorem}
 \label{thm:bisimhash}
-$\HB$ realizes bisimilarity: assuming $\mathcal{H}$ is injective, $\HB(G_1)[u]=\HB(G_2)[v]$ if and only if $u$ and $v$ are bisimilar.
+$\HB$ realizes bisimilarity: assuming $\mathcal{H}$ is injective, $\HB(G_1)[u]=\HB(G_2)[v]$ if and only if $u$ and $v$ are bisimilar. It runs in $O((n+m)\log^2 n)$ time, plus the cost of hashing.
 \end{theorem}
-\begin{proof}[Proof sketch]
-The proof follows that of Theorem~\ref{thm:localhashcorrect}, replacing $\Unf_i$-isomorphism by $i$-step bisimilarity $\approx_i$. With sets in place of multisets, Lemma~\ref{lem:colors-trunc} becomes: $\lambda^{\mathrm{set}}_i(u)=\lambda^{\mathrm{set}}_i(v)$ if and only if $u\approx_i v$. Lemma~\ref{lem:truncation} becomes the fact that on finitely branching systems bisimilarity equals $\bigcap_i\approx_i$ \cite{hennessy1985algebraic}. Lemma~\ref{thm:stability} and Corollary~\ref{cor:stable-unfolding} go through verbatim (an injective map on colors preserves set equality just as it preserves multiset equality). The bisimulation quotient is bisimilar to the original graph, and on it bisimilarity is the identity, which replaces Lemma~\ref{lem:quotient}. For the ($\Leftarrow$) direction, bisimilarity restricted to $\Reach(A)\times\Reach(B)$ in the two quotients is total and surjective: by induction along walks, every vertex reachable from $A$ is bisimilar to one reachable from $B$ and vice versa. It is functional and injective by minimality, and it maps edges onto edges by clauses (b) and (c). It is therefore a rooted isomorphism, and Lemma~\ref{lem:local-intrinsic} applies unchanged.
+\begin{proof}
+We write $\sim$ for bisimilarity, and follow the proofs of Lemma~\ref{lem:reduced-iso} and Theorems~\ref{thm:local-component} and~\ref{thm:localhashcorrect}.
+
+\emph{Bisimulation quotients.} Let $A$ and $B$ be vertices of bisimulation quotients $Q_1$ and $Q_2$. Then $A\sim B$ if and only if there is an isomorphism between the sub-digraphs induced on $\Reach(A)$ and $\Reach(B)$ that maps $A$ to $B$. Indeed, such an isomorphism is a bisimulation. Conversely, if $A\sim B$, then by induction along walks, using clauses (b) and (c), every vertex of $\Reach(A)$ is bisimilar to a vertex of $\Reach(B)$, and vice versa. Since distinct vertices of the same quotient are not bisimilar, $\sim$ relates $\Reach(A)$ and $\Reach(B)$ by a bijection $g$ with $g(A)=B$, which preserves labels. If $X\to Z$, then $g(X)$ has a successor bisimilar to $Z$, which can only be $g(Z)$; symmetrically, every edge $g(X)\to g(Z)$ comes from an edge $X\to Z$. So $g$ is an isomorphism.
+
+\emph{Strongly connected graphs.} As in Lemma~\ref{lem:quotient}, the bisimulation quotient of a strongly connected graph is strongly connected, and $\kappa$ is injective on it. With the previous paragraph in place of Lemma~\ref{lem:reduced-iso}, the proof of Theorem~\ref{thm:local-component} shows that the component hashes of $x_1$ and $x_2$ are equal if and only if $x_1\sim x_2$, since an isomorphism of quotients is a bisimulation, and $x_i\sim C_i(x_i)$.
+
+\emph{All nodes.} We show that $h_1(A)=h_2(B)$ if and only if $A\sim B$, for vertices $A$ of $Q_1$ and $B$ of $Q_2$, by induction on $\max(\hgt(A),\hgt(B))$. ($\Leftarrow$) The isomorphism $\psi$ of the first paragraph maps the external successors of every $x\in K$ bijectively onto those of $\psi(x)$. They are bisimilar to their images, so they have equal hashes by the induction hypothesis. Hence $X(\psi(x))=X(x)$, $\psi$ is an isomorphism of the relabeled components, and $h_1(A)=h_2(B)$. ($\Rightarrow$) By the previous paragraph, there is a bisimulation $R$ between the relabeled components $\hat K$ and $\hat K'$ that relates $A$ and $B$ and respects the labels $L'$. If $x\,R\,x'$, then $L(x)=L(x')$ and $X(x)=X(x')$, so by the induction hypothesis every external successor of $x$ is bisimilar to some external successor of $x'$, and vice versa; and every internal successor of either node is related by $R$ to an internal successor of the other. Hence $R\cup{\sim}$ is a bisimulation, and $A\sim B$.
+
+\emph{Running time.} The algorithm of Paige and Tarjan takes $O(m\log n)$ time, and the rest is as in Theorem~\ref{thm:localhashcorrect}.
 \end{proof}
+
+\subsection{Relation to prior work.}
+Counting refinement is color refinement, the 1-dimensional Weisfeiler--Leman algorithm \cite{weisfeiler1968reduction}, applied along outgoing edges; the Weisfeiler--Lehman subtree kernels \cite{Shervashidze2011-dt,fast_subtree_kernels_on_graphs} hash the colors of its rounds. Partition refinement for automata goes back to Hopcroft's DFA minimization algorithm \cite{hopcraft, hopcraft-redescribe}. The equivalence $\equiv$ and the quotient $Q$ correspond to the fibration-theoretic notions of \emph{views} and \emph{minimum bases} \cite{yamashita1996anonymous,boldi2002fibrations}, and for undirected graphs, isomorphism of unfoldings is isomorphism of universal covers \cite{norris1995universal}. Berkholz, Bonsma and Grohe \cite{berkholz2017tight} compute canonical colorings, which are preserved by isomorphisms of the whole graph; colors of nodes in non-isomorphic graphs cannot be compared, which is what the recursion over the components of the quotient achieves. Unfoldings of ordered graphs are regular trees, and unique, maximally shared representations and canonical forms of regular trees and of recursive types have been computed with Hopcroft's algorithm \cite{mauborgne2000incremental,considine2000efficient,gauthier2004numbering}; the ordered variant of Section~\ref{sec:outgoing-ordered-edge-graphs} is closely related to these. To our knowledge, hashes for unordered unfoldings and for bisimilarity that are canonical across graphs and can be computed in near-linear time have not been described before.
 
 \section{Outgoing Ordered Edge Graphs}
 \label{sec:outgoing-ordered-edge-graphs}
@@ -648,19 +670,19 @@ $\HO$ realizes rooted ordered isomorphism of reachable subgraphs: assuming $\mat
 ($\Rightarrow$) Equal serializations have equal lengths. Map the $k$-th discovered node of $G_1$ to the $k$-th discovered node of $G_2$. The label lists agree, and the out-sequences of corresponding nodes are equal as sequences of discovery numbers, so the map is an ordered isomorphism mapping $n_1$ (number $0$) to $n_2$.
 \end{proof}
 
-$\HO$ is a hash of the reachable subgraph, not of the unfolding. For example, a node with a self-loop and a node on a 2-cycle (with all labels equal) have isomorphic unfoldings but different values of $\HO$. The local, unfolding-based notion is easier in the ordered setting than in Section~\ref{sec:local-graph-hashing}, because an ordered graph is a deterministic automaton whose input letters are ports and whose output at each state is the pair (label, out-degree).
+$\HO$ is a hash of the reachable subgraph, not of the unfolding. For example, a node with a self-loop and a node on a 2-cycle (with all labels equal) have isomorphic unfoldings but different values of $\HO$. The unfolding-based notion for ordered graphs uses \emph{ordered unfoldings}, in which the children of every tree node are ordered by port, and isomorphisms must preserve this order; in this section we write $u\equiv v$ if the ordered unfoldings of $u$ and $v$ are isomorphic. An ordered graph is a deterministic automaton whose letters are the ports and whose output at each state is its label and out-degree, and the classes of $\equiv$ are the states of the minimal automaton. Section~\ref{sec:local-graph-hashing} carries over as follows.
 
-\begin{prop}[Ordered local hashing]
-\label{prop:ordered-local}
-Refine with sequences in place of multisets, $\lambda_{i+1}(u)=\mathcal{H}(\enc((L(u),(\lambda_i(s_1(u)),\dots,\lambda_i(s_{d(u)}(u))))))$, until global stabilization, and form the quotient $Q$ with $s([u]) = ([s_1(u)],\dots,[s_{d(u)}(u)])$. Then $u\mapsto\HO(Q,[u])$ realizes isomorphism of ordered unfoldings. The quotient is the minimal automaton, and it can be computed in $O(m\log n)$ time with partial-DFA minimization \cite{hopcraft,valmari2008partial}.
-\end{prop}
-\begin{proof}[Proof sketch]
-As in Lemmas~\ref{lem:colors-trunc}--\ref{lem:quotient}, the stable classes are exactly the ordered-unfolding classes, the quotient is well defined and preserves ordered unfoldings, and distinct vertices of $Q$ have distinct ordered unfoldings. If $\Unf(G_1,u)\iso\Unf(G_2,v)$ as ordered trees, then the simultaneous traversal of $Q_1$ from $[u]$ and $Q_2$ from $[v]$ along equal ports reaches vertices with isomorphic ordered unfoldings. By minimality this defines a bijection between the reachable sets, which is an ordered isomorphism, so Theorem~\ref{thm:orderedhash} applies. The converse is as in Theorem~\ref{thm:localhashcorrect}.
+\begin{theorem}[Ordered local hashing]
+\label{thm:ordered-local}
+Change Section~\ref{sec:local-graph-hashing} as follows. A partition is \emph{stable with respect to} a set $Y$ if, for any two nodes $u,u'$ in the same block and every port $k$, $s_k(u)\in Y$ if and only if $s_k(u')\in Y$; and a stable partition must have equal labels and equal out-degrees in each block. The quotient has the out-sequences $s([u])=([s_1(u)],\dots,[s_{d(u)}(u)])$. The canonical refinement starts from the classes of nodes with equal label and out-degree, and a step splits the blocks, for $k=1,2,\dots$ in turn, into the nodes whose $k$-th successor lies in $E$ and the others, which keep the number of the block. Algorithm~\ref{alg:local-component-hash} serializes the out-sequence $(\kappa(s_1(X)),\dots,\kappa(s_{d(X)}(X)))$ of every vertex $X$ in place of the multiplicities. Finally, Algorithm~\ref{alg:local-node-hash} relabels $x\in K$ with the sequence $X(x)$ whose $k$-th entry is $h[s_k(x)]$ if $s_k(x)\notin K$ and a placeholder $\star$ otherwise, and keeps the internal targets of every vertex of $K$ in port order. With these changes, Lemmas~\ref{lem:stable}--\ref{lem:comp-quotient} and Theorems~\ref{thm:local-component} and~\ref{thm:localhashcorrect} hold for ordered unfoldings and ordered isomorphisms. In particular, the local hash realizes isomorphism of ordered unfoldings, and it runs in $O((n+m)\log^2 n)$ time, plus the cost of hashing.
+\end{theorem}
+\begin{proof}
+We list the changes to the proofs. In Lemma~\ref{lem:stable}, an isomorphism of ordered unfoldings maps the $k$-th child of the root to the $k$-th child of the root, so equivalent nodes have equal out-degrees and equivalent $k$-th successors; conversely, in the induction, the $k$-th children of the two roots are matched with each other. In Lemma~\ref{lem:quotient}, the out-sequences are well defined by stability, and the remaining statements are proved in the same way. In Lemma~\ref{lem:reduced-iso}, an isomorphism $\tau$ of ordered unfoldings maps the walk from $A$ that follows the ports $k_1,\dots,k_j$ to the walk from $B$ that follows the same ports. Let $g(X)$ be the end vertex of $\tau(w)$ for any walk $w$ from $A$ to $X$. Since $Q_2$ is reduced, $g(X)$ does not depend on $w$, and by symmetry $g$ is a bijection. It preserves labels, and $s_k(g(X))=g(s_k(X))$, because $\tau$ maps the extension of $w$ by port $k$ to the extension of $\tau(w)$ by port $k$. In Lemma~\ref{lem:canonical-refinement}, stability with respect to $D$ and to $E\subseteq D$ implies stability with respect to $D\setminus E$, because $s_k(u)\in D\setminus E$ if and only if $s_k(u)\in D$ and $s_k(u)\notin E$. Nodes in the same block have the same out-degree, so every port is defined for all or for none of them, and a step again examines only the edges into the nodes of $E$. The proofs of Lemma~\ref{lem:comp-quotient} and Theorem~\ref{thm:local-component} are unchanged, with out-sequences in place of multiplicities. In the proof of Theorem~\ref{thm:localhashcorrect}, the isomorphism $\psi$ preserves ports, so the sequences $X(x)$ and $X(\psi(x))$ agree entry by entry. Conversely, equal labels $L'(x)=L'(x')$ mark the same ports of $x$ and $x'$ as internal, $\tau$ matches the internal ports with each other, and the external ports are matched port by port.
 \end{proof}
 
-Computing $\HO(Q,[u])$ for every node $u$ takes quadratic time in the worst case; Remark~\ref{rem:subquadratic-variants} gives an $O(m\log^2 n)$ alternative.
+In practice, the classes can be computed directly as the states of the minimal automaton with the algorithms of Hopcroft and of Valmari and Lehtinen \cite{hopcraft,valmari2008partial}, in $O(m\log n)$ time, as the dihash library does.
 
-\paragraph{Strongly connected graphs.} For the special case of a strongly connected ordered graph, the node hashes of Algorithm~\ref{alg:node-outgoing-edges} yield both a canonical form and the orbit partition in polynomial time. This is the case needed by the global variant of the Merkle-style hashing of Section~\ref{sec:merkle-graph-hashing}, where strongly connected components are hashed individually. (For the local variant, Section~\ref{sec:merkle-graph-hashing} serializes the quotient of Proposition~\ref{prop:ordered-local} once per component instead of running a search from every node.)
+\paragraph{Strongly connected graphs.} For the special case of a strongly connected ordered graph, the node hashes of Algorithm~\ref{alg:node-outgoing-edges} yield both a canonical form and the orbit partition in polynomial time. This is the case needed by the global variant of the Merkle-style hashing of Section~\ref{sec:merkle-graph-hashing}, where strongly connected components are hashed individually. (The local variant uses the ordered version of Algorithm~\ref{alg:local-component-hash} instead, which serializes the quotient of each component once.)
 
 \begin{algorithm}[H]
     \caption{Canonization and Orbit Partitioning for Strongly Connected Ordered Graphs}
@@ -699,7 +721,7 @@ For applications where graphs are built up over time, a recursive approach simil
 To compute the hash of each node, we process the strongly connected components in reverse topological order, so that every edge leaving a component points to nodes that have already been hashed. Each node of the component is relabeled by combining its label with the hashes of its external targets: a multiset of hashes for unordered graphs; for ordered graphs, the out-sequence in which every internal target is replaced by a placeholder $\star$, so that the positions of internal and external links are both recorded. The new label $L'(x)=(L(x),X(x))$ is kept as a pair rather than hashed. The canonical form of a component therefore contains every label and every external hash verbatim, so the component, including its outgoing links, can be reconstructed from the value that is hashed (Section~\ref{sec:application} uses this). The labels $L'$ are structured values rather than strings. This is harmless, because the algorithms of Sections~\ref{sec:global-graph-hashing}--\ref{sec:outgoing-ordered-edge-graphs} use labels only through equality, sorting and the injective serialization $\enc$; we encode $\star$ as a value that differs from every hash. Finally the relabeled component, restricted to its internal edges, is hashed with a \emph{component hash}. We consider two choices.
 \begin{itemize}
   \item In the \emph{global variant} $\HMg$, the component hash is the global node hash (Algorithm~\ref{alg:digraph-node-hash}) or, for ordered graphs, the node hash of Algorithm~\ref{alg:scc-outgoing-edges}. It distinguishes nodes up to rooted isomorphism of their relabeled components.
-  \item In the \emph{local variant} $\HMl$, the component hash is the local component hash of Algorithm~\ref{alg:local-component-hash} below. It distinguishes nodes only up to isomorphism of their unfoldings inside the relabeled components, and it runs in polynomial time also for unordered graphs.
+  \item In the \emph{local variant} $\HMl$, the component hash is the local component hash of Section~\ref{sec:local-graph-hashing} (Algorithm~\ref{alg:local-component-hash}), or its ordered version (Theorem~\ref{thm:ordered-local}). It distinguishes nodes only up to isomorphism of their unfoldings inside the relabeled components, and it runs in $O((n+m)\log^2 n)$ time also for unordered graphs.
 \end{itemize}
 Algorithm \ref{alg:merklegraphhash} gives the pseudo-code; each component is processed once.
 
@@ -725,54 +747,7 @@ Algorithm \ref{alg:merklegraphhash} gives the pseudo-code; each component is pro
     \end{algorithmic}
 \end{algorithm}
 
-\subsection{A local component hash.}
-In a strongly connected graph every node reaches every other node. The local hash of Section~\ref{sec:local-graph-hashing} therefore simplifies: all vertices of the quotient become locally stable in the same round, and the reachable set of every vertex is the whole quotient, so the quotient is serialized once instead of once per node. Algorithm~\ref{alg:local-component-hash} handles unordered graphs and, with the sequence refinement of Proposition~\ref{prop:ordered-local}, ordered graphs. Here \textproc{global\_stable\_colors} refines as in Section~\ref{sec:local-graph-hashing} and returns the colors of the first round in which the partition of all vertices is stable.
-
-\begin{algorithm}[t]
-    \caption{Local Component Hash}\label{alg:local-component-hash}
-    \begin{algorithmic}[1]
-    \Function{\textproc{local\_comp\_hash}}{$S=(V_S,E_S,L_S)$} \Comment{$S$ strongly connected}
-        \State $C \gets$ \textproc{global\_stable\_colors}($S$) \Comment{\eqref{eq:coloring-step}; ordered: sequences as in Proposition~\ref{prop:ordered-local}}
-        \State $Q=(V_Q,\mu_Q,L_Q) \gets S / C$ \Comment{Definition~\ref{def:quotient}; ordered: quotient of Proposition~\ref{prop:ordered-local}}
-        \State $\lambda \gets$ \textproc{global\_stable\_colors}($Q$) \Comment{fresh refinement on $Q$, as in Algorithm~\ref{alg:local-node-hash}}
-        \State order $\gets$ \textproc{sorted}($V_Q$, key$=\lambda$) \Comment{no ties, by Lemma~\ref{lem:comp-quotient}}
-        \State index $\gets$ $\{X \mapsto i \mid (i, X) \in \textproc{enumerate}(\text{order})\}$
-        \State labels $\gets$ $[L_Q(X)$ \textbf{for} $X$ \textbf{in} order$]$
-        \State edges $\gets$ \textproc{sorted}($[(\text{index}[X], \text{index}[Y], \mu_Q(X,Y)) \mid \mu_Q(X,Y) > 0]$)
-        \Statex \hfill \Comment{ordered: $[[\text{index}[Y]~\textbf{for}~Y~\textbf{in}~s(X)]$ \textbf{for} $X$ \textbf{in} order$]$}
-        \State $g \gets \mathcal{H}(\enc((\text{labels}, \text{edges})))$
-        \State \Return $\{x \mapsto \mathcal{H}(\enc((\text{index}[C(x)], g))) \mid x \in V_S\}$
-    \EndFunction
-    \end{algorithmic}
-\end{algorithm}
-
-\begin{lemma}
-\label{lem:comp-quotient}
-Assume $\mathcal{H}$ is injective, let $S$ be strongly connected, and let $Q$ be its quotient (unordered or ordered). Then $Q$ is strongly connected, the colors $\lambda$ computed in Algorithm~\ref{alg:local-component-hash} are pairwise distinct on $V_Q$, and $Q$ has no automorphism other than the identity.
-\end{lemma}
-\begin{proof}
-Let $(x,y)$ be an edge of $S$. Choosing $x$ as the representative in Definition~\ref{def:quotient} shows that $\mu_Q(C(x),C(y))\ge\mu(x,y)>0$. Hence the projection maps walks of $S$ to walks of $Q$, and since it is surjective, $Q$ is strongly connected. Thus $\Reach_Q(X)=V_Q$ for every vertex $X$, so the refinement on $Q$ stops exactly in the round $i_X$ of Section~\ref{sec:local-graph-hashing}, and Lemma~\ref{lem:local-injective} shows that $\lambda$ is injective on $V_Q$. An automorphism of $Q$ preserves unfoldings, and distinct vertices of $Q$ have non-isomorphic unfoldings by Lemma~\ref{lem:quotient}, so it is the identity. In the ordered case the same arguments apply to the quotient of Proposition~\ref{prop:ordered-local}.
-\end{proof}
-
-In particular, no orbit computation is needed in the local variant: the canonical index of a vertex of $Q$ identifies it uniquely.
-
-\begin{theorem}[Correctness of the local component hash]
-\label{thm:local-component}
-Let $S_1,S_2$ be strongly connected (unordered or ordered) digraphs, let $x_1\in V_{S_1}$ and $x_2\in V_{S_2}$, and write $h_S=\textproc{local\_comp\_hash}(S)$. Assuming $\mathcal{H}$ is injective, $h_{S_1}(x_1)=h_{S_2}(x_2)$ if and only if $\Unf(S_1,x_1)\iso\Unf(S_2,x_2)$ (as ordered trees in the ordered case). Algorithm~\ref{alg:local-component-hash} runs in $O(k(n+m)\log n)$ time plus the cost of hashing, where $n$ and $m$ are the numbers of vertices and edges of $S$ and $k\le 2n$ is the total number of refinement rounds.
-\end{theorem}
-\begin{proof}
-Let $Q_1,Q_2$ be the quotients, $A=C_1(x_1)$ and $B=C_2(x_2)$.
-
-($\Leftarrow$) By Lemma~\ref{lem:quotient}, $\Unf(Q_1,A)\iso\Unf(S_1,x_1)\iso\Unf(S_2,x_2)\iso\Unf(Q_2,B)$. As in the proof of Theorem~\ref{thm:localhashcorrect} (respectively, Proposition~\ref{prop:ordered-local}) there is a rooted isomorphism $\psi$ between the sub-multigraphs induced on $\Reach(A)$ and $\Reach(B)$ with $\psi(A)=B$. By Lemma~\ref{lem:comp-quotient} these are all of $Q_1$ and $Q_2$, so $\psi$ is an isomorphism $Q_1\to Q_2$. By Lemma~\ref{lem:local-intrinsic}, $\psi$ preserves the colors of every round, so both refinements stop in the same round and $\text{index}[\psi(X)]=\text{index}[X]$ for every $X$. Hence the label lists, the edge lists, the component hashes $g$ and the indices of $A$ and $B$ coincide.
-
-($\Rightarrow$) By injectivity, $\text{index}[A]=\text{index}[B]$ and the label and edge lists coincide. Mapping the $k$-th vertex of $Q_1$ to the $k$-th vertex of $Q_2$ is then an isomorphism $Q_1\to Q_2$ (it preserves labels and multiplicities, respectively out-sequences) that maps $A$ to $B$. Hence $\Unf(Q_1,A)\iso\Unf(Q_2,B)$, and $\Unf(S_1,x_1)\iso\Unf(S_2,x_2)$ by Lemma~\ref{lem:quotient}.
-
-For the running time, each refinement round costs $O((n+m)\log n)$, each of the two refinements needs at most $n$ rounds by Lemma~\ref{thm:stability}, and the serialization costs $O((n+m)\log n)$.
-\end{proof}
-
-The proof uses the colors of line~4 only through two properties: they are injective on $V_Q$, and isomorphisms between quotients preserve them. Both also hold for the coarsest stable coloring computed by canonical color refinement \cite{berkholz2017tight}, which supports directed and edge-colored graphs (ports can be encoded as edge colors) and runs in $O((n+m)\log n)$ time. Together with partition refinement for line~2 \cite{cardon1982partitioning,paige1987three,valmari2008partial}, this gives an $O((n+m)\log n)$ bound for Algorithm~\ref{alg:local-component-hash}, plus the cost of hashing.
-
-\subsection{Which nodes receive equal hashes?}
+\paragraph{Which nodes receive equal hashes?}
 Within a component, the global variant respects the full structure, including automorphisms and incoming edges inside the component, while the local variant only sees what can be observed by following edges. Across components both behave like a Merkle tree: they compare external targets only through their hashes and ignore whether two targets are shared. We make this precise with a single definition that covers both variants. Fix labeled digraphs $G_1$ and $G_2$ (possibly equal), and let $W=V_1\sqcup V_2$. For $u\in W$ let $\Scc(u)$ be the SCC of $u$ in its own graph, and let $\hgt(u)$ be the height of $\Scc(u)$.
 
 \begin{defn}[Merkle equivalences]
@@ -791,7 +766,7 @@ The recursion is well founded because external successors lie in SCCs of strictl
 Assuming $\mathcal{H}$ is injective, $\HMg$ realizes $\eqg$ and $\HMl$ realizes $\eql$, for unordered and for ordered graphs. That is, for each variant, $\HM(G_1)[u]=\HM(G_2)[v]$ if and only if $u\approx v$ for the corresponding relation.
 \end{theorem}
 \begin{proof}
-By induction on $h=\max(\hgt(u),\hgt(v))$. By the induction hypothesis (vacuous when $h=0$), two nodes of height less than $h$ have equal hashes if and only if they are $\approx$-equivalent. So $[y]_{\approx}\mapsto h[y]$ is a well-defined injective map on these classes. Hence, for nodes $x,x'$ of height at most $h$, $X(x)=X(x')$ if and only if $X^{\approx}(x)=X^{\approx}(x')$, and since $L'(x)=(L(x),X(x))$, $L'(x)=L'(x')$ if and only if $L^{\approx}(x)=L^{\approx}(x')$. Relabeling by an injective map preserves and reflects both rooted isomorphism and isomorphism of unfoldings. Therefore the relabeled components $G'$ of Algorithm~\ref{alg:merklegraphhash} containing $u$ and $v$ satisfy $(G'(u),u)\sim(G'(v),v)$ if and only if $(C^{\approx}(u),u)\sim(C^{\approx}(v),v)$. In the ordered case, $L'$ records the $\star$-masked sequence and $G'$ keeps internal targets in port order, so together they determine every port, exactly as $C^{\approx}$ does. Finally, the component hash realizes $\sim$ on strongly connected graphs. For the global variant this is Theorem~\ref{thm:digraphnodehashcorrect}, or Theorem~\ref{thm:scc-ordered}(c) for ordered graphs. For the local variant it is Theorem~\ref{thm:local-component}.
+By induction on $h=\max(\hgt(u),\hgt(v))$. By the induction hypothesis (vacuous when $h=0$), two nodes of height less than $h$ have equal hashes if and only if they are $\approx$-equivalent. So $[y]_{\approx}\mapsto h[y]$ is a well-defined injective map on these classes. Hence, for nodes $x,x'$ of height at most $h$, $X(x)=X(x')$ if and only if $X^{\approx}(x)=X^{\approx}(x')$, and since $L'(x)=(L(x),X(x))$, $L'(x)=L'(x')$ if and only if $L^{\approx}(x)=L^{\approx}(x')$. Relabeling by an injective map preserves and reflects both rooted isomorphism and isomorphism of unfoldings. Therefore the relabeled components $G'$ of Algorithm~\ref{alg:merklegraphhash} containing $u$ and $v$ satisfy $(G'(u),u)\sim(G'(v),v)$ if and only if $(C^{\approx}(u),u)\sim(C^{\approx}(v),v)$. In the ordered case, $L'$ records the $\star$-masked sequence and $G'$ keeps internal targets in port order, so together they determine every port, exactly as $C^{\approx}$ does. Finally, the component hash realizes $\sim$ on strongly connected graphs. For the global variant this is Theorem~\ref{thm:digraphnodehashcorrect}, or Theorem~\ref{thm:scc-ordered}(c) for ordered graphs. For the local variant it is Theorem~\ref{thm:local-component}, or Theorem~\ref{thm:ordered-local} for ordered graphs.
 \end{proof}
 
 The local equivalence has a direct description in terms of unfoldings. The \emph{SCC-annotated unfolding} $\UnfA(G,u)$ is the unfolding $\Unf(G,u)$ (ordered by port for ordered graphs) in which every tree edge, corresponding to a step from $x_{k-1}$ to $x_k$, is marked \emph{internal} if $x_k\in \Scc(x_{k-1})$ and \emph{external} otherwise. Isomorphisms of annotated unfoldings must preserve the marks.
@@ -830,72 +805,22 @@ In the ordered setting the same examples apply. A further example inside a singl
 
 \begin{remark}[Why the internal/external marks remain]
 \label{rem:compositional}
-In both variants, a node $x$ that lies on no cycle is hashed as $F(L(x),\text{successor hashes})$ for a function $F$ built from $\mathcal{H}$. No scheme of this kind can realize plain unfolding isomorphism. In the third example above, unfolding isomorphism would require $h(v)=h(w)$, while $h(v)=F(L,\mset{h(w)})$. So computing $h(w)$ would produce a fixed point of $y\mapsto F(L,\mset{y})$, which is infeasible if $\mathcal{H}$ behaves like a random function. The marks are thus the price of Merkle-style compositionality. Plain unfolding isomorphism is realized by the hashes of Section~\ref{sec:local-graph-hashing} and Proposition~\ref{prop:ordered-local}, but these are not computed compositionally over the condensation.
+In both variants, a node $x$ that lies on no cycle is hashed as $F(L(x),\text{successor hashes})$ for a function $F$ built from $\mathcal{H}$. No scheme of this kind can realize plain unfolding isomorphism. In the third example above, unfolding isomorphism would require $h(v)=h(w)$, while $h(v)=F(L,\mset{h(w)})$. So computing $h(w)$ would produce a fixed point of $y\mapsto F(L,\mset{y})$, which is infeasible if $\mathcal{H}$ behaves like a random function. The marks are thus the price of Merkle-style compositionality over the condensation of the graph itself. The local hash of Section~\ref{sec:local-graph-hashing} realizes plain unfolding isomorphism by applying the same recursion to the condensation of the unfolding quotient instead, where $v$ and $w$ are the same vertex.
 \end{remark}
 
-Thus both Merkle hashes deliberately forget whether subgraphs below a component are shared, exactly as Merkle trees and Merkle DAGs do in git and IPFS. The global variant retains the full structure inside each cycle; it suits applications that must distinguish, for example, a single self-referencing node from a cycle of identical nodes. The local variant retains only what can be observed by following edges, together with whether each edge leaves its component. It is much faster (Section~\ref{sec:experiments}), it merges nodes that no traversal can tell apart, and it is the variant used in Section~\ref{sec:application}.
+The definitions and results of this section apply verbatim to labeled multidigraphs, with external successors counted with multiplicity in $X(x)$ and in Definition~\ref{def:merkle-eq}. On unfolding quotients, the three equivalences coincide.
 
-\paragraph{Complexity and incrementality.} Computing the SCCs takes $O(n+m)$ time, and each component is relabeled and hashed once. The total cost is $O((n+m)\log n)$ for the relabeling plus $\sum_S c(S)$, where $c(S)$ is the cost of the component hash on $S$, plus the cost of hashing. For the global variant, $c(S)$ is the cost of Algorithm~\ref{alg:digraph-node-hash} on $S$ (GI-hard in general) or, for ordered graphs, $O(|S|(|S|+m_S))$ for Algorithm~\ref{alg:scc-outgoing-edges}. For the local variant, $c(S)=O(k_S(|S|+m_S)\log|S|)$ by Theorem~\ref{thm:local-component}, where $k_S\le 2|S|$ is the number of refinement rounds, and $c(S)=O((|S|+m_S)\log^2|S|)$ with the canonical partition refinement of Section~\ref{sec:subquadratic}. The local variant is therefore polynomial also for unordered graphs, and near-linear when few refinement rounds are needed. As with Merkle trees, changing a node changes only the hashes of nodes from which it is reachable. Adding a new node whose edges point only to existing nodes creates a new singleton SCC and leaves all existing hashes unchanged.
-
-\subsection{Local hashing in subquadratic time.}
-\label{sec:subquadratic}
-The local hash $\HL$ of Section~\ref{sec:local-graph-hashing} serializes the reachable set of every node, and its refinement may need up to $n$ rounds, so it takes at least quadratic time on many graphs. We now show that the Merkle hashes of this section, applied to the unfolding quotient, realize the same equivalence, and that the local one can be computed in $O((n+m)\log^2 n)$ time. In this subsection we apply the definitions and results of this section to labeled multidigraphs; external successors are then counted with multiplicity, both in $X(x)$ and in Definition~\ref{def:merkle-eq}, and the proofs go through verbatim.
-
-\begin{theorem}[Local hashing via the quotient]
-\label{thm:quotient-merkle}
-Let $Q_1$ and $Q_2$ be the unfolding quotients of $G_1$ and $G_2$ (Definition~\ref{def:quotient}), and write $[u]$ for the vertex of the quotient that contains $u$. For nodes $u$ of $G_1$ and $v$ of $G_2$,
-\[
-\Unf(G_1,u)\iso\Unf(G_2,v) \iff [u]\eqg[v] \iff [u]\eql[v].
-\]
-Consequently, assuming $\mathcal{H}$ is injective, $u\mapsto\HM(Q)[[u]]$ realizes unfolding isomorphism, for the global and for the local variant.
-\end{theorem}
+\begin{cor}
+\label{cor:quotient-merkle}
+For vertices $A$ and $B$ of unfolding quotients $Q_1$ and $Q_2$, the following are equivalent: $A\equiv B$; $A\eqg B$; and $A\eql B$. In particular, the loop of Algorithm~\ref{alg:local-node-hash} computes the local Merkle hash $\HMl(Q)$ of the quotient, and both $\HMg(Q)$ and $\HMl(Q)$ realize unfolding isomorphism.
+\end{cor}
 \begin{proof}
-Suppose that $\Unf(G_1,u)\iso\Unf(G_2,v)$. By Lemma~\ref{lem:quotient}, $\Unf(Q_1,[u])\iso\Unf(Q_2,[v])$, and the proof of Theorem~\ref{thm:localhashcorrect} (direction $\Leftarrow$) constructs a rooted isomorphism between the sub-multigraphs of $Q_1$ and $Q_2$ induced on $\Reach([u])$ and $\Reach([v])$. By Proposition~\ref{prop:merkle-position}, $[u]\eqg[v]$ and hence $[u]\eql[v]$. Conversely, if $[u]\eql[v]$, then $\Unf(Q_1,[u])\iso\Unf(Q_2,[v])$ by Proposition~\ref{prop:merkle-position}, and $\Unf(G_1,u)\iso\Unf(G_2,v)$ by Lemma~\ref{lem:quotient}. The last statement follows from Theorem~\ref{thm:merkle}.
+If $A\equiv B$, Lemmas~\ref{lem:quotient} and~\ref{lem:reduced-iso} give an isomorphism between the sub-multigraphs induced on $\Reach(A)$ and $\Reach(B)$ that maps $A$ to $B$, so $A\eqg B$ and $A\eql B$ by Proposition~\ref{prop:merkle-position}. Conversely, $A\eqg B$ implies $A\eql B$, which implies $A\equiv B$ by the same proposition. The loop of Algorithm~\ref{alg:local-node-hash} is Algorithm~\ref{alg:merklegraphhash} applied to $Q$ with the local component hash, and the last statement follows from Theorem~\ref{thm:merkle}.
 \end{proof}
 
-On the quotient, the internal/external marks therefore lose no information, and the obstruction of Remark~\ref{rem:compositional} does not arise: a node with a self-loop and a node whose only edge leads to a node with a self-loop have the same quotient. Local stabilization is not needed either, because canonical orders are only computed inside strongly connected components, where all nodes stabilize in the same round (Lemma~\ref{lem:comp-quotient}).
+Both Merkle hashes deliberately forget whether subgraphs below a component are shared, exactly as Merkle trees and Merkle DAGs do in git and IPFS. The global variant retains the full structure inside each cycle; it suits applications that must distinguish, for example, a single self-referencing node from a cycle of identical nodes. The local variant retains only what can be observed by following edges, together with whether each edge leaves its component. It is much faster (Section~\ref{sec:experiments}), it merges nodes that no traversal can tell apart, and it is the variant used in Section~\ref{sec:application}.
 
-To avoid rounds of hashing altogether, we compute both refinement stages with counting partition refinement \cite{cardon1982partitioning}, in a canonical form. The procedure maintains a partition of the nodes into numbered blocks and a first-in, first-out worklist of blocks. Initially the blocks are the classes of equal labels, numbered in sorted order of their encodings, and all blocks are in the worklist. A step removes the first block $B$ from the worklist and counts, for every node, its successors in $B$, with multiplicity. Every block that contains a node with a nonzero count is then split by these counts, in increasing order of the block numbers. In a split, the nodes with count $0$ keep the number of the block (or, if there are none, the nodes with the smallest count keep it), and the other groups receive new numbers in increasing order of their counts. If the split block was in the worklist, all new pieces are added to the worklist. Otherwise all pieces are added except a largest one, namely the one with the smallest number among the largest pieces.
-
-\begin{lemma}[Canonical counting refinement]
-\label{lem:canonical-refinement}
-The procedure stops with the coarsest stable partition that refines the labels, whose blocks are the classes of $\equiv$, after $O((n+m)\log^2 n)$ time. Its block numbers are canonical: if $\psi$ is an isomorphism between labeled multidigraphs $G_1$ and $G_2$, then for every node $x$ of $G_1$, the block of $\psi(x)$ has the same number as the block of $x$. In particular, if the coarsest stable partition of $G$ is discrete, the block numbers form a canonical order of its nodes.
-\end{lemma}
-\begin{proof}
-Correctness and the bound on the work are those of the algorithm of Cardon and Crochemore \cite{cardon1982partitioning}. Splitting a block by the number of successors in another block never separates two nodes with isomorphic unfoldings. A piece that is not added to the worklist does not need to be processed: the old block was not waiting in the worklist, so stability with respect to it is already guaranteed, and the number of successors in a largest piece equals the number of successors in the old block minus the numbers in the other pieces. Every time a node lies in a block taken from the worklist, that block has at most half the size of the block the node was in the previous time, except for pieces added because their parent was still waiting, which can be charged to the parent. Hence each node lies in a processed block $O(\log n)$ times, and its incoming edges are examined $O(\log n)$ times. Sorting the touched blocks and the counts adds a factor $O(\log n)$. The final partition is the coarsest stable partition refining the labels, and by Corollary~\ref{cor:stable-unfolding} its blocks are the classes of $\equiv$.
-
-For canonicity, compare the runs on $G_1$ and $G_2$ step by step. By induction on the number of steps, $\psi$ maps every block of the first run to the block with the same number in the second run, and the two worklists contain the same numbers in the same order. Indeed, every decision of a step depends only on block numbers, block sizes, labels and successor counts: which block is removed, which blocks are split and in which order, which group keeps which number, and which pieces are added to the worklist. The isomorphism $\psi$ preserves all of these.
-\end{proof}
-
-\begin{algorithm}[t]
-    \caption{Subquadratic Local Hash}\label{alg:subquadratic}
-    \begin{algorithmic}[1]
-    \Function{$\HL'$}{$G=(V,E,L)$}
-        \State $C \gets$ the blocks of canonical counting refinement of $G$ \Comment{classes of $\equiv$, Lemma~\ref{lem:canonical-refinement}}
-        \State $Q \gets G / C$ \Comment{Definition~\ref{def:quotient}; $C:V\to V_Q$ is the projection}
-        \State $h \gets \HM(Q, \textproc{local\_comp\_hash})$ \Comment{Algorithm~\ref{alg:merklegraphhash}, external successors with multiplicity}
-        \Statex \hfill \Comment{in Algorithm~\ref{alg:local-component-hash}, lines 2 and 4 use canonical counting refinement}
-        \State \Return $\{u \mapsto h[C(u)] \mid u \in V\}$
-    \EndFunction
-    \end{algorithmic}
-\end{algorithm}
-
-\begin{theorem}[Subquadratic local hashing]
-\label{thm:subquadratic}
-Assuming $\mathcal{H}$ is injective, $\HL'$ (Algorithm~\ref{alg:subquadratic}) realizes unfolding isomorphism. It runs in $O((n+m)\log^2 n)$ time for a graph with $n$ nodes and $m$ edges, plus the cost of hashing and comparing strings of total length $O(n+m)$ hashes and labels.
-\end{theorem}
-\begin{proof}
-By Theorem~\ref{thm:quotient-merkle}, it suffices that the modified Algorithm~\ref{alg:local-component-hash} realizes unfolding isomorphism on strongly connected multidigraphs, so that line~4 computes $\HMl$ by Theorem~\ref{thm:merkle}. The proof of Theorem~\ref{thm:local-component} uses line~2 of Algorithm~\ref{alg:local-component-hash} only through its classes, and line~4 only through two properties: the order is injective on $V_Q$, and isomorphisms between quotients preserve it. By Lemma~\ref{lem:canonical-refinement} both hold for the block numbers, since the coarsest stable partition of a quotient is discrete by Lemma~\ref{lem:quotient}.
-
-For the running time, line~1 takes $O((n+m)\log^2 n)$ time by Lemma~\ref{lem:canonical-refinement}, and the quotient and its condensation take $O(n+m)$ time. A component of $Q$ with $n_K$ nodes and $m_K$ edges is refined twice and serialized once, in $O((n_K+m_K)\log^2 n_K)$ time. The components are disjoint, so these costs sum to $O((n+m)\log^2 n)$. The relabeled labels contain one hash per external edge, each label is serialized once with its component, and each node hash has constant size, which bounds the total length of the hashed strings.
-\end{proof}
-
-\begin{remark}[Bisimulation and ordered graphs]
-\label{rem:subquadratic-variants}
-The same construction applies to bisimilarity. Line~1 then uses the relational coarsest partition algorithm of Paige and Tarjan \cite{paige1987three}, which computes the bisimulation classes in $O(m\log n)$ time; its block numbers need not be canonical. The quotient is the digraph of Section~\ref{sec:local-graph-hashing}, and the Merkle hash uses sets of external hashes, and bisimilarity in place of unfolding isomorphism in Definition~\ref{def:merkle-eq}. Inside each component, canonical counting refinement still yields a discrete partition, because it is finer than bisimilarity and no two nodes of the bisimulation quotient are bisimilar. The same argument, with Theorem~\ref{thm:bisimhash} in place of Theorem~\ref{thm:localhashcorrect}, shows that the result realizes bisimilarity. For graphs with ordered edges, line~1 is the minimization of Proposition~\ref{prop:ordered-local}. A canonical version of Hopcroft's algorithm, which splits by port instead of by counts and follows the same rules for numbering and for the worklist, provides the order in each component. This computes the ordered local hashes of all nodes in $O(m\log^2 n)$ time.
-\end{remark}
-
-The extra logarithmic factor in Theorem~\ref{thm:subquadratic} comes only from sorting. Using the canonical colour refinement of Berkholz, Bonsma and Grohe \cite{berkholz2017tight}, which avoids it, the bound becomes $O((n+m)\log n)$, which matches their lower bound for algorithms based on partition refinement.
+\paragraph{Complexity and incrementality.} Computing the SCCs takes $O(n+m)$ time, and each component is relabeled and hashed once. The total cost is $O((n+m)\log n)$ for the relabeling plus $\sum_S c(S)$, where $c(S)$ is the cost of the component hash on $S$, plus the cost of hashing. For the global variant, $c(S)$ is the cost of Algorithm~\ref{alg:digraph-node-hash} on $S$ (GI-hard in general) or, for ordered graphs, $O(|S|(|S|+m_S))$ for Algorithm~\ref{alg:scc-outgoing-edges}. For the local variant, $c(S)=O((|S|+m_S)\log^2|S|)$ by Theorem~\ref{thm:local-component}, so the local variant runs in $O((n+m)\log^2 n)$ time also for unordered graphs. As with Merkle trees, changing a node changes only the hashes of nodes from which it is reachable. Adding a new node whose edges point only to existing nodes creates a new singleton SCC and leaves all existing hashes unchanged.
 
 \section{Application Sketch}
 \label{sec:application}
@@ -1060,14 +985,14 @@ The label $L(x)$ of a page is its HTML text with every link target replaced by a
 
 By Theorem~\ref{thm:merkle} and Proposition~\ref{prop:annotated}, two pages receive the same key exactly when their SCC-annotated ordered unfoldings are isomorphic. In other words, no sequence of clicks can tell them apart, except by observing which links leave their SCC. In particular, pages in the same orbit share a key, and so do duplicated pages. This is intended: the store is content-addressed, and such pages are indistinguishable by navigation. No orbit computation is needed, because quotients of strongly connected graphs have no non-trivial automorphisms (Lemma~\ref{lem:comp-quotient}). The whole site is hashed in near-linear time in practice (Section~\ref{sec:experiments}). If instead the exact page structure of every SCC must be preserved, the global variant can be used: Algorithm~\ref{alg:scc-outgoing-edges} replaces the quotient by the full SCC with its orbit partition, and only pages in the same orbit share a key.
 
-Suppose that a user wants to navigate our website and has obtained the hash of one specific page. The browser retrieves the pair $(i,g)$ stored under this hash, and then the value stored under $g$, which describes the whole quotient. To display quotient node $i$, the browser fills the holes of its label $L(x)$ in order. A hole whose entry in $X(x)$ is a hash receives that hash, which is the key of an external page. The $j$-th hole whose entry is $\star$ receives the $j$-th internal edge of node $i$, which is the canonical index of a node of the same quotient. If the user clicks a link within the same SCC, the browser simply displays the corresponding node of the quotient it already holds. Since the quotient preserves ordered unfoldings (Proposition~\ref{prop:ordered-local}), the user sees exactly the sequence of pages they would see on the original site. For links that leave the SCC, the browser repeats the process from the beginning with the embedded key. Everything needed to display and navigate the site is thus contained in the hashed values themselves. As with any Merkle structure, editing a page changes the keys of that page's SCC and of all pages from which it can be reached, and of no others.
+Suppose that a user wants to navigate our website and has obtained the hash of one specific page. The browser retrieves the pair $(i,g)$ stored under this hash, and then the value stored under $g$, which describes the whole quotient. To display quotient node $i$, the browser fills the holes of its label $L(x)$ in order. A hole whose entry in $X(x)$ is a hash receives that hash, which is the key of an external page. The $j$-th hole whose entry is $\star$ receives the $j$-th internal edge of node $i$, which is the canonical index of a node of the same quotient. If the user clicks a link within the same SCC, the browser simply displays the corresponding node of the quotient it already holds. Since the quotient preserves ordered unfoldings (Lemma~\ref{lem:quotient} and Theorem~\ref{thm:ordered-local}), the user sees exactly the sequence of pages they would see on the original site. For links that leave the SCC, the browser repeats the process from the beginning with the embedded key. Everything needed to display and navigate the site is thus contained in the hashed values themselves. As with any Merkle structure, editing a page changes the keys of that page's SCC and of all pages from which it can be reached, and of no others.
 
 \section{Related Work}
 \label{sec:related}
 
-\paragraph{Merkle hashing of cyclic definitions.} The core idea of the digraph Merkle hashing algorithm was independently discovered by the developers of the Unison programming language \cite{unison}, who hash the abstract syntax trees of mutually recursive definitions. Each function and datatype is a node in a digraph, with its AST as the node label, and each cycle of mutually recursive definitions is hashed as a unit. To our knowledge their scheme does not treat non-trivial automorphism orbits inside a cycle, which arise, for example, from two structurally identical mutually recursive definitions that differ only in name. Such orbits appear to be rare in practice, but a complete treatment requires either the orbit index of Algorithm~\ref{alg:digraph-node-hash} or the local variant of Section~\ref{sec:merkle-graph-hashing}, in which non-trivial orbits never arise (Lemma~\ref{lem:comp-quotient}). Hash-consing of cyclic structures and unique representations of regular trees \cite{mauborgne2000incremental}, as well as hashing of terms modulo $\alpha$-equivalence \cite{maziarz2021hashing}, address closely related problems in programming language implementation.
+\paragraph{Merkle hashing of cyclic definitions.} The core idea of the digraph Merkle hashing algorithm was independently discovered by the developers of the Unison programming language \cite{unison}, who hash the abstract syntax trees of mutually recursive definitions. Each function and datatype is a node in a digraph, with its AST as the node label, and each cycle of mutually recursive definitions is hashed as a unit. To our knowledge their scheme does not treat non-trivial automorphism orbits inside a cycle, which arise, for example, from two structurally identical mutually recursive definitions that differ only in name. Such orbits appear to be rare in practice, but a complete treatment requires either the orbit index of Algorithm~\ref{alg:digraph-node-hash} or the local variant of Section~\ref{sec:merkle-graph-hashing}, in which non-trivial orbits never arise (Lemma~\ref{lem:comp-quotient}). Hash-consing of cyclic structures and unique representations of regular trees \cite{mauborgne2000incremental,considine2000efficient}, canonical forms of recursive types \cite{gauthier2004numbering}, and hashing of terms modulo $\alpha$-equivalence \cite{maziarz2021hashing} address closely related problems in programming language implementation.
 
-\paragraph{Color refinement and Weisfeiler--Leman.} The Weisfeiler--Lehman graph hash \cite{Shervashidze2011-dt} iteratively hashes and aggregates the neighborhoods of each node of an undirected graph. Isomorphic graphs are guaranteed to receive equal hashes, but the converse fails: 1-dimensional Weisfeiler--Leman refinement \cite{weisfeiler1968reduction} cannot distinguish, for example, two disjoint triangles from a $6$-cycle, or any two regular graphs of the same order and degree. In the kernel literature the number of iterations $h$ is a parameter that controls the depth of the subtree features. When refinement is used to test or hash equivalence, as here, no parameter is needed, because the partition stabilizes within $n-1$ rounds (Lemma~\ref{thm:stability}). Efficient implementations of color refinement run in $O((n+m)\log n)$ time \cite{cardon1982partitioning,berkholz2017tight}. The algorithm of Section \ref{sec:local-graph-hashing} is a directed, canonical variant of the Weisfeiler--Lehman hash. The equivalence it computes is the view equivalence of anonymous networks \cite{yamashita1996anonymous} and the fibration equivalence of Boldi and Vigna \cite{boldi2002fibrations}, and for undirected graphs it corresponds to isomorphism of universal covers \cite{norris1995universal}.
+\paragraph{Color refinement and Weisfeiler--Leman.} The Weisfeiler--Lehman graph hash \cite{Shervashidze2011-dt} iteratively hashes and aggregates the neighborhoods of each node of an undirected graph. Isomorphic graphs are guaranteed to receive equal hashes, but the converse fails: 1-dimensional Weisfeiler--Leman refinement \cite{weisfeiler1968reduction} cannot distinguish, for example, two disjoint triangles from a $6$-cycle, or any two regular graphs of the same order and degree. In the kernel literature the number of iterations $h$ is a parameter that controls the depth of the subtree features. When refinement is used to test or hash equivalence, as here, no parameter is needed, because refinement stops at the coarsest stable partition after at most $n-1$ splits. Efficient implementations of color refinement run in $O((n+m)\log n)$ time \cite{cardon1982partitioning,berkholz2017tight}. The local hash of Section \ref{sec:local-graph-hashing} refines along outgoing edges with a canonical variant of this refinement, and its hashes can be compared across graphs. The equivalence it computes is the view equivalence of anonymous networks \cite{yamashita1996anonymous} and the fibration equivalence of Boldi and Vigna \cite{boldi2002fibrations}, and for undirected graphs it corresponds to isomorphism of universal covers \cite{norris1995universal}.
 
 \paragraph{Bisimulation and automata.} Bisimilarity is computed by relational coarsest partition algorithms \cite{kanellakis1990ccs,paige1987three}, and state equivalence of deterministic automata by Hopcroft-style minimization \cite{hopcraft,hopcraft-redescribe,valmari2008partial}. Sections~\ref{sec:local-graph-hashing}--\ref{sec:merkle-graph-hashing} use these as the first stage of canonical hashing.
 
@@ -1080,99 +1005,78 @@ In a separate 2018 paper, Arshad et al. \cite{Arshad2018-ij} presented a graph h
 \section{Experimental Results}
 \label{sec:experiments}
 
-We implemented all algorithms of this paper in Python 3.11 as an exact reference implementation, using SHA-256 over a length-prefixed injective encoding. Global canonization uses a simple exhaustive individualization-refinement search, adequate for small graphs. Running times were measured on a single core of an Intel Xeon processor at 2.1\,GHz. The implementation is intended to validate the theorems, not to compete with optimized tools.
+We implemented the algorithms of this paper in the dihash Python library\footnote{\url{https://github.com/calebh/dihash}}. Global canonization and orbits use nauty through pynauty \cite{nauty}. The local hashes use the canonical refinement of Section~\ref{sec:canonical-refinement} and, for bisimilarity, the algorithm of Paige and Tarjan. Ordered local hashing computes the minimal automaton with Hopcroft's algorithm and orders each component with the canonical refinement of Theorem~\ref{thm:ordered-local}. All hashes use SHA-256 over an injective encoding. Running times were measured with Python 3.13 on a single core of an Intel Xeon processor at 2.8\,GHz.
 
-\paragraph{Validation.} We generated 1000 pairs of random labeled digraphs with 1--6 nodes each (edge probability $0.15$, $0.3$ or $0.5$, self-loops allowed, one or two labels). In half of the pairs the second graph is a random relabeling of the first. For every pair of nodes we compared hash equality with an independent brute-force decision of the corresponding equivalence:
+\paragraph{Validation.} The test suite of the library compares every hash with an independent brute-force decision of the corresponding equivalence:
 \begin{itemize}
   \item isomorphism and rooted isomorphism, by enumerating all bijections;
-  \item unfolding isomorphism, by comparing canonical forms of truncated unfoldings of depth $n_1+n_2+1$;
-  \item bisimilarity, by a greatest-fixpoint computation;
-  \item rooted ordered isomorphism, by simultaneous traversal.
+  \item unfolding isomorphism, ordered or annotated with the internal/external marks of Section~\ref{sec:merkle-graph-hashing}, by comparing canonical forms of truncated unfoldings of depth $2(n_1+n_2)+2$;
+  \item bisimilarity, plain or annotated, by a greatest-fixpoint computation;
+  \item rooted ordered isomorphism, by simultaneous traversal;
+  \item global Merkle equivalence, by a direct implementation of Definition~\ref{def:merkle-eq}.
 \end{itemize}
-For $\eqg$ we used a direct implementation of Definition~\ref{def:merkle-eq}. For the local variant we ran a second batch of 3000 unordered and 3000 ordered pairs (1--6 nodes, edge probability $0.15$, $0.3$ or $0.45$, a random relabeling in $30\%$ of the pairs, and, in ordered graphs, occasional repeated links to the same target). There we compared the local component hash with unfolding isomorphism on every pair of SCCs, and the local Merkle hash with isomorphism of SCC-annotated unfoldings (truncated at depth $2(n_1+n_2)+2$); we also checked the implications of Proposition~\ref{prop:merkle-position} and its separating examples. We also tested the ordered orbit partition of Theorem~\ref{thm:scc-ordered} against brute-force search on every SCC. Table~\ref{tab:validation} summarizes the results. No disagreement was found. The same harness confirms the counterexample of Example~\ref{ex:ordered} for the naive variant, and the orbit structure claimed in Figure~\ref{fig:orbitexample}.
+For Table~\ref{tab:validation} we ran these comparisons on 3000 random pairs of labeled graphs per scheme, each with 1--6 nodes, edge probability $0.15$, $0.3$ or $0.45$, self-loops allowed, and one or two labels. In $40\%$ of the pairs the second graph is a copy of the first with renamed nodes and a random insertion order. Where marked, half of the pairs are multidigraphs, in which some nodes have parallel edges, and ordered graphs then link to the same target more than once. Every pair of nodes of the two graphs was compared, and no disagreement was found. The test suite also confirms the separating examples of Proposition~\ref{prop:merkle-position}, the counterexample of Example~\ref{ex:ordered}, and the orbits of Figure~\ref{fig:orbitexample}. It checks that the canonical refinement is invariant under renumbering of the nodes, and that the local hashes do not change when a node is split into two copies that share its outgoing edges and divide its incoming edges, which preserves all unfoldings.
 
 \begin{table}[t]
 \centering
-\caption{Validation against brute-force equivalence checks: number of node pairs (or SCCs) compared, with no disagreements in any row.}
+\caption{Validation against brute-force equivalence checks: number of node pairs compared, with no disagreements in any row. Rows marked with $^*$ include multidigraphs. The component hashes were compared on every pair of strongly connected components.}
 \label{tab:validation}
 \begin{tabular}{@{}lr@{}}
 \toprule
-Scheme (theorem) & Pairs checked \\
+Scheme (result) & Pairs checked \\
 \midrule
-Global graph hash (Thm.~\ref{thm:digraphhashcorrect}) & 1{,}000 graphs \\
-Global node hash (Thm.~\ref{thm:digraphnodehashcorrect}) & 12{,}947 \\
-Local hash (Thm.~\ref{thm:localhashcorrect}) & 12{,}947 \\
-Bisimulation hash (Thm.~\ref{thm:bisimhash}) & 12{,}947 \\
-Ordered node hash (Thm.~\ref{thm:orderedhash}) & 12{,}720 \\
-Ordered local hash (Prop.~\ref{prop:ordered-local}) & 12{,}720 \\
-Ordered SCC orbits (Thm.~\ref{thm:scc-ordered}) & 2{,}487 SCCs \\
-Merkle hash, global variant (Thm.~\ref{thm:merkle}) & 26{,}794 \\
-Local component hash (Thm.~\ref{thm:local-component}) & 78{,}594 \\
-Merkle hash, local variant (Thm.~\ref{thm:merkle}, Prop.~\ref{prop:annotated}) & 78{,}594 \\
+Global graph hash (Thm.~\ref{thm:digraphhashcorrect}) & 3{,}000 graphs \\
+Global node hash (Thm.~\ref{thm:digraphnodehashcorrect}) & 40{,}206 \\
+Local hash$^*$ (Thm.~\ref{thm:localhashcorrect}) & 80{,}497 \\
+Bisimulation hash$^*$ (Thm.~\ref{thm:bisimhash}) & 80{,}497 \\
+Local component hashes, both$^*$ (Thms.~\ref{thm:local-component}, \ref{thm:bisimhash}) & 80{,}497 \\
+Ordered node hash$^*$ (Thm.~\ref{thm:orderedhash}) & 79{,}011 \\
+Ordered local hash$^*$ (Thm.~\ref{thm:ordered-local}) & 79{,}011 \\
+Ordered component hashes, global and local$^*$ (Thms.~\ref{thm:scc-ordered}, \ref{thm:ordered-local}) & 79{,}011 \\
+Merkle hashes, global, local and bisimulation (Thm.~\ref{thm:merkle}, Prop.~\ref{prop:annotated}) & 41{,}259 \\
+Ordered Merkle hashes, global and local$^*$ (Thm.~\ref{thm:merkle}, Prop.~\ref{prop:annotated}) & 80{,}127 \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\paragraph{Scaling.} Table~\ref{tab:scaling} reports median running times over three random ordered digraphs per size, with two labels and $2n$ randomly drawn edges (duplicates discarded; average out-degree just under $2$). These graphs have a giant strongly connected component containing 60--65\% of the nodes. Global stabilization was detected after 5--6 refinement rounds at all sizes. For all schemes except the local Merkle variant, the time to hash all nodes grows roughly by a factor of four each time $n$ doubles, i.e.\ quadratically. For $\HL$, $\HB$ and $\HO$ this matches the output-sensitive term $\sum_x |\Reach(x)|$ discussed in Section~\ref{sec:local-graph-hashing}: most nodes reach the giant component. The cubic worst case is not attained because few rounds are needed. The global Merkle variant $\HMg$ is cheaper than hashing every node with $\HO$, because the depth-first searches are confined to each SCC, but it is still quadratic in the size of the giant component.
-
-The local Merkle variant $\HMl$ is one to two orders of magnitude faster, and its running time roughly doubles when $n$ doubles. Each component quotient is serialized once, and only a few refinement rounds are needed. On the same kind of graphs with $n=64{,}000$ nodes (largest SCC about $40{,}500$ nodes) it takes about $5.2$\,s (ordered) and $5.4$\,s (unordered).
+\paragraph{Scaling.} Table~\ref{tab:scaling} reports running times on two families of ordered digraphs. The random digraphs have two labels and $2n$ randomly drawn edges, with duplicates discarded and ports in order of insertion; they have a giant strongly connected component containing $63$--$65\%$ of the nodes, and we report the median over three graphs. The second family is the directed $n$-cycle in which one node has a different label, a worst case for refinement by rounds of hashing, which needs about $n/2$ rounds there. The unordered hashes ignore the ports. When $n$ quadruples, the running time of every local hash, and of the local Merkle hashes, grows by a factor of about $4$ to $6$, and graphs with $64{,}000$ nodes are hashed in $2$--$6$\,s. Computing $\HO$ for every node and the global Merkle hash of an ordered graph run a depth-first search from every node of the largest component, and their running times grow by a factor of $16$ to $21$ when $n$ quadruples, i.e.\ quadratically.
 
 \begin{table}[t]
 \centering
-\caption{Median time in seconds to hash all nodes of a random ordered digraph with $n$ nodes and $2n$ edges (Python prototype). The last two columns use the local Merkle variant, treating the graph as ordered and as unordered, respectively.}
+\caption{Time in seconds to hash all nodes of a graph with $n$ nodes with the dihash library. The columns are the local hash $\HL$, the bisimulation hash $\HB$, the ordered local hash, the local Merkle hash of the graph as an unordered and as an ordered graph, $\HO$ for every node, and the global Merkle hash of the ordered graph. A dash marks runs that were not attempted.}
 \label{tab:scaling}
 \small
 \setlength{\tabcolsep}{4pt}
-\begin{tabular}{@{}rrrrrrrrr@{}}
+\begin{tabular}{@{}lrrrrrrrrr@{}}
 \toprule
-$n$ & largest SCC & $\HL$ & $\HB$ & $\HO$ & ordered local & $\HMg$ (ord.) & $\HMl$ (ord.) & $\HMl$ (unord.) \\
+Graph & $n$ & largest SCC & $\HL$ & $\HB$ & ordered local & $\HMl$ (unord.) & $\HMl$ (ord.) & $\HO$, all nodes & $\HMg$ (ord.) \\
 \midrule
-250  & 151  & 0.27  & 0.23  & 0.10 & 0.10 & 0.07 & 0.009 & 0.010 \\
-500  & 314  & 0.92  & 0.97  & 0.39 & 0.40 & 0.26 & 0.020 & 0.021 \\
-1000 & 646  & 3.84  & 3.44  & 1.83 & 1.63 & 1.20 & 0.042 & 0.046 \\
-2000 & 1272 & 17.80 & 14.69 & 6.62 & 5.89 & 4.43 & 0.084 & 0.091 \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\paragraph{Subquadratic local hashing.} We also implemented Algorithm~\ref{alg:subquadratic} and its bisimulation variant (Remark~\ref{rem:subquadratic-variants}) in the dihash library, which previously implemented $\HL$ and $\HB$ with local stabilization (Algorithm~\ref{alg:local-node-hash}). Its test suite checks both implementations against brute-force decision procedures like those above, on digraphs and on multidigraphs. Table~\ref{tab:subquadratic} compares the two implementations in single runs on the same machine, a single core of an Intel Xeon processor at 2.8\,GHz. We use random digraphs with two labels and $2n$ randomly drawn edges (duplicates discarded), and a directed $n$-cycle in which one node has a different label. The cycle is a worst case for refinement by rounds of hashing, which needs about $n/2$ rounds there. Algorithm~\ref{alg:local-node-hash} grows quadratically on the random digraphs and cubically on the cycle, where it did not finish within $130$\,s for $n=1000$. Algorithm~\ref{alg:subquadratic} hashes graphs with $64{,}000$ nodes in $3$--$7$\,s, and its running time grows by a factor of $4$--$6$ when $n$ quadruples.
-
-\begin{table}[t]
-\centering
-\caption{Time in seconds to compute the local hashes of all nodes with the dihash library: local stabilization (Algorithm~\ref{alg:local-node-hash}) versus Algorithm~\ref{alg:subquadratic}, for unfolding isomorphism ($\HL$) and bisimilarity ($\HB$). A dash marks runs that were not attempted.}
-\label{tab:subquadratic}
-\small
-\begin{tabular}{@{}lrrrrrr@{}}
-\toprule
-Graph & $n$ & largest SCC & $\HL$, Alg.~\ref{alg:local-node-hash} & $\HL$, Alg.~\ref{alg:subquadratic} & $\HB$, Alg.~\ref{alg:local-node-hash} & $\HB$, Alg.~\ref{alg:subquadratic} \\
-\midrule
-random & 1000 & 644 & 4.12 & 0.038 & 3.65 & 0.061 \\
-random & 2000 & 1218 & 20.49 & 0.072 & 17.18 & 0.103 \\
-random & 4000 & 2467 & 87.50 & 0.186 & 78.57 & 0.195 \\
-random & 16000 & 10133 & -- & 1.08 & -- & 1.19 \\
-random & 64000 & 40519 & -- & 5.50 & -- & 7.16 \\
-cycle & 250 & 250 & 2.08 & 0.010 & 1.99 & 0.008 \\
-cycle & 500 & 500 & 12.54 & 0.017 & 12.78 & 0.017 \\
-cycle & 4000 & 4000 & -- & 0.150 & -- & 0.151 \\
-cycle & 64000 & 64000 & -- & 3.12 & -- & 3.66 \\
+random & 1000  & 654   & 0.029 & 0.028 & 0.028 & 0.050 & 0.049 & 5.69   & 3.58 \\
+random & 4000  & 2546  & 0.135 & 0.125 & 0.127 & 0.237 & 0.227 & 114.17 & 74.54 \\
+random & 16000 & 10050 & 0.731 & 0.693 & 0.659 & 1.076 & 1.049 & --     & -- \\
+random & 64000 & 40287 & 3.909 & 4.208 & 4.003 & 4.974 & 5.442 & --     & -- \\
+cycle  & 1000  & 1000  & 0.023 & 0.021 & 0.019 & 0.026 & 0.023 & 6.69   & 6.86 \\
+cycle  & 4000  & 4000  & 0.090 & 0.099 & 0.075 & 0.113 & 0.089 & 110.97 & 121.29 \\
+cycle  & 16000 & 16000 & 0.383 & 0.438 & 0.354 & 0.421 & 0.439 & --     & -- \\
+cycle  & 64000 & 64000 & 1.894 & 1.925 & 1.689 & 1.868 & 1.889 & --     & -- \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \paragraph{Granularity.} To illustrate how the equivalences compare, we hashed 400 random unlabeled digraphs with 12 nodes and 18 randomly drawn edges (duplicates discarded) and counted the distinct hash values per graph. On average the graphs have 12 nodes and the following numbers of classes:
 \begin{itemize}
-  \item 11.82 orbits (global node hash);
-  \item 9.81 $\eqg$ classes (global Merkle hash);
-  \item 9.66 $\eql$ classes (local Merkle hash);
-  \item 9.13 unfolding classes (local hash);
-  \item 7.76 bisimulation classes.
+  \item 11.85 orbits (global node hash);
+  \item 9.94 $\eqg$ classes (global Merkle hash);
+  \item 9.76 $\eql$ classes (local Merkle hash);
+  \item 9.19 unfolding classes (local hash);
+  \item 7.78 bisimulation classes.
 \end{itemize}
 This is consistent with the implications rooted isomorphism $\Rightarrow$ $\eqg$ $\Rightarrow$ $\eql$ $\Rightarrow$ unfolding isomorphism $\Rightarrow$ bisimilarity (Proposition~\ref{prop:merkle-position} and Section~\ref{sec:local-graph-hashing}). The gaps show that the choice of equivalence matters in practice even on small random graphs.
 
 \section{Conclusion}
 \label{sec:conclusion}
 
-We have given hashing schemes for node-labeled digraphs whose hash equality corresponds exactly, up to collisions of the underlying string hash, to isomorphism, rooted isomorphism, unfolding isomorphism, bisimilarity, and two Merkle-style equivalences, together with fast variants for graphs with ordered outgoing edges. The local Merkle variant combines the incrementality of Merkle hashing with polynomial running time, and it is near-linear in our experiments. Applied to the unfolding quotient, it computes local hashes in $O((n+m)\log^2 n)$ time. Natural directions for future work include removing the remaining logarithmic factor with canonical colour refinement \cite{berkholz2017tight}, incremental computation of local hashes, polynomial canonization of general ordered digraphs, and evaluation on real data such as computer program call graphs and web crawls.
+We have given hashing schemes for node-labeled digraphs whose hash equality corresponds exactly, up to collisions of the underlying string hash, to isomorphism, rooted isomorphism, unfolding isomorphism, bisimilarity, and two Merkle-style equivalences, together with fast variants for graphs with ordered outgoing edges. The local hashes are computed in $O((n+m)\log^2 n)$ time by applying the local Merkle hash to the unfolding quotient, and the local Merkle variant combines the incrementality of Merkle hashing with the same running time. Natural directions for future work include removing the remaining logarithmic factor with canonical colour refinement \cite{berkholz2017tight}, incremental computation of local hashes, polynomial canonization of general ordered digraphs, and evaluation on real data such as computer program call graphs and web crawls.
 
 \section*{Acknowledgements}
 
