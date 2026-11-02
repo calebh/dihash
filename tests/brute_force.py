@@ -7,6 +7,7 @@ Graphs are NetworkX DiGraphs whose nodes carry a string 'label'. Ordered graphs 
 on every edge; the out-edges of a node are ordered by port.
 """
 import itertools
+from collections import Counter
 import random
 
 import networkx as nx
@@ -109,13 +110,14 @@ def isomorphisms(g1, g2, ordered=False):
     n1, n2 = list(g1.nodes), list(g2.nodes)
     if len(n1) != len(n2) or g1.number_of_edges() != g2.number_of_edges():
         return
-    e1 = set(g1.edges)
-    e2 = set(g2.edges)
+    # edges() yields one (s, t) pair per edge, also for parallel edges of a MultiDiGraph
+    e1 = Counter(list(g1.edges()))
+    e2 = Counter(list(g2.edges()))
     for perm in itertools.permutations(n2):
         f = dict(zip(n1, perm))
         if any(g1.nodes[u]['label'] != g2.nodes[f[u]]['label'] for u in n1):
             continue
-        if {(f[s], f[t]) for (s, t) in e1} != e2:
+        if Counter({(f[s], f[t]): c for ((s, t), c) in e1.items()}) != e2:
             continue
         if ordered and any([f[v] for v in successors(g1, u, True)] != successors(g2, f[u], True) for u in n1):
             continue

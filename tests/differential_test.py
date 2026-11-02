@@ -190,10 +190,11 @@ def test_ordered_node_hash_iff_ordered_rooted_isomorphic(multi):
                 assert (h1[u] == h2[v]) == bf.ordered_rooted_isomorphic(g1, u, g2, v), (u, v)
 
 
-def test_ordered_sc_global_hash():
+@MULTI
+def test_ordered_sc_global_hash(multi):
     """On strongly connected ordered graphs: graph hashes are equal iff the graphs are ordered-isomorphic, and node
     hashes are equal iff some ordered isomorphism maps one node to the other (orbits within one graph)."""
-    for (g1, g2) in pairs(8, ordered=True):
+    for (g1, g2) in pairs(8, ordered=True, multi=multi):
         for s1 in sccs_of(g1):
             for s2 in sccs_of(g2):
                 (gh1, h1) = ordered_sc_global_hash(s1, hash_nodes=True)
