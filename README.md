@@ -34,7 +34,7 @@ A critical bug has been fixed with the color ordering passed to pynauty. Previou
 # Version 3.0
 dihash 3.0 follows the new version of the paper (source in `papers/soda`) and reorganizes the library around the notions of equivalence above:
 - `hash_graph` has been renamed to `global_hash`. It now returns only the graph hash unless `hash_nodes=True` is passed.
-- New `local_hash` and `local_sc_hash` functions hash nodes by their unfoldings or up to bisimulation, in O((n+m) log² n) time for a graph with n nodes and m edges. They use partition refinement and the Merkle construction on the quotient graph (Section 4 of the paper), and accept MultiDiGraphs, where parallel edges count with multiplicity for the unfolding variant.
+- New `local_hash` and `local_sc_hash` functions hash nodes by their unfoldings or up to bisimulation, in O((n+m) log² n) time for a graph with n nodes and m edges. They use partition refinement and the Merkle construction on the quotient graph (Section 5 of the paper), and accept MultiDiGraphs, where parallel edges count with multiplicity for the unfolding variant.
 - New functions for graphs whose outgoing edges are ordered (`ordered_node_hash`, `ordered_sc_global_hash`, `ordered_local_hash` and `ordered_sc_local_hash`). Ordered graphs may be MultiDiGraphs, so that a node can link to the same target more than once.
 - `merkle_hash_graph` has been replaced by `merkle_hash`, which takes a variant argument selecting how each strongly connected component is hashed.
 - The `apply_quotient` option, `hash_graph_node_set`, and the edge-label and multigraph encoding functions have been removed. Graph-level labels (`g.graph['label']`) are no longer used.
