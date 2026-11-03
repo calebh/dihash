@@ -72,11 +72,21 @@ def ordered_node_hash(g, node, string_hash_fun=hash_sha256):
 
 def ordered_sc_global_hash(g, hash_nodes=False, string_hash_fun=hash_sha256):
     """
-    Returns the hash of an entire strongly connected ordered graph, along with the hash of the nodes in the graph
+    Returns the hash of an entire strongly connected ordered graph, along with the hash of the nodes in the graph.\
+    Two strongly connected graphs have the same graph hash if and only if they are isomorphic (preserving labels and\
+    the order of the outgoing edges), and two nodes have the same node hash if and only if such an isomorphism maps\
+    one onto the other.
 
-    :param g: A strongly connected digraph. Edges in the graph should have a label called 'port', whose value is the port\
-    identifier of that edge. The outgoing edges of a node should have non-duplicate port numbers. The port numbers\
-    are used to order the DFS from the nodes.
+    The canonical form is the DFS serialization (see ordered_node_hash) with the least hash, taken over the nodes of a\
+    canonically chosen class of nodes with isomorphic ordered unfoldings: a smallest class, and among those the one\
+    with the least canonical block id. Isomorphisms map this class onto the corresponding class, so the choice is\
+    canonical. Runs in O(m log^2 n + c(n+m)) time, plus the cost of hashing, where c is the size of the class. This is\
+    near-linear when some class is small, and O(n(n+m)) when all nodes have isomorphic ordered unfoldings, for example\
+    when every port permutes the nodes.
+
+    :param g: A strongly connected digraph (DiGraph or MultiDiGraph). Edges in the graph should have a label called\
+    'port', whose value is the port identifier of that edge. The outgoing edges of a node should have non-duplicate\
+    port numbers. The port numbers are used to order the DFS from the nodes.
     :param hash_nodes: If hash_nodes is True, the return value is (g_hash, node_hashes). Otherwise only the graph hash\
     is returned
     :param string_hash_fun: The string hashing function to use. Default is SHA-256
@@ -86,32 +96,42 @@ def ordered_sc_global_hash(g, hash_nodes=False, string_hash_fun=hash_sha256):
     if not nx.is_strongly_connected(g):
         raise AssertionError("Input graph is not strongly connected")
 
+    # Candidate roots: the nodes of a smallest class of the coarsest stable partition, with canonical block ids
+    (nodes, labels, out) = _ordered_lists(g)
+    (block, num_blocks) = _canonical_partition([encode(label) for label in labels], out)
+    size = [0] * num_blocks
+    for b in block:
+        size[b] += 1
+    chosen = min((b for b in range(num_blocks) if size[b] > 0), key=lambda b: (size[b], b))
+    candidates = [nodes[p] for p in range(len(nodes)) if block[p] == chosen]
+
+    # The candidates with the least serialization form the orbit of the canonical root, and their discovery orders
+    # give all automorphisms: the automorphism that maps the canonical root to another such candidate maps the i-th
+    # node of the canonical discovery order to the i-th node of that candidate's discovery order.
     g_hash = None
-    canon_order_lookup = dict()
-
-    orbits = defaultdict(list)
-
-    for n in g.nodes:
-        (n_hash, _, order_lookup) = _ordered_edges_hash(g, n, string_hash_fun=string_hash_fun)
-
-        if hash_nodes:
-            orbits[n_hash].append(n)
-
-        if g_hash is None or n_hash < g_hash:
-            g_hash = n_hash
-            canon_order_lookup = order_lookup
+    best_orders = []
+    for r in candidates:
+        (r_hash, order, order_lookup) = _ordered_edges_hash(g, r, string_hash_fun=string_hash_fun)
+        if g_hash is None or r_hash < g_hash:
+            (g_hash, canon_order_lookup) = (r_hash, order_lookup)
+            best_orders = [order]
+        elif r_hash == g_hash:
+            best_orders.append(order)
 
     if not hash_nodes:
         return g_hash
-    else:
-        orbit_partition = list(orbits.values())
-        orbit_mapping = _orbit_indices(canon_order_lookup, orbit_partition)
 
-        node_hashes = dict()
-        for n in g.nodes:
-            node_hashes[n] = string_hash_fun(encode((orbit_mapping[n], g_hash)))
+    orbit_mapping = dict()
+    for (i, n) in enumerate(best_orders[0]):
+        if n not in orbit_mapping:
+            orbit = [order[i] for order in best_orders]
+            orbit_mapping.update(_orbit_indices(canon_order_lookup, [orbit]))
 
-        return (g_hash, node_hashes)
+    node_hashes = dict()
+    for n in g.nodes:
+        node_hashes[n] = string_hash_fun(encode((orbit_mapping[n], g_hash)))
+
+    return (g_hash, node_hashes)
 
 
 # --------------------------------------------------------------------------------------------------------------------

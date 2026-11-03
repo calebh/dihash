@@ -206,6 +206,70 @@ def test_ordered_sc_global_hash(multi):
                         assert (h1[u] == h2[v]) == bf.ordered_rooted_isomorphic(s1, u, s2, v), (u, v)
 
 
+def ordered_from_maps(maps, labels=None):
+    """Ordered MultiDiGraph on the nodes 0..n-1 in which port k of node i leads to maps[k][i]."""
+    n = len(maps[0])
+    g = nx.MultiDiGraph()
+    for i in range(n):
+        g.add_node(i, label='a' if labels is None else labels[i])
+    for (k, f) in enumerate(maps):
+        for i in range(n):
+            g.add_edge(i, f[i], port=k)
+    return g
+
+
+def symmetric_ordered_graphs():
+    """Strongly connected ordered graphs in which many or all nodes have isomorphic ordered unfoldings, so that
+    ordered_sc_global_hash has many candidate roots, with automorphism groups of various sizes."""
+    rng = random.Random(3)
+    for n in (5, 6, 8, 12):
+        rotate = [(i + 1) % n for i in range(n)]
+        # Circulant: the rotations are automorphisms, one orbit
+        yield ordered_from_maps([rotate, [(i + 2) % n for i in range(n)]])
+        # The dihedral group acting on n points: x -> x + n/2 is the only non-trivial automorphism (n even)
+        yield ordered_from_maps([rotate, [(-i) % n for i in range(n)]])
+        # Cayley graph of the dihedral group of order 2n, element r^a s^b as (a, b): one orbit
+        elements = [(a, b) for a in range(n) for b in range(2)]
+        index = {e: i for (i, e) in enumerate(elements)}
+        times_r = [index[((a + (1 if b == 0 else -1)) % n, b)] for (a, b) in elements]
+        times_s = [index[(a, 1 - b)] for (a, b) in elements]
+        yield ordered_from_maps([times_r, times_s])
+        # An n-cycle and a random permutation: all nodes are candidates, usually no automorphisms
+        p = list(range(n))
+        rng.shuffle(p)
+        yield ordered_from_maps([rotate, p])
+        # Random Z_3-covers of a random graph with 2 ports: the shift (x, i) -> (x, i + 1) is an automorphism
+        base = [[rng.randrange(n) for _ in range(n)] for _ in range(2)]
+        volt = [[rng.randrange(3) for _ in range(n)] for _ in range(2)]
+        cover = [(x, i) for x in range(n) for i in range(3)]
+        cindex = {e: j for (j, e) in enumerate(cover)}
+        maps = [[cindex[(base[k][x], (i + volt[k][x]) % 3)] for (x, i) in cover] for k in range(2)]
+        labels = [rng.choice("ab") for x in range(n)]
+        g = ordered_from_maps(maps, [labels[x] for (x, _) in cover])
+        if nx.is_strongly_connected(g):
+            yield g
+
+
+def test_ordered_sc_global_hash_on_symmetric_graphs():
+    """Node hashes are equal iff an ordered automorphism maps one node onto the other, graph hashes are equal iff the
+    graphs are isomorphic, and both are unchanged on shuffled copies, also when every node is a candidate root."""
+    rng = random.Random(4)
+    graphs = list(symmetric_ordered_graphs())
+    results = [ordered_sc_global_hash(g, hash_nodes=True) for g in graphs]
+    for (g, (g_hash, h)) in zip(graphs, results):
+        for u in g:
+            for v in g:
+                assert (h[u] == h[v]) == bf.ordered_rooted_isomorphic(g, u, g, v), (u, v)
+        (copy, mapping) = bf.shuffled_copy(rng, g)
+        (c_hash, c) = ordered_sc_global_hash(copy, hash_nodes=True)
+        assert c_hash == g_hash and all(c[mapping[u]] == h[u] for u in g)
+    for (g1, (gh1, _)) in zip(graphs, results):
+        u = next(iter(g1))
+        for (g2, (gh2, _)) in zip(graphs, results):
+            isomorphic = len(g1) == len(g2) and any(bf.ordered_rooted_isomorphic(g1, u, g2, v) for v in g2)
+            assert (gh1 == gh2) == isomorphic
+
+
 @MULTI
 def test_ordered_local_hash_iff_ordered_unfoldings_isomorphic(multi):
     for (g1, g2) in pairs(15, ordered=True, multi=multi):

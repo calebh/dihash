@@ -209,14 +209,14 @@ node_hash = ordered_node_hash(g, node, string_hash_fun=hash_sha256)
 
 The hash is computed by a depth-first search from the node, so it runs in linear time in the size of the reachable subgraph.
 
-For strongly connected graphs with ordered edges, a global hash and the automorphism orbits can be computed in polynomial time:
+For strongly connected graphs with ordered edges, a global hash and the automorphism orbits can be computed efficiently:
 
 ```
 g_hash = ordered_sc_global_hash(g, hash_nodes=False, string_hash_fun=hash_sha256)
 (g_hash, node_hashes) = ordered_sc_global_hash(g, hash_nodes=True, string_hash_fun=hash_sha256)
 ```
 
-The input `g` must be strongly connected, otherwise an AssertionError is raised. Two strongly connected graphs have the same `g_hash` if and only if they are isomorphic (preserving labels and edge order), and two nodes have the same hash if and only if some such isomorphism maps one onto the other. This runs in O(n(n+m)) time for a graph with n nodes and m edges.
+The input `g` must be strongly connected, otherwise an AssertionError is raised. Two strongly connected graphs have the same `g_hash` if and only if they are isomorphic (preserving labels and edge order), and two nodes have the same hash if and only if some such isomorphism maps one onto the other. The graph is canonized by depth-first searches from the nodes of a smallest class of nodes with isomorphic ordered unfoldings, so this runs in O(m log² n + c(n+m)) time for a graph with n nodes and m edges, where c is the size of that class. In most graphs some node is alone in its class and the running time is near-linear. In the worst case, when all nodes have isomorphic ordered unfoldings (for example when every port permutes the nodes), it is O(n(n+m)).
 
 Example:
 
@@ -331,8 +331,8 @@ The Merkle graph hashing algorithm has the following definition:
   - `GlobalMH()`: Each SCC is hashed with `global_hash`. Two nodes have the same hash if and only if there is an isomorphism between their SCCs that maps one node onto the other, preserves labels, and matches the successors outside the SCC with successors that have equal hashes. This variant may take exponential time in the worst case.
   - `LocalMH(LocalHashVariant.UNFOLDING)`: Each SCC is hashed with `local_sc_hash`. Two nodes have the same hash if and only if their unfoldings are isomorphic, when every edge is marked by whether it stays inside its SCC or leaves it. This variant runs in polynomial time.
   - `LocalMH(LocalHashVariant.BISIMULATION)`: As above, but up to bisimulation instead of unfolding isomorphism.
-  - `OrderedGlobalMH()`: For graphs with ordered edges (see "Ordered Outgoing Edges"). Each SCC is hashed with `ordered_sc_global_hash`, and the positions of the links that leave the SCC are recorded. This variant runs in polynomial time.
-  - `OrderedLocalMH()`: For graphs with ordered edges. Each SCC is hashed with `ordered_sc_local_hash`, and the positions of the links that leave the SCC are recorded. Two nodes have the same hash if and only if their ordered unfoldings are isomorphic, when every edge is marked by whether it stays inside its SCC or leaves it. This variant runs in O(m log² n) time, and is much faster than `OrderedGlobalMH` on large SCCs.
+  - `OrderedGlobalMH()`: For graphs with ordered edges (see "Ordered Outgoing Edges"). Each SCC is hashed with `ordered_sc_global_hash`, and the positions of the links that leave the SCC are recorded. This variant is near-linear when every SCC has a node that is alone in its class of nodes with isomorphic ordered unfoldings, and quadratic in the size of the largest SCC in the worst case.
+  - `OrderedLocalMH()`: For graphs with ordered edges. Each SCC is hashed with `ordered_sc_local_hash`, and the positions of the links that leave the SCC are recorded. Two nodes have the same hash if and only if their ordered unfoldings are isomorphic, when every edge is marked by whether it stays inside its SCC or leaves it. This variant always runs in O(m log² n) time.
 - nodes_to_hash: A list of nodes to hash in the graph. If nodes_to_hash is None, all nodes in the input graph will be hashed.
 - precomputed_hashes: A dictionary mapping nodes to their hashes (should be encoded as a string hexdigest). This parameter is useful if you are hashing graphs built up over time. If a node has a hash set in the dictionary, that node's precomputed hash will be used instead of recursively hashing the graph. The precomputed hashes must have been computed with the same variant and string_hash_fun.
 - string_hash_fun: A function which maps strings to a string. The default value, hash_sha256 hashes by using hashlib.sha256 and converting to the result to a hex digest.
