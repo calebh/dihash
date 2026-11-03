@@ -1,0 +1,4 @@
+{"family": "permutation", "n": 1000, "scc": 1000, "HL": 0.004, "HB": 0.003, "ord_local": 0.004, "HMl_unord": 0.017, "HMl_ord": 0.018, "HO_all": 7.574, "HMg_ord": 7.842}
+{"family": "permutation", "n": 4000, "scc": 4000, "HL": 0.013, "HB": 0.015, "ord_local": 0.017, "HMl_unord": 0.091, "HMl_ord": 0.096, "HO_all": 153.12, "HMg_ord": 155.858}
+{"family": "permutation", "n": 16000, "scc": 16000, "HL": 0.064, "HB": 0.077, "ord_local": 0.102, "HMl_unord": 0.393, "HMl_ord": 0.425}
+{"family": "permutation", "n": 64000, "scc": 64000, "HL": 0.368, "HB": 0.473, "ord_local": 0.522, "HMl_unord": 1.872, "HMl_ord": 2.188}

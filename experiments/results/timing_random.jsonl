@@ -1,4 +1,4 @@
-{"family": "random", "n": 1000, "scc": 654, "HL": 0.029, "HB": 0.028, "ord_local": 0.028, "HMl_unord": 0.05, "HMl_ord": 0.049, "HO_all": 5.686, "HMg_ord": 3.579}
-{"family": "random", "n": 4000, "scc": 2546, "HL": 0.135, "HB": 0.125, "ord_local": 0.127, "HMl_unord": 0.237, "HMl_ord": 0.227, "HO_all": 114.171, "HMg_ord": 74.539}
-{"family": "random", "n": 16000, "scc": 10050, "HL": 0.731, "HB": 0.693, "ord_local": 0.659, "HMl_unord": 1.076, "HMl_ord": 1.049}
-{"family": "random", "n": 64000, "scc": 40287, "HL": 3.909, "HB": 4.208, "ord_local": 4.003, "HMl_unord": 4.974, "HMl_ord": 5.442}
+{"family": "random", "n": 1000, "scc": 654, "HL": 0.02, "HB": 0.022, "ord_local": 0.019, "HMl_unord": 0.038, "HMl_ord": 0.036, "HO_all": 4.775, "HMg_ord": 0.044}
+{"family": "random", "n": 4000, "scc": 2546, "HL": 0.101, "HB": 0.112, "ord_local": 0.104, "HMl_unord": 0.223, "HMl_ord": 0.221, "HO_all": 86.188, "HMg_ord": 0.196}
+{"family": "random", "n": 16000, "scc": 10050, "HL": 0.539, "HB": 0.518, "ord_local": 0.525, "HMl_unord": 0.779, "HMl_ord": 0.875, "HMg_ord": 1.011}
+{"family": "random", "n": 64000, "scc": 40287, "HL": 2.826, "HB": 3.435, "ord_local": 3.025, "HMl_unord": 4.189, "HMl_ord": 4.255, "HMg_ord": 4.637}

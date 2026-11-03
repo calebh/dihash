@@ -1,4 +1,4 @@
-{"family": "cycle", "n": 1000, "scc": 1000, "HL": 0.023, "HB": 0.021, "ord_local": 0.019, "HMl_unord": 0.026, "HMl_ord": 0.023, "HO_all": 6.691, "HMg_ord": 6.864}
-{"family": "cycle", "n": 4000, "scc": 4000, "HL": 0.09, "HB": 0.099, "ord_local": 0.075, "HMl_unord": 0.113, "HMl_ord": 0.089, "HO_all": 110.971, "HMg_ord": 121.286}
-{"family": "cycle", "n": 16000, "scc": 16000, "HL": 0.383, "HB": 0.438, "ord_local": 0.354, "HMl_unord": 0.421, "HMl_ord": 0.439}
-{"family": "cycle", "n": 64000, "scc": 64000, "HL": 1.894, "HB": 1.925, "ord_local": 1.689, "HMl_unord": 1.868, "HMl_ord": 1.889}
+{"family": "cycle", "n": 1000, "scc": 1000, "HL": 0.019, "HB": 0.016, "ord_local": 0.042, "HMl_unord": 0.054, "HMl_ord": 0.052, "HO_all": 5.877, "HMg_ord": 0.029}
+{"family": "cycle", "n": 4000, "scc": 4000, "HL": 0.069, "HB": 0.067, "ord_local": 0.069, "HMl_unord": 0.077, "HMl_ord": 0.084, "HO_all": 100.666, "HMg_ord": 0.096}
+{"family": "cycle", "n": 16000, "scc": 16000, "HL": 0.324, "HB": 0.318, "ord_local": 0.293, "HMl_unord": 0.388, "HMl_ord": 0.353, "HMg_ord": 0.398}
+{"family": "cycle", "n": 64000, "scc": 64000, "HL": 1.812, "HB": 1.897, "ord_local": 1.561, "HMl_unord": 1.548, "HMl_ord": 1.515, "HMg_ord": 1.843}
