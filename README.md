@@ -486,6 +486,10 @@ The tests in `tests/differential_test.py` compare every hash function, on many p
 DIHASH_TRIALS=3000 DIHASH_MAX_NODES=7 DIHASH_SEED=1 python -m pytest tests/differential_test.py
 ```
 
+# Reproducing the Paper's Experiments
+
+The scripts that produce the validation table, the scaling table and the granularity numbers of the paper are in the `experiments` folder, together with the results reported in the paper. See `experiments/README.md` for the exact commands.
+
 # Further Examples
 
 For further examples, see the test scripts in the `tests` folder. `tests/regression_test.py` contains the examples and counterexamples from the paper.

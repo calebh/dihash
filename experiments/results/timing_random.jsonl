@@ -1,0 +1,4 @@
+{"family": "random", "n": 1000, "scc": 654, "HL": 0.029, "HB": 0.028, "ord_local": 0.028, "HMl_unord": 0.05, "HMl_ord": 0.049, "HO_all": 5.686, "HMg_ord": 3.579}
+{"family": "random", "n": 4000, "scc": 2546, "HL": 0.135, "HB": 0.125, "ord_local": 0.127, "HMl_unord": 0.237, "HMl_ord": 0.227, "HO_all": 114.171, "HMg_ord": 74.539}
+{"family": "random", "n": 16000, "scc": 10050, "HL": 0.731, "HB": 0.693, "ord_local": 0.659, "HMl_unord": 1.076, "HMl_ord": 1.049}
+{"family": "random", "n": 64000, "scc": 40287, "HL": 3.909, "HB": 4.208, "ord_local": 4.003, "HMl_unord": 4.974, "HMl_ord": 5.442}

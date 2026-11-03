@@ -1,0 +1,1 @@
+{"global_graph": 3000, "global_node": 40206, "local": 80497, "bisim": 80497, "comp": 80497, "comp_bisim": 80497, "ord_node": 79011, "ord_local": 79011, "ord_sc_global": 79011, "ord_sc_local": 79011, "merkle_glob": 41259, "merkle_loc": 41259, "merkle_bisim": 41259, "ord_merkle_glob": 80127, "ord_merkle_loc": 80127}
