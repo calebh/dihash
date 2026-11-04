@@ -329,10 +329,10 @@ To compute the hash of each node, we process the strongly connected components i
         \State $h \gets \textproc{empty\_dict}()$
         \For{\textbf{each} SCC $S$ in reverse topological order} \Comment{Tarjan's algorithm; sinks first}
           \For{$x \in S$}
-            \State $X(x) \gets \mset{h[y] \mid y\notin S}$, where $h[y]$ is repeated $\mu(x,y)$ times
+            \State $X(x) \gets \mset{h[y] \mid y\notin S}$, where $h[y]$ is repeated $\mu(x,y)$ times \label{line:merkle-X}
             \State $L'(x) \gets (L(x), X(x))$ \Comment{not hashed}
           \EndFor
-          \State $G' \gets (S,\ \mu|_{S\times S},\ L')$
+          \State $G' \gets (S,\ \mu|_{S\times S},\ L')$ \label{line:merkle-G}
           \State $h \gets h \cup \textproc{comp\_hash}(G')$ \Comment{hashes of all $x\in S$}
         \EndFor
         \State \Return $h$
@@ -770,7 +770,11 @@ $\HO$ realizes rooted ordered isomorphism of reachable subgraphs: assuming $\mat
 
 $\HO$ is a hash of the reachable subgraph, not of the unfolding. For example, a node with a self-loop and a node on a 2-cycle (with all labels equal) have isomorphic unfoldings but different values of $\HO$. The unfolding-based notion for ordered graphs uses \emph{ordered unfoldings}, in which the children of every tree node are ordered by port, and isomorphisms must preserve this order; in this section we write $u\equiv v$ if the ordered unfoldings of $u$ and $v$ are isomorphic. An ordered graph is a deterministic automaton whose letters are the ports and whose output at each state is its label and out-degree, and the classes of $\equiv$ are the states of the minimal automaton.
 
-\paragraph{Merkle hashing of ordered graphs.} For ordered graphs, Algorithm~\ref{alg:merklegraphhash} relabels every node $x$ of a component $S$ with the sequence $X(x)$ whose $k$-th entry is $h[s_k(x)]$ if $s_k(x)\notin S$ and a placeholder $\star$ otherwise, so that the positions of internal and external links are both recorded. The relabeled component keeps the internal targets of each node in port order, and we encode $\star$ as a value that differs from every hash. Correspondingly, component equivalences are defined on strongly connected ordered graphs, and in Definition~\ref{def:merkle-eq}, $X^{\approx}(x)$ is the sequence whose $k$-th entry is the $\approx$-class of $s_k(x)$ if $s_k(x)\notin\Scc(x)$ and $\star$ otherwise, and $C^{\approx}(x)$ keeps the internal targets in port order. Theorem~\ref{thm:merkle} holds with the same proof, because $L'$ and the internal targets in port order determine every port, exactly as $C^{\approx}$ does. Rooted ordered isomorphism and isomorphism of ordered unfoldings are component equivalences, and we write $\eqg$ and $\eql$ for their Merkle equivalences; in the description of $\eqg$ after Corollary~\ref{cor:merkle-global}, the external successors are matched port by port, with internal ports mapped by $\phi$. Propositions~\ref{prop:annotated} and~\ref{prop:merkle-position} hold for ordered graphs with the same proofs and examples, with annotated unfoldings ordered by port and external successors matched port by port. A further example inside a single strongly connected graph is $s(a)=(b,a)$, $s(b)=(a,a)$ with equal labels. Here $a\eql b$, since all nodes have the same label and out-degree, but $a$ and $b$ lie in different orbits, since an automorphism exchanging them would map $s(a)=(b,a)$ to $(a,b)\ne s(b)$.
+\paragraph{Merkle hashing of ordered graphs.} For ordered graphs, Line~\ref{line:merkle-X} of Algorithm~\ref{alg:merklegraphhash} becomes
+\[
+X(x) \gets \big[\,(h[y]~\textbf{if}~y\notin S~\textbf{else}~\star)~\textbf{for}~y~\textbf{in}~s(x)\,\big],
+\]
+so that every node $x$ of a component $S$ is relabeled with the sequence whose $k$-th entry is $h[s_k(x)]$ if $s_k(x)\notin S$ and a \emph{placeholder} $\star$ otherwise, and the positions of internal and external links are both recorded. In Line~\ref{line:merkle-G}, $G'$ keeps the internal targets of each node in port order, and we encode $\star$ as a value that differs from every hash. Correspondingly, component equivalences are defined on strongly connected ordered graphs, and in Definition~\ref{def:merkle-eq}, $X^{\approx}(x)$ is the sequence whose $k$-th entry is the $\approx$-class of $s_k(x)$ if $s_k(x)\notin\Scc(x)$ and $\star$ otherwise, and $C^{\approx}(x)$ keeps the internal targets in port order. Theorem~\ref{thm:merkle} holds with the same proof, because $L'$ and the internal targets in port order determine every port, exactly as $C^{\approx}$ does. Rooted ordered isomorphism and isomorphism of ordered unfoldings are component equivalences, and we write $\eqg$ and $\eql$ for their Merkle equivalences; in the description of $\eqg$ after Corollary~\ref{cor:merkle-global}, the external successors are matched port by port, with internal ports mapped by $\phi$. Propositions~\ref{prop:annotated} and~\ref{prop:merkle-position} hold for ordered graphs with the same proofs and examples, with annotated unfoldings ordered by port and external successors matched port by port. A further example inside a single strongly connected graph is $s(a)=(b,a)$, $s(b)=(a,a)$ with equal labels. Here $a\eql b$, since all nodes have the same label and out-degree, but $a$ and $b$ lie in different orbits, since an automorphism exchanging them would map $s(a)=(b,a)$ to $(a,b)\ne s(b)$.
 
 Section~\ref{sec:local-graph-hashing} carries over to ordered graphs as follows.
 
@@ -948,7 +952,7 @@ contact.html
 \vspace{0.15cm}
 
 % Row 3: Relabeled component
-\textbf{Row 3: Relabeled component $G'$ of Algorithm~\ref{alg:merklegraphhash}, with labels $L'(x)=(L(x),X(x))$}
+\textbf{Row 3: Relabeled component $G'$ of Algorithm~\ref{alg:merklegraphhash} for ordered graphs, with labels $L'(x)=(L(x),X(x))$}
 
 \vspace{0.15cm}
 
@@ -972,7 +976,7 @@ contact.html
 
 \end{tikzpicture}
 
-\caption{Hashing a three page website that forms a single SCC. In Row 3, $X(x)$ has one entry per hole: $\star$ for a link inside the SCC, and the recursively computed hash of the target for a link leaving it (\#8ab43f and \#f2d91c are hashes of external pages). The edges are the internal links, numbered in port order, so the $j$-th $\star$ of a page is its internal link numbered $j-1$. Filling the holes from $X(x)$ and the edges recovers every link.}
+\caption{Hashing a three page website that forms a single SCC. In Row 3, $X(x)$ has one entry per hole: the placeholder $\star$ for a link inside the SCC, and the recursively computed hash of the target for a link leaving it (\#8ab43f and \#f2d91c are hashes of external pages). The edges are the internal links, numbered in port order, so the $j$-th $\star$ of a page is its internal link numbered $j-1$. Filling the holes from $X(x)$ and the edges recovers every link.}
 \label{fig:webpage-example}
 \end{figure*}
 
@@ -980,7 +984,7 @@ From the algorithms given so far, it may not be obvious how to implement these g
 
 In this sketch, we assume that web pages are static HTML files that link to each other and to external pages, and that external pages are themselves published in the same content-addressed way. (An external page that links back into our site would belong to the same SCC and be hashed together with it.) The pages form an ordered digraph in which each page is a node, the links are edges, and the out-edges of a node are ordered by their position in the HTML file. Figure \ref{fig:webpage-example} gives a concrete example of the process described here.
 
-The label $L(x)$ of a page is its HTML text with every link target replaced by a hole, and its out-sequence $s(x)$ lists the link targets in the order in which they appear (Row 2 of Figure~\ref{fig:webpage-example}). We compute the SCCs of the link graph and process them sinks first, as in Algorithm~\ref{alg:merklegraphhash}. Each page is relabeled with $L'(x)=(L(x),X(x))$. Here $X(x)$ has one entry per hole: $\star$ for a link to a page of the same SCC, and the recursively computed hash of the target for a link leaving the SCC (Row 3). Because $L'(x)$ is not hashed, the page text and its external links appear verbatim in it, and its internal links are the edges of $G'$ in port order. We use the local Merkle hash of Section~\ref{sec:local-merkle}, in its ordered version (Section~\ref{sec:outgoing-ordered-edge-graphs}). For each SCC, Algorithm~\ref{alg:local-component-hash} computes the ordered quotient, which merges pages that cannot be told apart by following links, together with its canonical order. We then insert the following items into the distributed hash table:
+The label $L(x)$ of a page is its HTML text with every link target replaced by a hole, and its out-sequence $s(x)$ lists the link targets in the order in which they appear (Row 2 of Figure~\ref{fig:webpage-example}). We compute the SCCs of the link graph and process them sinks first with Algorithm~\ref{alg:merklegraphhash}, in its version for ordered graphs (Section~\ref{sec:outgoing-ordered-edge-graphs}). Each page is relabeled with $L'(x)=(L(x),X(x))$. Here $X(x)$ has one entry per hole: the placeholder $\star$ for a link to a page of the same SCC, and the recursively computed hash of the target for a link leaving the SCC (Row 3). Because $L'(x)$ is not hashed, the page text and its external links appear verbatim in it, and its internal links are the edges of $G'$ in port order. We use the local Merkle hash of Section~\ref{sec:local-merkle}, in its ordered version (Section~\ref{sec:outgoing-ordered-edge-graphs}). For each SCC, Algorithm~\ref{alg:local-component-hash} computes the ordered quotient, which merges pages that cannot be told apart by following links, together with its canonical order. We then insert the following items into the distributed hash table:
 
 \begin{itemize}
   \item The strongly connected component as a whole: \begin{itemize}
