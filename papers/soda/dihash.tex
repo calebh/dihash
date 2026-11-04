@@ -341,7 +341,7 @@ To compute the hash of each node, we process the strongly connected components i
 \end{algorithm}
 
 \paragraph{Which nodes receive equal hashes?}
-Across components, a Merkle hash behaves like a Merkle tree: it compares external targets only through their hashes and ignores whether two targets are shared. Within a component, it inherits the equivalence realized by the component hash. We make this precise for an arbitrary component hash. Fix labeled multidigraphs $G_1$ and $G_2$ (possibly equal), and let $W=V_1\sqcup V_2$. For $u\in W$ let $\Scc(u)$ be the SCC of $u$ in its own graph, and let $\hgt(u)$ be the height of $\Scc(u)$.
+Across components, a Merkle hash behaves like a Merkle tree: it compares external targets only through their hashes and ignores whether two targets are shared. Within a component, it inherits the equivalence realized by the component hash. We make this precise for an arbitrary component hash. Fix labeled multidigraphs $G_1$ and $G_2$ (possibly equal), and let $W=V_1\sqcup V_2$. For $u\in W$ let $\Scc(u)$ be the SCC of $u$ in its own graph, and let $\hgt(u)$ be the height of $\Scc(u)$. Algorithm~\ref{alg:merklegraphhash} passes the component hash the labels $L'(x)$, which contain hash values, whereas the equivalence we want to characterize is defined on the classes that these hashes stand for. We therefore constrain \textproc{comp\_hash} so that hash equality is unaffected by an injective relabeling of the input strongly connected component: two nodes have equal hashes before the relabeling if and only if they have equal hashes after it.
 
 \begin{defn}[Component and Merkle equivalences]
 \label{def:merkle-eq}
