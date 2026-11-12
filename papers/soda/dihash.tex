@@ -1029,7 +1029,7 @@ In a separate 2018 paper, Arshad et al. \cite{Arshad2018-ij} presented a graph h
 \section{Experimental Results}
 \label{sec:experiments}
 
-We implemented the algorithms of this paper in the dihash Python library\footnote{\url{https://github.com/calebh/dihash}}. Global canonization and orbits use nauty through pynauty \cite{nauty}. The local hashes use a simpler version of canonical color refinement that splits blocks by sorting, which takes $O((n+m)\log^2 n)$ time, and, for bisimilarity, the algorithm of Paige and Tarjan. Ordered local hashing computes the minimal automaton with a canonical version of Hopcroft's algorithm and orders each component with it as well. All hashes use SHA-256 over an injective encoding. Running times were measured with Python 3.13 on a single core of an Intel Xeon processor at 2.1\,GHz.
+We implemented the algorithms of this paper in the dihash Python library\footnote{\url{https://github.com/calebh/dihash}}. Global canonization and orbits use nauty through pynauty \cite{nauty}. The local hashes use a simpler version of canonical colour refinement that splits blocks by sorting, which takes $O((n+m)\log^2 n)$ time, and, for bisimilarity, the algorithm of Paige and Tarjan. Ordered local hashing computes the minimal automaton with a canonical version of Hopcroft's algorithm and orders each component with it as well. All hashes use SHA-256 over an injective encoding. Running times were measured with Python 3.13 on a single core of an Intel Xeon processor at 2.1\,GHz.
 
 \paragraph{Validation.} The test suite of the library compares every hash with an independent brute-force decision of the corresponding equivalence:
 \begin{itemize}
