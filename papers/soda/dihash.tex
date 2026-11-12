@@ -199,14 +199,7 @@ Bisimulation hash $\HB$ & Bisimilarity: matching successor classes without count
 \end{tabular}
 \end{table*}
 
-For roots compared by their reachable subgraphs, the relations form the strict implication chain
-\[
-\text{rooted reachable-subgraph isomorphism}
-\;\Longrightarrow\; \eqg
-\;\Longrightarrow\; \eql
-\;\Longrightarrow\; \text{unfolding isomorphism}
-\;\Longrightarrow\; \text{bisimilarity}.
-\]
+For roots compared by their reachable subgraphs, rooted isomorphism implies $\eqg$, which implies $\eql$, which in turn implies unfolding isomorphism and therefore bisimilarity.
 Proposition~\ref{prop:merkle-position} proves the first three implications are strict; the final one is strict because bisimulation does not count duplicated bisimilar successors. In contrast, the global node hash requires isomorphism of the \emph{entire} input graphs. For clarity, the nauty-based global node and global Merkle schemes are specified for simple digraphs; the general Merkle theorem and the local schemes also handle explicitly represented parallel edges. The ordered-outgoing-edge variants are treated separately in Section~\ref{sec:outgoing-ordered-edge-graphs}.
 
 \section{Preliminaries}
