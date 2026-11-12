@@ -180,6 +180,35 @@ One common theme throughout this paper is reliance on conversion of graphs to \t
 \end{enumerate}
 The hierarchy and intended uses of these hashes are summarized in Table~\ref{tab:equivalences}. Section~\ref{sec:application} gives an implementer-oriented application to content-addressed hyperlinked pages; Section~\ref{sec:experiments} reports brute-force correctness checks and performance measurements.
 
+
+\begin{table*}[t]
+\centering
+\small
+\caption{Node hashing schemes and the equivalence characterized by equality of hashes in the ideal hash model. The global node hash compares nodes in their \emph{entire} graphs; the other rows use only structure reachable from the roots. The two Merkle relations retain SCC boundaries.}
+\label{tab:equivalences}
+\begin{tabular}{@{}p{0.22\textwidth}p{0.51\textwidth}p{0.20\textwidth}@{}}
+\toprule
+Scheme & Equality criterion for rooted vertices & Result \\
+\midrule
+Global node hash $\HN$ & Rooted isomorphism of the entire input graphs; within one graph, membership in the same automorphism orbit. & Theorem~\ref{thm:digraphnodehashcorrect} \\
+Global Merkle $\HMg$ & Global Merkle equivalence $\eqg$: rooted isomorphism of each SCC, with external successors matched recursively. & Corollary~\ref{cor:merkle-global} \\
+Local Merkle $\HMl$ & Local Merkle equivalence $\eql$: isomorphism of SCC-annotated unfoldings. & Proposition~\ref{prop:annotated} \\
+Local hash $\HL$ & Isomorphism of (possibly infinite) unfoldings, without SCC-boundary annotations. & Theorem~\ref{thm:localhashcorrect} \\
+Bisimulation hash $\HB$ & Bisimilarity: matching successor classes without counting duplicate bisimilar successors. & Theorem~\ref{thm:bisimhash} \\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+For roots compared by their reachable subgraphs, the relations form the strict implication chain
+\[
+\text{rooted reachable-subgraph isomorphism}
+\;\Longrightarrow\; \eqg
+\;\Longrightarrow\; \eql
+\;\Longrightarrow\; \text{unfolding isomorphism}
+\;\Longrightarrow\; \text{bisimilarity}.
+\]
+Proposition~\ref{prop:merkle-position} proves the first three implications are strict; the final one is strict because bisimulation does not count duplicated bisimilar successors. In contrast, the global node hash requires isomorphism of the \emph{entire} input graphs. For clarity, the nauty-based global node and global Merkle schemes are specified for simple digraphs; the general Merkle theorem and the local schemes also handle explicitly represented parallel edges. The ordered-outgoing-edge variants are treated separately in Section~\ref{sec:outgoing-ordered-edge-graphs}.
+
 \section{Preliminaries}
 \label{sec:preliminaries}
 
