@@ -43,7 +43,11 @@ def _dfs(start, succ_iter):
         else:
             stack.pop()
 
-def _ordered_edges_hash(g, node, string_hash_fun):
+def _ordered_edges_encoding(g, node):
+    """
+    Returns (encoding, discovery_order, order_lookup) for the DFS serialization of the graph reachable from node: the\
+    labels in discovery order and the out-sequences as discovery indices, encoded injectively before hashing.
+    """
     discovery_order = []
     succ_iter = functools.partial(_port_successors, g)
     for reachable_node in _dfs(node, succ_iter):
@@ -55,7 +59,11 @@ def _ordered_edges_hash(g, node, string_hash_fun):
 
     out_seq = [[order_lookup[succ] for succ in succ_iter(node)] for node in discovery_order]
 
-    return (string_hash_fun(encode((labels, out_seq))), discovery_order, order_lookup)
+    return (encode((labels, out_seq)), discovery_order, order_lookup)
+
+def _ordered_edges_hash(g, node, string_hash_fun):
+    (encoding, discovery_order, order_lookup) = _ordered_edges_encoding(g, node)
+    return (string_hash_fun(encoding), discovery_order, order_lookup)
 
 def ordered_node_hash(g, node, string_hash_fun=hash_sha256):
     """
@@ -77,8 +85,8 @@ def ordered_sc_global_hash(g, hash_nodes=False, string_hash_fun=hash_sha256):
     the order of the outgoing edges), and two nodes have the same node hash if and only if such an isomorphism maps\
     one onto the other.
 
-    The canonical form is the DFS serialization (see ordered_node_hash) with the least hash, taken over the nodes of a\
-    canonically chosen class of nodes with isomorphic ordered unfoldings: a smallest class, and among those the one\
+    The canonical form is the DFS serialization (see ordered_node_hash) whose encoding is lexicographically least,\
+    compared before hashing, taken over the nodes of a canonically chosen class of nodes with isomorphic ordered unfoldings: a smallest class, and among those the one\
     with the least canonical block id. Isomorphisms map this class onto the corresponding class, so the choice is\
     canonical. Runs in O(m log^2 n + c(n+m)) time, plus the cost of hashing, where c is the size of the class. This is\
     near-linear when some class is small, and O(n(n+m)) when all nodes have isomorphic ordered unfoldings, for example\
@@ -105,18 +113,20 @@ def ordered_sc_global_hash(g, hash_nodes=False, string_hash_fun=hash_sha256):
     chosen = min((b for b in range(num_blocks) if size[b] > 0), key=lambda b: (size[b], b))
     candidates = [nodes[p] for p in range(len(nodes)) if block[p] == chosen]
 
-    # The candidates with the least serialization form the orbit of the canonical root, and their discovery orders
-    # give all automorphisms: the automorphism that maps the canonical root to another such candidate maps the i-th
-    # node of the canonical discovery order to the i-th node of that candidate's discovery order.
-    g_hash = None
+    # The candidates whose serialization has the least encoding form the orbit of the canonical root, and their
+    # discovery orders give all automorphisms: the automorphism that maps the canonical root to another such candidate
+    # maps the i-th node of the canonical discovery order to the i-th node of that candidate's discovery order. The
+    # encodings are compared before hashing, so the orbits do not depend on the string hash being collision-free.
+    best_encoding = None
     best_orders = []
     for r in candidates:
-        (r_hash, order, order_lookup) = _ordered_edges_hash(g, r, string_hash_fun=string_hash_fun)
-        if g_hash is None or r_hash < g_hash:
-            (g_hash, canon_order_lookup) = (r_hash, order_lookup)
+        (encoding, order, order_lookup) = _ordered_edges_encoding(g, r)
+        if best_encoding is None or encoding < best_encoding:
+            (best_encoding, canon_order_lookup) = (encoding, order_lookup)
             best_orders = [order]
-        elif r_hash == g_hash:
+        elif encoding == best_encoding:
             best_orders.append(order)
+    g_hash = string_hash_fun(best_encoding)
 
     if not hash_nodes:
         return g_hash
