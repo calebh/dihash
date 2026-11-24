@@ -144,8 +144,6 @@ We study structural hashing of vertex-labeled directed graphs, with a focus on p
 
 Content-addressed storage identifies an object by a hash of its contents. For a tree or an acyclic dependency graph, Merkle hashing makes this construction compositional: each object's hash incorporates the hashes of the objects it references \cite{merkle1987digital,git,ipfs}. For directed graphs with cycles, however, this recursion is not well founded. More fundamentally, there is no single notion of when two graph vertices should be considered the same: an application may care about their positions in an entire graph, their reachable structure, or only the observations made by repeatedly following outgoing edges.
 
-We study hashing of vertex-labeled directed graphs with exact structural guarantees. The central question is: \emph{which equivalence relation is characterized by equality of two node hashes?} Global graph isomorphism distinguishes structures that local observations cannot; the isomorphism classes of infinite unfoldings distinguish multiplicities that bisimulation ignores. Between these extremes, our Merkle constructions hash strongly connected components (SCCs) as units and propagate their hashes along the acyclic condensation graph. We define the induced equivalences independently of the hash function and prove that the algorithms realize them, modulo cryptographic collisions (Section~\ref{sec:hash-model}).
-
 \begin{algorithm}
 \caption{Recursive Merkle-tree Hashing of Ordered Binary Tree}
 \[
@@ -160,7 +158,7 @@ We study hashing of vertex-labeled directed graphs with exact structural guarant
 
 Hashing functions can be extended to trees via a simple extension of Merkle hashing \cite{merkle1987digital}. In Merkle tree hashing, the hash of a node is computed by hashing the concatenation of the node's label with the recursive hash of the node's children. Algorithm \ref{alg:merklehashing} gives a simple recursive implementation of Merkle tree hashing for ordered binary trees. This particular variation of Merkle hashing has seen use in many applications, including cryptocurrency \cite{bitcoin}, version control systems \cite{git}, and distributed hypertext document storage systems \cite{ipfs}. For \emph{unordered} trees, replacing the sequence of child hashes by a sorted multiset of child hashes yields a hash that is invariant under tree isomorphism, in the spirit of the classical Aho--Hopcroft--Ullman tree isomorphism algorithm \cite{aho1974design}.
 
-Algorithm~\ref{alg:merklehashing} breaks down on a directed cycle because the recursive calls do not terminate. Collapsing SCCs solves the termination problem but leaves the choice of an equivalence inside each SCC. Our constructions address both questions. The following schemes make different, explicitly stated choices about what a hash should preserve:
+Algorithm~\ref{alg:merklehashing} breaks down on a directed cycle because the recursive calls do not terminate. Collapsing each \emph{strongly connected component} (SCC), a maximal set of vertices that can all reach each other, into a single vertex gives an acyclic graph and solves the termination problem. It leaves open how the vertices inside a component should be compared, and more generally the question this paper studies: \emph{which equivalence relation is characterized by equality of two node hashes?} For each of our hashing schemes we define this equivalence independently of the hash function and prove that the algorithm realizes it, up to collisions of the underlying string hash (Section~\ref{sec:hash-model}). The schemes make different, explicitly stated choices about what a hash should preserve, from the structure of the entire graph to what can be observed by following edges from a node:
 
 \begin{itemize}
   \item \textbf{Global Hashing} (Section \ref{sec:global-graph-hashing}) --- for use cases where the \textit{global} structure of the digraph is of importance. Two graphs hash equally if and only if they are isomorphic, and two nodes hash equally if and only if some isomorphism of their graphs maps one onto the other; in particular, nodes in the same automorphism orbit hash equally.
@@ -200,7 +198,7 @@ Bisimulation hash $\HB$ & Bisimilarity: matching successor classes without count
 \end{tabular}
 \end{table*}
 
-For roots compared by their reachable subgraphs, rooted isomorphism implies $\eqg$, which implies $\eql$, which in turn implies unfolding isomorphism and therefore bisimilarity.
+For roots compared by their reachable subgraphs, rooted isomorphism implies the global Merkle equivalence, which implies the local Merkle equivalence (Table~\ref{tab:equivalences}), which in turn implies isomorphism of unfoldings and therefore bisimilarity.
 Proposition~\ref{prop:merkle-position} proves the first three implications are strict; the final one is strict because bisimulation does not count duplicated bisimilar successors. In contrast, the global node hash requires isomorphism of the \emph{entire} input graphs. For clarity, the nauty-based global node and global Merkle schemes are specified for simple digraphs; the general Merkle theorem and the local schemes also handle parallel edges. The ordered-outgoing-edge variants are treated separately in Section~\ref{sec:outgoing-ordered-edge-graphs}.
 
 \section{Preliminaries}
