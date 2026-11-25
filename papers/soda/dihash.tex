@@ -288,7 +288,7 @@ All of our schemes serialize a finite structure and apply a string hash $\mathca
 A hash $h$ \emph{realizes} an equivalence relation $\sim$ if (i) $x \sim y$ implies $h(x)=h(y)$, and (ii) whenever $h(x) = h(y)$ but $x \not\sim y$, the computations of $h(x)$ and $h(y)$ contain two distinct strings $s \ne s'$ with $\mathcal{H}(s) = \mathcal{H}(s')$.
 \end{defn}
 
-Condition (ii) says that a failure of the ``only if'' direction exhibits a collision of $\mathcal{H}$. We use the term \emph{ideal hash model} for the mathematical idealization in which different serialized strings receive different formal hash values. This does not claim that any fixed-length cryptographic hash is injective or provide a numerical collision bound. All subsequent statements relating hash equality to structural equivalence are understood in the ideal hash model; for a concrete hash function, they realize their equivalences in the sense of Definition~\ref{def:correct}.
+Condition (ii) says that a failure of the ``only if'' direction exhibits a collision of $\mathcal{H}$. We use the term \emph{ideal hash model} for the mathematical idealization in which different serialized strings receive different formal hash values. This does not claim that any fixed-length cryptographic hash is injective or provide a numerical collision bound. We state the structural characterizations in the ideal hash model. Theorem~\ref{thm:merkle} gives sufficient conditions for the concrete Merkle construction to realize its equivalence in the sense of Definition~\ref{def:correct}.
 
 \section{Global Graph Hashing}
 \label{sec:global-graph-hashing}
@@ -377,7 +377,7 @@ To compute the hash of each node, we process the strongly connected components i
 \paragraph{Which nodes receive equal hashes?}
 Across components, a Merkle hash behaves like a Merkle tree: it compares external targets only through their hashes and ignores whether two targets are shared. Within a component, it inherits the equivalence realized by the component hash parameter. We make this precise for an arbitrary component hash. All relations in this subsection are defined on pairs $(G,u)$ of a finite labeled multidigraph $G$ and a vertex $u$ of $G$, so that vertices of different graphs can be compared; we write $u$ for $(G,u)$ when $G$ is clear. For a vertex $u$, let $\Scc(u)$ be its SCC in its own graph, and let $\hgt(u)$ be the height of this SCC.
 
-Algorithm~\ref{alg:merklegraphhash} passes the component hash the labels $L'(x)$, which contain hash values, whereas the equivalence we want to characterize is defined on the classes that these hashes stand for. We therefore constrain \textproc{comp\_hash} so that hash equality is unaffected by an injective relabeling of the input strongly connected component: two nodes have equal hashes before the relabeling if and only if they have equal hashes after it.
+Algorithm~\ref{alg:merklegraphhash} passes the component hash the labels $L'(x)$, which contain hash values, whereas the equivalence we want to characterize is defined on the classes that these hashes stand for. We therefore require the component equivalence to be invariant under a common injective relabeling of the components being compared.
 
 \begin{defn}[Component and Merkle equivalences]
 \label{def:merkle-eq}
@@ -399,14 +399,26 @@ Rooted isomorphism, isomorphism of unfoldings and bisimilarity (Section~\ref{sec
 \begin{theorem}[Correctness of the Merkle hashes]
 \label{thm:merkle}
 Let \textproc{comp\_hash} realize a component equivalence $\sim$, and let $\approx$ be the Merkle equivalence of $\sim$. In the ideal hash model, $\HM(G_1,\textproc{comp\_hash})[u]=\HM(G_2,\textproc{comp\_hash})[v]$ if and only if $u\approx v$. The same holds for the set variant.
+
+For a concrete string hash $\mathcal{H}$, suppose additionally that \textproc{comp\_hash} realizes $\sim$ in the sense of Definition~\ref{def:correct} and that $\sim$ is preserved by every common relabeling $f$, including noninjective ones:
+\[
+(S,x)\sim(S',x') \implies (f(S),x)\sim(f(S'),x').
+\]
+Then the Merkle hash realizes $\approx$ in the sense of Definition~\ref{def:correct}, both in the multiset and set variants.
 \end{theorem}
 \begin{proof}
-Consider any two input graphs, with computed hashes $h_1,h_2$. We induct on $h=\max(\hgt(u),\hgt(v))$, establishing the claim for every pair at that height. When $h=0$ there are no external successors, so the labels passed to the component hash are exactly the component labels used to define $\approx_0$.
+First work in the ideal hash model. Consider any two input graphs, with computed hashes $h_1,h_2$. We induct on $h=\max(\hgt(u),\hgt(v))$, establishing the claim for every pair at that height. When $h=0$ there are no external successors, so the labels passed to the component hash are exactly the component labels used to define $\approx_0$.
 
 For $h>0$, the induction hypothesis applies to all pairs of vertices of height below $h$ in the two inputs, including pairs from the same input. Hence the map from an $\approx_{h-1}$-class of external successors to their common computed hash is well defined and injective on the classes represented in the two inputs. Crucially, this is \emph{one map shared across both graphs}, not a separately chosen map for each input.
 
 Apply the map elementwise to the multisets $X_h(x)$. For every vertex $x$ of either compared component, its idealized label $(L(x),X_h(x))$ is thereby sent to the computed label $(L(x),X(x))$. On the union of the label sets of the two components this gives a single injective relabeling. By the common-relabeling property of $\sim$, the two computed components are $\sim$-equivalent at $u,v$ precisely when the components $C_h(u),C_h(v)$ are, i.e.\ precisely when $u\approx_h v$, or equivalently $u\approx v$. Since the component hash realizes $\sim$, this is equivalent to equality of the computed hashes. The same proof works with sets in place of multisets.
+
+For a concrete $\mathcal{H}$, we first prove condition (i) of Definition~\ref{def:correct} by the same induction. At height zero, condition (i) for the component hash gives the claim. At positive height, the induction hypothesis makes the map from external classes to their digests well defined. This map may identify classes, but it still gives a common relabeling of the two components. If $u\approx v$, preservation under this relabeling makes the computed components $\sim$-equivalent at $u,v$. Condition (i) for the component hash then gives equal hashes.
+
+For condition (ii), assume there is no collision among the calls to $\mathcal{H}$ in the two Merkle computations. We again induct on $h$. The comparison at height zero now follows from condition (ii) for the component hash. At positive height, the induction hypothesis gives injectivity of the map on external classes, since their hashes were computed in the same two collision-free computations. Equality of the root hashes implies $\sim$-equivalence of the computed components by condition (ii) for the component hash. Reflection under the resulting injective relabeling gives $u\approx v$. The relabeling acts elementwise in both variants, with repeated images counted in the multiset variant and collapsed in the set variant.
 \end{proof}
+
+Rooted isomorphism, unfolding isomorphism and bisimilarity satisfy the preservation hypothesis for the concrete case. A common relabeling preserves every label equality used by the isomorphism or bisimulation witnessing the equivalence. This also applies to the ordered versions of the relations.
 
 \paragraph{The global Merkle hash.} In the \emph{global variant} $\HMg$, for simple digraphs, the component hash is the global node hash (Algorithm~\ref{alg:digraph-node-hash}), which realizes rooted isomorphism by Theorem~\ref{thm:digraphnodehashcorrect}. The general multidigraph Merkle construction still applies with any component hash realizing the desired component equivalence, but the global component hash implemented here is specified only for simple digraphs. Theorem~\ref{thm:merkle} therefore gives the following.
 
