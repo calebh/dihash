@@ -144,7 +144,7 @@ We study structural hashing of vertex-labeled directed graphs, with a focus on p
 
 Content-addressed storage identifies an object by a hash of its contents. For a tree or an acyclic dependency graph, Merkle hashing makes this construction compositional: each object's hash incorporates the hashes of the objects it references \cite{merkle1987digital,git,ipfs}. For directed graphs with cycles, however, this recursion is not well founded. More fundamentally, there is no single notion of when two graph vertices should be considered the same: an application may care about their positions in an entire graph, their reachable structure, or only the observations made by repeatedly following outgoing edges.
 
-For the tree example below, every internal node has both a left and a right child. Let $\mathcal{H}$ be a string hash and let $\enc$ be the injective serialization of Section~\ref{sec:hash-model}.
+Algorithm \ref{alg:merklehashing} gives a simple recursive implementation of Merkle tree hashing for ordered binary trees. This particular variation of Merkle hashing has seen use in many applications, including cryptocurrency \cite{bitcoin}, version control systems \cite{git}, and distributed hypertext document storage systems \cite{ipfs}. For \emph{unordered} trees, replacing the sequence of child hashes by a sorted multiset of child hashes yields a hash that is invariant under tree isomorphism.
 
 \begin{algorithm}
 \caption{Recursive Merkle Hashing of a Full Ordered Binary Tree}
@@ -152,14 +152,12 @@ For the tree example below, every internal node has both a left and a right chil
 \[
 \operatorname{mh}(n) =
 \begin{cases}
-    \mathcal{H}\bigl(\enc((0,L(n)))\bigr) & n \text{ is a leaf} \\
-    \mathcal{H}\bigl(\enc((1,L(n),\operatorname{mh}(n_{\mathrm{left}}),\operatorname{mh}(n_{\mathrm{right}})))\bigr)
+    \mathcal{H}\bigl(\enc((L(n),))\bigr) & n \text{ is a leaf} \\
+    \mathcal{H}\bigl(\enc((L(n),\operatorname{mh}(n_{\mathrm{left}}),\operatorname{mh}(n_{\mathrm{right}})))\bigr)
     & n \text{ is internal}
 \end{cases}
 \]
 \end{algorithm}
-
-Algorithm~\ref{alg:merklehashing} applies Merkle hashing \cite{merkle1987digital} to a node label $L(n)$ and the hashes of its children. The tags distinguish leaf records from internal-node records, and the two child hashes occur in left-to-right order. Isomorphic labeled ordered trees give identical records at corresponding nodes by induction from the leaves. Conversely, if the root hashes agree and the two computations contain no collision of $\mathcal{H}$, injectivity of $\enc$ gives equal tags and labels and, at internal nodes, equal hashes for corresponding children. Recursing on the children gives an isomorphism. Merkle hashing is used in cryptocurrency \cite{bitcoin}, version control systems \cite{git}, and distributed hypertext document storage systems \cite{ipfs}. For \emph{unordered} trees, sorting the child hashes before encoding yields a hash that is invariant under tree isomorphism, in the spirit of the classical Aho--Hopcroft--Ullman tree isomorphism algorithm \cite{aho1974design}.
 
 Applying the same recursion directly to a digraph fails to terminate if a directed cycle is reachable from the starting vertex. Collapsing each \emph{strongly connected component} (SCC), a maximal set of vertices that can all reach each other, into a single vertex gives an acyclic graph and solves the termination problem. It leaves open how the vertices inside a component should be compared, and more generally the question this paper studies: \emph{which equivalence relation is characterized by equality of two node hashes?} For each of our hashing schemes we define this equivalence independently of the hash function and prove that the algorithm realizes it, up to collisions of the underlying string hash (Section~\ref{sec:hash-model}). The schemes make different, explicitly stated choices about what a hash should preserve, from the structure of the entire graph to what can be observed by following edges from a node:
 
@@ -172,7 +170,7 @@ Applying the same recursion directly to a digraph fails to terminate if a direct
 
 One common theme throughout this paper is reliance on conversion of graphs to \textit{canonical form}. If two graphs (or nodes within them) can be converted to a canonical form, we can serialize the canonical form and pass it through an ordinary string hashing function. We distinguish carefully between the hash of an entire graph and the hash of a specific node within a graph. Our general strategy for computing the hash of a specific node is to combine the overall graph hash with the node's position in canonical order, taking care that this position accounts for any symmetry present in the graph (two nodes may be identical modulo automorphism).
 
-\paragraph{Contributions.} Our main results are:
+\paragraph{Our contributions.}
 \begin{enumerate}[leftmargin=*,nosep]
   \item A general SCC-based Merkle theorem characterizing hash equality for any component hash that realizes an injective-relabeling-invariant equivalence (Theorem~\ref{thm:merkle}), together with a strict hierarchy of structural equivalences (Proposition~\ref{prop:merkle-position}).
   \item Cross-graph comparable local hashes for unfolding isomorphism and bisimilarity (Theorems~\ref{thm:localhashcorrect} and~\ref{thm:bisimhash}), using canonical color refinement \cite{berkholz2017tight} and the Merkle hash of the unfolding quotient. Both run in $O((n+m)\log(n+m))$ time, plus label and hashing costs (Section~\ref{sec:cost-model}).
