@@ -273,6 +273,8 @@ By construction $\rho$ is an isomorphism $G\to\canon(G)$. It is determined only 
   \label{fig:condensation}
 \end{figure}
 
+\footnotetext{\url{https://commons.wikimedia.org/wiki/File:Graph_Condensation.svg}}
+
 \subsection{Strongly connected components.}
 A \textit{strongly connected component} (SCC) of a digraph is a maximal set of vertices such that there is a path between any two of them. The \textit{condensation graph} is formed by contracting each SCC into a single node; it is acyclic, and all SCCs together with the condensation can be computed in linear time \cite{tarjan1972depth}. The \emph{height} of an SCC is the number of edges on a longest path starting from it in the condensation. Figure \ref{fig:condensation} shows an example.
 
@@ -307,8 +309,6 @@ Condition (ii) says that a failure of the ``only if'' direction exhibits a colli
 \end{algorithm}
 
 In global graph hashing, we would like our computed hash values to be unique modulo graph isomorphism: $\HG(G_1)=\HG(G_2)$ if and only if $G_1 \iso G_2$. We canonize the input digraph and construct an adjacency list sorted in canonical order. The node labels (in canonical order) and the canonical adjacency list are then serialized and hashed using a string hashing function $\mathcal{H}$. Algorithm \ref{digraphhash} gives an implementation of this approach. Note that the pair (labels, adj\_list) is exactly an encoding of $\canon(G)$: the number of vertices is the length of the label list, so isolated vertices are accounted for.
-
-\footnotetext{\url{https://commons.wikimedia.org/wiki/File:Graph_Condensation.svg}}
 
 \begin{theorem}[Correctness of the global graph hash]
 \label{thm:digraphhashcorrect}
@@ -435,7 +435,7 @@ Spelled out, $u\eqg v$ if and only if there is a bijection $\phi:\Scc(u)\to \Scc
 \section{Local Graph Hashing}
 \label{sec:local-graph-hashing}
 
-\begin{figure*}[!b]
+\begin{figure*}[!t]
 \centering
 \begin{tikzpicture}[
   x=0.85cm, y=0.85cm,
