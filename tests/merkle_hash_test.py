@@ -1,7 +1,12 @@
+from ast import literal_eval
+
 import networkx as nx
+import pytest
+
 import dihash
-from dihash.merkle_hash import GlobalMH, LocalMH
+from dihash.merkle_hash import GlobalMH, LocalMH, OrderedGlobalMH, OrderedLocalMH
 from dihash.local_hash import LocalHashVariant
+from dihash.util import encode, hash_sha256
 
 def test_merkle_hash_graph():
     g1 = nx.DiGraph()
@@ -122,6 +127,54 @@ def test_merkle_hash_graph2():
     assert(node_hashes3[0] != node_hashes1[0])
 
     print("test_merkle_hash_graph2 passed")
+
+def test_ordered_merkle_records_preserve_page_text_and_links():
+    graph = nx.DiGraph()
+    page = '<a href="">External</a><a href="">Internal</a>'
+    graph.add_node("page", label=page)
+    graph.add_node("sink", label="<p>Sink</p>")
+    graph.add_edge("page", "sink", port=0)
+    graph.add_edge("page", "page", port=1)
+    records = {}
+
+    def store(record):
+        key = hash_sha256(record)
+        records[key] = record
+        return key
+
+    _, _, keys = dihash.merkle_hash(graph, OrderedLocalMH(), string_hash_fun=store)
+    page_index, component_key = literal_eval(records[keys["page"]])
+    labels, internal_links = literal_eval(records[component_key])
+    assert labels[page_index] == (page, [keys["sink"], ()])
+    assert internal_links[page_index] == [page_index]
+
+    sink_index, sink_component_key = literal_eval(records[labels[page_index][1][0]])
+    sink_labels, sink_links = literal_eval(records[sink_component_key])
+    assert sink_labels[sink_index] == ("<p>Sink</p>", [])
+    assert sink_links[sink_index] == []
+
+
+@pytest.mark.parametrize("variant", [OrderedGlobalMH(), OrderedLocalMH()])
+def test_ordered_merkle_internal_marker_is_distinct_from_string_digests(variant):
+    graph = nx.DiGraph()
+    graph.add_node("root", label="root")
+    graph.add_node("sink", label="sink")
+    graph.add_edge("root", "root", port=0)
+    graph.add_edge("root", "sink", port=1)
+
+    sink_component = encode(([("sink", [])], [[]]))
+    sink_reference = encode((0, "!" + sink_component))
+
+    def injective_hash(record):
+        return "*" if record == sink_reference else "!" + record
+
+    _, _, keys = dihash.merkle_hash(graph, variant, string_hash_fun=injective_hash)
+    graph["root"]["root"]["port"] = 1
+    graph["root"]["sink"]["port"] = 0
+    _, _, swapped_keys = dihash.merkle_hash(graph, variant, string_hash_fun=injective_hash)
+    assert keys["sink"] == swapped_keys["sink"] == "*"
+    assert keys["root"] != swapped_keys["root"]
+
 
 if __name__ == "__main__":
     test_merkle_hash_graph()

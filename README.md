@@ -334,13 +334,15 @@ The Merkle graph hashing algorithm has the following definition:
   - `OrderedGlobalMH()`: For graphs with ordered edges (see "Ordered Outgoing Edges"). Each SCC is hashed with `ordered_sc_global_hash`, and the positions of the links that leave the SCC are recorded. This variant is near-linear when every SCC has a node that is alone in its class of nodes with isomorphic ordered unfoldings, and quadratic in the size of the largest SCC in the worst case.
   - `OrderedLocalMH()`: For graphs with ordered edges. Each SCC is hashed with `ordered_sc_local_hash`, and the positions of the links that leave the SCC are recorded. Two nodes have the same hash if and only if their ordered unfoldings are isomorphic, when every edge is marked by whether it stays inside its SCC or leaves it. This variant always runs in O(m log² n) time.
 - nodes_to_hash: A list of nodes to hash in the graph. If nodes_to_hash is None, all nodes in the input graph will be hashed.
-- precomputed_hashes: A dictionary mapping nodes to their hashes (should be encoded as a string hexdigest). This parameter is useful if you are hashing graphs built up over time. If a node has a hash set in the dictionary, that node's precomputed hash will be used instead of recursively hashing the graph. The precomputed hashes must have been computed with the same variant and string_hash_fun.
+- precomputed_hashes: A dictionary mapping nodes to digest strings. This parameter is useful if you are hashing graphs built up over time. The precomputed hashes must use the same encoding, variant and string_hash_fun. Recompute stored Merkle keys from versions that hashed the augmented node label before hashing its SCC.
 - string_hash_fun: A function which maps strings to a string. The default value, hash_sha256 hashes by using hashlib.sha256 and converting to the result to a hex digest.
 
 `merkle_hash` has the following outputs:
 - scc_hashes: A dictionary mapping strongly connected component integer IDs to string hex digests. The integers represent specific strongly connected components in the input graph. To retrieve the SCC integer ID for some node n, use `cond.graph['mapping'][n]`.
 - cond: The condensation digraph of the input graph, computed using [`nx.algorithms.components.condensation`](https://networkx.org/documentation/stable/reference/algorithms/generated/networkx.algorithms.components.condensation.html).
 - node_hashes: A dictionary mapping nodes to hashes. This dictionary includes the hashes of all nodes that were involved in the computation of `merkle_hash`.
+
+The component record contains each original label and its external digests. Ordered records represent internal ports with an empty tuple, which is distinct from any digest string. For content-addressed storage, supply a `string_hash_fun` callback that stores each encoded component or node record under its computed digest before returning the digest.
 
 Like Merkle trees, the Merkle hashes do not distinguish between a subgraph that is shared and two separate copies of it: if two nodes point to the same node `s`, they get the same hashes as if they each pointed to their own copy of `s`.
 
@@ -380,11 +382,11 @@ print(scc_hashes[cond.graph['mapping'][1]]) # Print the hash for the SCC contain
 The following output is printed:
 
 ```
-0794c37c25dd026eab1c46c607a7a44f1faaf32f8d0f7dfdaf7728a25707a9dc
-bfc739cd7c6a58b48424e223aac326ef10dec739405c1b53f4f7d43a155f3184
-bfc739cd7c6a58b48424e223aac326ef10dec739405c1b53f4f7d43a155f3184
-0794c37c25dd026eab1c46c607a7a44f1faaf32f8d0f7dfdaf7728a25707a9dc
-85b266c448a1a204f192fe227db6b2e220435ec240cc6dfea844594af8534d5d
+9a9a4dfce4cdf1e0abd9b5a52dd5d316635ba8eda66b0644c7a9d5f5d30340e4
+7f95ea69851177724b92af2cc7fa470b0eec7a41dc6092b95e4b4a1da9f4be60
+7f95ea69851177724b92af2cc7fa470b0eec7a41dc6092b95e4b4a1da9f4be60
+9a9a4dfce4cdf1e0abd9b5a52dd5d316635ba8eda66b0644c7a9d5f5d30340e4
+16fad91cd4f0bfa8cddc5857af2ac43eac3a1d443e5ea9dc84c886aad5bd2
 ```
 
 The global and local variants differ inside cycles. A node with a self-loop and a node in a 2-cycle have different SCCs, so the global variant distinguishes them, but their unfoldings are identical, so the local variant does not:

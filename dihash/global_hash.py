@@ -5,8 +5,8 @@ def _nauty_graph(g):
     """
     Convert a NetworkX graph to a nauty graph
 
-    :param g: A NetworkX digraph with node labels represented as strings, stored in the 'label' field of the NetworkX\
-    node attribute dictionary
+    :param g: A NetworkX digraph with encodable node labels stored in the 'label' field of the node attribute\
+    dictionary
     :return: A nauty graph
     """
     # Map each node to a natural number 0,...,n-1 in an arbitrary order. The number of a node is a node index
@@ -17,7 +17,7 @@ def _nauty_graph(g):
     # Dictionary mapping node labels to a set of node indices
     colorings_lookup = {}
     for n in g.nodes:
-        label = g.nodes[n]['label']
+        label = encode(g.nodes[n]['label'])
         if label not in colorings_lookup:
             colorings_lookup[label] = set()
         colorings_lookup[label].add(node_to_idx[n])
@@ -83,9 +83,7 @@ def global_hash(g, hash_nodes=False, string_hash_fun=hash_sha256):
     """
     Computes a global graph hash using nauty. This function may run in exponential time.
 
-    :param g: A NetworkX digraph. Each node should have a 'label' entry in its node attribute dictionary. The value of\
-    this entry should be a string which determines the label of that node. g may optionally have a graph attribute\
-    named 'label', which is a label for the entire graph
+    :param g: A NetworkX digraph with an encodable 'label' value in each node's attribute dictionary.
     :param hash_nodes: A boolean value. If True, hash_graph also returns a dictionary giving the hashes of all nodes in\
     the graph
     :param string_hash_fun: A function which maps strings to a string. The default value, hash_sha256 hashes by using\

@@ -3,8 +3,8 @@ import functools
 import networkx as nx
 
 from dihash.local_hash import local_sc_hash, LocalHashVariant
-from dihash.ordered_hash import ordered_sc_global_hash, ordered_sc_local_hash, _port_successors
-from dihash.util import encode, hash_sha256
+from dihash.ordered_hash import ordered_sc_global_hash, ordered_sc_local_hash, _INTERNAL, _port_successors
+from dihash.util import hash_sha256
 from dihash.global_hash import global_hash
 
 class MerkleHashVariant:
@@ -46,7 +46,7 @@ class OrderedLocalMH(MerkleHashVariant):
     """
     pass
 
-def _hash_scc(g, cond, root_scc, scc_hashes, node_hashes, string_hash_fun, comp_hash, variant: MerkleHashVariant):
+def _hash_scc(g, cond, root_scc, scc_hashes, node_hashes, comp_hash, variant: MerkleHashVariant):
     # Post-order traversal of the condensation graph with an explicit stack (a recursive traversal exceeds Python's
     # recursion limit on long chains of SCCs). An SCC is hashed once all SCCs it points to have been hashed.
     stack = [(root_scc, False)]
@@ -73,14 +73,14 @@ def _hash_scc(g, cond, root_scc, scc_hashes, node_hashes, string_hash_fun, comp_
         for s in scc_members:
             non_scc_succs = frozenset(g.successors(s)) - scc_members
             if isinstance(variant, (OrderedGlobalMH, OrderedLocalMH)):
-                new_labels = [node_hashes[t] if t in non_scc_succs else "*" for t in _port_successors(g, s)]
+                new_labels = [node_hashes[t] if t in non_scc_succs else _INTERNAL for t in _port_successors(g, s)]
             else:
                 if isinstance(variant, LocalMH) and variant.local_hash_variant == LocalHashVariant.BISIMULATION:
                     new_labels = sorted({node_hashes[t] for t in non_scc_succs})
                 else:
                     # one entry per edge, so that repeated links in a MultiDiGraph count with multiplicity
                     new_labels = sorted(node_hashes[t] for (_, t) in g.out_edges(s) if t in non_scc_succs)
-            scc_graph.nodes[s]['label'] = string_hash_fun(encode((g.nodes[s]['label'], new_labels)))
+            scc_graph.nodes[s]['label'] = (g.nodes[s]['label'], new_labels)
 
         (scc_hash, scc_node_hashes) = comp_hash(scc_graph)
 
@@ -95,10 +95,10 @@ def merkle_hash(g: nx.DiGraph, variant: MerkleHashVariant, nodes_to_hash=None, p
     :param variant: The particular Merkle hash variant to use. See the docstrings for the subclasses of\
     MerkleHashVariant for more info.
     :param nodes_to_hash: The nodes that we want to compute the Merkle hash of
-    :param precomputed_hashes: A precomputed dict of node Merkle hashes. This parameter should be a dict mapping\
-    nodes to hashes. This parameter is useful for graphs that are built up over time. In this case we can\
-    simulate a graph built up over time.
-    :param string_hash_fun: The string hashing function to use.
+    :param precomputed_hashes: A dict mapping nodes to hashes computed with the same encoding, variant and hash\
+    function, for reuse when a graph is built up over time.
+    :param string_hash_fun: A function from encoded strings to digest strings. It receives the encoded component\
+    and node records and can store those strings under their digests for content-addressed retrieval.
     :return: A tuple with three elements (scc_hashes, cond, node_hashes). The scc_hashes is a dict of SCCs to their\
     overall hashes. cond is the condensation graph computed in the Merkle hashes using the\
     nx.algorithms.components.condensation function. node_hashes maps nodes to their hashes.
@@ -127,6 +127,6 @@ def merkle_hash(g: nx.DiGraph, variant: MerkleHashVariant, nodes_to_hash=None, p
         raise NotImplementedError(f"Unknown variant {variant}")
 
     for r in roots:
-        _hash_scc(g, cond, r, scc_hashes, node_hashes, string_hash_fun, component_hash, variant)
+        _hash_scc(g, cond, r, scc_hashes, node_hashes, component_hash, variant)
 
     return (scc_hashes, cond, node_hashes)
